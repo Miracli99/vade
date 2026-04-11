@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Vade Retro Companion",
+    "slug": "vade-retro-companion",
+    "scheme": "vaderetro",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "platforms": [
+      "android",
+      "web"
+    ],
+    "android": {
+      "package": "com.vaderetro.companion"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
