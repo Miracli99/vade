@@ -7,11 +7,12 @@ export const sampleCharacters: Character[] = [
     archetypeId: "lecteur",
     archetype: "Lecteur de versets",
     specialization: "Aria",
+    bio: "Exorciste de terrain, Agnes impose ses versets dans le chaos et tient la ligne quand tout vacille.",
     imageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=320&q=80",
     theme: "ange",
     level: 4,
     pv: { current: 18, max: 24, bonus: 2 },
-    psy: { current: 11, max: 15, bonus: 1 },
+    psy: { current: 11, max: 15, bonus: 0 },
     armor: { current: 3, max: 5, bonus: 0 },
     attackBonus: 0,
     stats: {
@@ -32,6 +33,9 @@ export const sampleCharacters: Character[] = [
         icon: "🗡️",
         imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image11.png"),
         notes: "Au combat, inflige toujours les degats maximums en posture combat.",
+        usableLabel: "Liberation du sceau",
+        usePsyCost: 2,
+        reducible: true,
         tags: ["ange", "sceau", "corps-a-corps"],
         activeEffects: [
           {
@@ -59,6 +63,7 @@ export const sampleCharacters: Character[] = [
         imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image11.png"),
         basePsyCost: 4,
         reducible: true,
+        augmentable: true,
         description: "Aveugle une cible pendant un tour.",
         tags: ["ange", "sceau", "controle"],
         activeEffects: [
@@ -77,6 +82,7 @@ export const sampleCharacters: Character[] = [
         icon: "🜂",
         basePsyCost: 3,
         reducible: false,
+        augmentable: false,
         description: "Ajoute 2 d'armure psychique jusqu'a la fin de la scene.",
         tags: ["protection", "esprit", "ange"],
         activeEffects: [],
@@ -140,6 +146,7 @@ export const sampleCharacters: Character[] = [
     archetypeId: "tireur",
     archetype: "Tireur",
     specialization: "Ritualiste",
+    bio: "Chasseur pragmatique, Marco prepare ses zones, ouvre les combats a distance et couvre les replis.",
     imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=320&q=80",
     theme: "humain",
     level: 3,
@@ -164,6 +171,9 @@ export const sampleCharacters: Character[] = [
         category: "Arme",
         icon: "🏹",
         imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image12.png"),
+        usableLabel: "Trait consacre",
+        usePsyCost: 3,
+        reducible: false,
         tags: ["distance", "rituel"],
         activeEffects: [
           {
@@ -200,6 +210,7 @@ export const sampleCharacters: Character[] = [
         imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image18.png"),
         basePsyCost: 5,
         reducible: true,
+        augmentable: true,
         description: "Trace une zone rituelle qui fragilise les demons.",
         tags: ["rituel", "zone", "vide"],
         activeEffects: [

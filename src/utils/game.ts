@@ -12,12 +12,24 @@ export const stanceDescriptions: Record<CombatStance, string> = {
   defensif: "Autorise parade et esquive.",
 };
 
-export function getSpellCost(spell: Spell, stance: CombatStance) {
-  if (!spell.reducible || stance !== "focus") {
-    return spell.basePsyCost;
+export function getReducibleCost(baseCost: number, reducible: boolean, stance: CombatStance) {
+  if (!reducible || stance !== "focus") {
+    return baseCost;
   }
 
-  return Math.max(0, spell.basePsyCost - 1);
+  return Math.max(0, baseCost - 1);
+}
+
+export function getSpellCost(spell: Spell, stance: CombatStance) {
+  return getReducibleCost(spell.basePsyCost, spell.reducible, stance);
+}
+
+export function getScaledSpellCost(
+  spell: Spell,
+  stance: CombatStance,
+  extraPsy: number = 0,
+) {
+  return getSpellCost(spell, stance) + Math.max(0, extraPsy);
 }
 
 export function clampValue(value: number, max: number) {

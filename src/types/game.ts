@@ -60,6 +60,10 @@ export type EquipmentItem = {
   imageUrl?: string;
   imageModule?: number;
   notes?: string;
+  usableLabel?: string;
+  usePsyCost?: number;
+  reducible?: boolean;
+  grantedSpell?: Spell;
   tags: string[];
   activeEffects: Effect[];
   passiveEffects: Effect[];
@@ -73,6 +77,7 @@ export type Spell = {
   imageModule?: number;
   basePsyCost: number;
   reducible: boolean;
+  augmentable?: boolean;
   description: string;
   tags: string[];
   activeEffects: Effect[];
@@ -96,6 +101,7 @@ export type Character = {
   archetypeId: ArchetypeId;
   archetype: string;
   specialization?: string;
+  bio?: string;
   imageUrl?: string;
   imageModule?: number;
   theme: CharacterTheme;

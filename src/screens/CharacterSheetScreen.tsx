@@ -14,6 +14,22 @@ import {
 } from "react-native";
 
 import { Section } from "../components/Section";
+import { AssetVisual } from "../components/character-sheet/AssetVisual";
+import {
+  EditorField,
+  EditorFieldThemeProvider,
+} from "../components/character-sheet/EditorField";
+import { EquipmentSection } from "../components/character-sheet/EquipmentSection";
+import { InventorySection } from "../components/character-sheet/InventorySection";
+import {
+  AdjustButton,
+  AttackBonusCard,
+  ResourceMeter,
+} from "../components/character-sheet/ResourceCards";
+import { ResourcesSection } from "../components/character-sheet/ResourcesSection";
+import { SpellsSection } from "../components/character-sheet/SpellsSection";
+import { StatsSkillsSection } from "../components/character-sheet/StatsSkillsSection";
+import { StatusSections } from "../components/character-sheet/StatusSections";
 import { sampleCharacters } from "../data/sampleCharacters";
 import {
   ArchetypeId,
@@ -29,7 +45,14 @@ import {
   Spell,
   StatusEffect,
 } from "../types/game";
-import { clampValue, getSpellCost, stanceDescriptions, stanceLabels } from "../utils/game";
+import {
+  clampValue,
+  getReducibleCost,
+  getScaledSpellCost,
+  getSpellCost,
+  stanceDescriptions,
+  stanceLabels,
+} from "../utils/game";
 import {
   exportCharacters,
   importCharacters,
@@ -46,6 +69,7 @@ const THEME_BACKGROUNDS: Record<CharacterTheme, number> = {
   humain: require("../../assets/themes/humain.png"),
   nain: require("../../assets/themes/nain.png"),
 };
+const APP_LOGO = require("../../assets/vade-retro-logo.png");
 const STAT_ICONS: Record<keyof Character["stats"], string> = {
   physique: "⚔",
   mentale: "✦",
@@ -448,7 +472,21 @@ function cloneTemplate<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function createTemplateCharacter(archetypeId: ArchetypeId = "libre"): Character {
+function normalizeSpell(spell: Spell): Spell {
+  return {
+    ...spell,
+    imageModule: spell.imageModule,
+    augmentable:
+      spell.augmentable ??
+      Boolean((spell as Spell & { scaling?: { label?: string; bonusPerPsy?: string } }).scaling),
+    tags: spell.tags ?? [],
+  };
+}
+
+function createTemplateCharacter(
+  archetypeId: ArchetypeId = "libre",
+  specialization?: string,
+): Character {
   const archetypeOption =
     ARCHETYPE_OPTIONS.find((option) => option.id === archetypeId) ??
     ARCHETYPE_OPTIONS[ARCHETYPE_OPTIONS.length - 1]!;
@@ -456,7 +494,9 @@ function createTemplateCharacter(archetypeId: ArchetypeId = "libre"): Character 
 
   return {
     id: makeId("character"),
-    name: "Nouveau personnage",
+    name:
+      archetypeId === "libre" ? "Nouveau personnage" : `Nouveau ${archetypeOption.label}`,
+    bio: "",
     imageUrl: "",
     imageModule: undefined,
     level: 1,
@@ -465,6 +505,7 @@ function createTemplateCharacter(archetypeId: ArchetypeId = "libre"): Character 
     inventory: [],
     stance: "focus",
     ...template,
+    specialization: specialization ?? template.specialization,
   };
 }
 
@@ -473,18 +514,19 @@ function normalizeCharacter(character: Character): Character {
     ...character,
     archetypeId: character.archetypeId ?? "libre",
     specialization: character.specialization ?? "",
+    bio: character.bio ?? "",
     theme: character.theme ?? "humain",
+    pv: { ...character.pv, bonus: character.pv?.bonus ?? 0 },
+    psy: { ...character.psy, bonus: 0 },
+    armor: { ...character.armor, bonus: character.armor?.bonus ?? 0 },
     imageModule: character.imageModule,
     equipment: character.equipment.map((item) => ({
       ...item,
       imageModule: item.imageModule,
+      grantedSpell: item.grantedSpell ? normalizeSpell(item.grantedSpell) : undefined,
       tags: item.tags ?? [],
     })),
-    spells: character.spells.map((spell) => ({
-      ...spell,
-      imageModule: spell.imageModule,
-      tags: spell.tags ?? [],
-    })),
+    spells: character.spells.map(normalizeSpell),
     inventory: character.inventory.map((item) => ({
       ...item,
       imageModule: item.imageModule,
@@ -511,15 +553,49 @@ type EditorSection =
   | "equipment"
   | "inventory";
 
+type OverlayMenu =
+  | "character"
+  | "theme"
+  | "stance"
+  | "bioView"
+  | "bioEdit"
+  | "quickCast"
+  | "quickRecovery"
+  | "editorArchetype"
+  | "editorSpecialization";
+
+type CreationDraft = {
+  archetypeId: ArchetypeId;
+  specialization: string;
+  step: 1 | 2;
+};
+
+type DamageDraft = {
+  amount: string;
+  ignoreArmor: boolean;
+};
+
+type RecoveryDraft = {
+  amount: string;
+  mode: "heal" | "shield";
+};
+
+type QuickCastDraft = {
+  kind: "spell" | "equipment" | "equipmentSpell";
+  id: string;
+  sourceEquipmentId?: string;
+  extraPsy: number;
+};
+
 export function CharacterSheetScreen() {
   const { width } = useWindowDimensions();
   const [characters, setCharacters] = useState(sampleCharacters);
   const [selectedId, setSelectedId] = useState(sampleCharacters[0]?.id ?? "");
-  const [characterMenuOpen, setCharacterMenuOpen] = useState(false);
-  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
-  const [stanceMenuOpen, setStanceMenuOpen] = useState(false);
-  const [editorArchetypeMenuOpen, setEditorArchetypeMenuOpen] = useState(false);
-  const [editorSpecializationMenuOpen, setEditorSpecializationMenuOpen] = useState(false);
+  const [activeOverlayMenu, setActiveOverlayMenu] = useState<OverlayMenu | null>(null);
+  const [creationDraft, setCreationDraft] = useState<CreationDraft | null>(null);
+  const [damageDraft, setDamageDraft] = useState<DamageDraft | null>(null);
+  const [recoveryDraft, setRecoveryDraft] = useState<RecoveryDraft | null>(null);
+  const [quickCastDraft, setQuickCastDraft] = useState<QuickCastDraft | null>(null);
   const [draftCharacter, setDraftCharacter] = useState<Character | null>(null);
   const [editorSection, setEditorSection] = useState<EditorSection>("all");
   const [storageReady, setStorageReady] = useState(false);
@@ -570,11 +646,43 @@ export function CharacterSheetScreen() {
     return null;
   }
   const activeTheme = THEME_PRESETS[selectedCharacter.theme ?? "humain"];
+  const selectedQuickCastSpell =
+    quickCastDraft?.kind === "spell"
+      ? selectedCharacter.spells.find((spell) => spell.id === quickCastDraft.id) ?? null
+      : null;
+  const selectedQuickCastEquipmentSpellSource =
+    quickCastDraft?.kind === "equipmentSpell"
+      ? selectedCharacter.equipment.find((item) => item.id === quickCastDraft.sourceEquipmentId) ??
+        null
+      : null;
+  const selectedQuickCastEquipmentSpell =
+    quickCastDraft?.kind === "equipmentSpell"
+      ? selectedQuickCastEquipmentSpellSource?.grantedSpell?.id === quickCastDraft.id
+        ? selectedQuickCastEquipmentSpellSource.grantedSpell
+        : null
+      : null;
+  const selectedQuickCastEquipment =
+    quickCastDraft?.kind === "equipment"
+      ? selectedCharacter.equipment.find((item) => item.id === quickCastDraft.id) ?? null
+      : null;
   const selectedArchetypeOption =
     (draftCharacter
       ? ARCHETYPE_OPTIONS.find((option) => option.id === draftCharacter.archetypeId)
       : undefined) ?? ARCHETYPE_OPTIONS[ARCHETYPE_OPTIONS.length - 1]!;
+  const creationArchetypeOption =
+    (creationDraft
+      ? ARCHETYPE_OPTIONS.find((option) => option.id === creationDraft.archetypeId)
+      : undefined) ?? ARCHETYPE_OPTIONS[ARCHETYPE_OPTIONS.length - 1]!;
   const editingAll = editorSection === "all";
+  const isPhone = width < 720;
+  const isLaptop = width >= 1280;
+  const useSplitLayout = width >= 980;
+  const useWideHero = width >= 860;
+  const showOverlay =
+    activeOverlayMenu !== null ||
+    creationDraft !== null ||
+    damageDraft !== null ||
+    recoveryDraft !== null;
 
   function updateCharacter(
     characterId: string,
@@ -611,6 +719,10 @@ export function CharacterSheetScreen() {
     resourceKey: "pv" | "psy" | "armor",
     delta: number,
   ) {
+    if (resourceKey === "psy") {
+      return;
+    }
+
     updateCharacter(characterId, (character) => {
       const resource = character[resourceKey] as ResourcePool;
 
@@ -636,7 +748,7 @@ export function CharacterSheetScreen() {
       ...character,
       stance,
     }));
-    setStanceMenuOpen(false);
+    setActiveOverlayMenu(null);
   }
 
   function setCharacterTheme(characterId: string, theme: CharacterTheme) {
@@ -647,7 +759,7 @@ export function CharacterSheetScreen() {
     setDraftCharacter((current) =>
       current && current.id === characterId ? { ...current, theme } : current,
     );
-    setThemeMenuOpen(false);
+    setActiveOverlayMenu(null);
   }
 
   async function handleExport() {
@@ -667,20 +779,315 @@ export function CharacterSheetScreen() {
       setCharacters(normalizedCharacters);
       setSelectedId(normalizedCharacters[0]!.id);
       setDraftCharacter(null);
+      setCreationDraft(null);
+      setDamageDraft(null);
+      setRecoveryDraft(null);
+      setQuickCastDraft(null);
+      setActiveOverlayMenu(null);
       setRosterMessage(`${normalizedCharacters.length} personnage(s) importe(s).`);
     } catch {
       setRosterMessage("Import impossible: JSON invalide.");
     }
   }
 
+  function openCreationWizard() {
+    const defaultArchetype = ARCHETYPE_OPTIONS[0]!;
+    setCreationDraft({
+      archetypeId: defaultArchetype.id,
+      specialization: defaultArchetype.specializations[0] ?? "",
+      step: 1,
+    });
+    setQuickCastDraft(null);
+    setActiveOverlayMenu(null);
+  }
+
+  function updateCreationArchetype(archetypeId: ArchetypeId) {
+    const archetypeOption = ARCHETYPE_OPTIONS.find((option) => option.id === archetypeId);
+
+    if (!archetypeOption) {
+      return;
+    }
+
+    setCreationDraft({
+      archetypeId,
+      specialization: archetypeOption.specializations[0] ?? "",
+      step: 2,
+    });
+    setActiveOverlayMenu(null);
+  }
+
   function createCharacter() {
-    const newCharacter = createTemplateCharacter("libre");
+    if (!creationDraft) {
+      return;
+    }
+
+    const newCharacter = createTemplateCharacter(
+      creationDraft.archetypeId,
+      creationDraft.specialization,
+    );
 
     setCharacters((currentCharacters) => [...currentCharacters, newCharacter]);
     setSelectedId(newCharacter.id);
-    setCharacterMenuOpen(false);
     setDraftCharacter(cloneTemplate(newCharacter));
-    setRosterMessage("Nouveau personnage cree.");
+    setEditorSection("identity");
+    setCreationDraft(null);
+    setQuickCastDraft(null);
+    setRosterMessage("Nouveau personnage cree depuis un template.");
+  }
+
+  function openDamageDialog() {
+    setActiveOverlayMenu(null);
+    setCreationDraft(null);
+    setRecoveryDraft(null);
+    setQuickCastDraft(null);
+    setDamageDraft({ amount: "", ignoreArmor: false });
+  }
+
+  function openQuickCastDialog() {
+    setCreationDraft(null);
+    setDamageDraft(null);
+    setRecoveryDraft(null);
+    setQuickCastDraft(null);
+    setActiveOverlayMenu("quickCast");
+  }
+
+  function openRecoveryDialog() {
+    setActiveOverlayMenu(null);
+    setCreationDraft(null);
+    setDamageDraft(null);
+    setQuickCastDraft(null);
+    setRecoveryDraft({ amount: "", mode: "heal" });
+  }
+
+  function applyDamage() {
+    if (!damageDraft || !selectedCharacter) {
+      return;
+    }
+
+    const amount = Math.max(0, Number.parseInt(damageDraft.amount || "0", 10) || 0);
+
+    if (amount <= 0) {
+      setDamageDraft(null);
+      return;
+    }
+
+    updateCharacter(selectedCharacter.id, (character) => {
+      let remaining = amount;
+      let armorAbsorbed = 0;
+      let shieldAbsorbed = 0;
+      let pvAbsorbed = 0;
+
+      const nextArmor = { ...character.armor };
+      const nextPv = { ...character.pv };
+
+      if (!damageDraft.ignoreArmor && remaining > 0) {
+        armorAbsorbed = Math.min(nextArmor.current, remaining);
+        nextArmor.current -= armorAbsorbed;
+        remaining -= armorAbsorbed;
+      }
+
+      if (remaining > 0) {
+        shieldAbsorbed = Math.min(nextPv.bonus, remaining);
+        nextPv.bonus -= shieldAbsorbed;
+        remaining -= shieldAbsorbed;
+      }
+
+      if (remaining > 0) {
+        pvAbsorbed = Math.min(nextPv.current, remaining);
+        nextPv.current -= pvAbsorbed;
+        remaining -= pvAbsorbed;
+      }
+
+      const messageParts = [
+        `${amount} degats recus`,
+        !damageDraft.ignoreArmor && armorAbsorbed > 0 ? `${armorAbsorbed} absorbes par l'armure` : null,
+        shieldAbsorbed > 0 ? `${shieldAbsorbed} absorbes par le bouclier` : null,
+        pvAbsorbed > 0 ? `${pvAbsorbed} retires aux PV` : null,
+        remaining > 0 ? `${remaining} non absorbes` : null,
+      ].filter(Boolean);
+
+      setRosterMessage(messageParts.join(" · "));
+
+      return {
+        ...character,
+        armor: nextArmor,
+        pv: nextPv,
+      };
+    });
+
+    setDamageDraft(null);
+  }
+
+  function selectQuickCastSpell(spellId: string) {
+    setQuickCastDraft({ kind: "spell", id: spellId, extraPsy: 0 });
+  }
+
+  function selectQuickCastEquipment(equipmentId: string) {
+    setQuickCastDraft({ kind: "equipment", id: equipmentId, extraPsy: 0 });
+  }
+
+  function selectQuickCastEquipmentSpell(equipmentId: string, spellId: string) {
+    setQuickCastDraft({
+      kind: "equipmentSpell",
+      id: spellId,
+      sourceEquipmentId: equipmentId,
+      extraPsy: 0,
+    });
+  }
+
+  function adjustQuickCastExtra(delta: number) {
+    if (
+      !quickCastDraft ||
+      (quickCastDraft.kind !== "spell" && quickCastDraft.kind !== "equipmentSpell") ||
+      !selectedCharacter
+    ) {
+      return;
+    }
+
+    const activeSpell =
+      quickCastDraft.kind === "spell"
+        ? selectedQuickCastSpell
+        : selectedQuickCastEquipmentSpell;
+
+    if (!activeSpell) {
+      return;
+    }
+
+    const baseCost = getSpellCost(activeSpell, selectedCharacter.stance);
+    const maxExtraPsy = activeSpell.augmentable
+      ? Math.max(0, selectedCharacter.psy.current - baseCost)
+      : 0;
+
+    setQuickCastDraft({
+      ...quickCastDraft,
+      extraPsy: clampValue(quickCastDraft.extraPsy + delta, maxExtraPsy),
+    });
+  }
+
+  function confirmQuickCast() {
+    if (!quickCastDraft || !selectedCharacter) {
+      return;
+    }
+
+    updateCharacter(selectedCharacter.id, (character) => {
+      if (quickCastDraft.kind === "spell" || quickCastDraft.kind === "equipmentSpell") {
+        const spell =
+          quickCastDraft.kind === "spell"
+            ? character.spells.find((entry) => entry.id === quickCastDraft.id)
+            : character.equipment.find((entry) => entry.id === quickCastDraft.sourceEquipmentId)
+                ?.grantedSpell;
+
+        if (!spell) {
+          return character;
+        }
+
+        const maxExtraPsy = spell.augmentable
+          ? Math.max(0, character.psy.current - getSpellCost(spell, character.stance))
+          : 0;
+        const extraPsy = clampValue(quickCastDraft.extraPsy, maxExtraPsy);
+        const cost = getScaledSpellCost(spell, character.stance, extraPsy);
+
+        if (character.psy.current < cost) {
+          setRosterMessage(`PSY insuffisante pour ${spell.name}.`);
+          return character;
+        }
+
+        setRosterMessage(
+          extraPsy > 0
+            ? `${
+                quickCastDraft.kind === "equipmentSpell" && quickCastDraft.sourceEquipmentId
+                  ? `${spell.name} lance via equipement`
+                  : `${spell.name} lance`
+              } · -${cost} PSY · +${extraPsy} PSY injecte.`
+            : `${
+                quickCastDraft.kind === "equipmentSpell" && quickCastDraft.sourceEquipmentId
+                  ? `${spell.name} lance via equipement`
+                  : `${spell.name} lance`
+              } · -${cost} PSY.`,
+        );
+
+        return {
+          ...character,
+          psy: {
+            ...character.psy,
+            current: character.psy.current - cost,
+          },
+          activeSpellIds: character.activeSpellIds.includes(spell.id)
+            ? character.activeSpellIds
+            : [...character.activeSpellIds, spell.id],
+        };
+      }
+
+      const item = character.equipment.find((entry) => entry.id === quickCastDraft.id);
+
+      if (!item?.usePsyCost) {
+        return character;
+      }
+
+      const cost = getReducibleCost(
+        item.usePsyCost,
+        item.reducible ?? false,
+        character.stance,
+      );
+
+      if (character.psy.current < cost) {
+        setRosterMessage(`PSY insuffisante pour ${item.name}.`);
+        return character;
+      }
+
+      setRosterMessage(`${item.usableLabel ?? item.name} active · -${cost} PSY.`);
+
+      return {
+        ...character,
+        psy: {
+          ...character.psy,
+          current: character.psy.current - cost,
+        },
+      };
+    });
+
+    setQuickCastDraft(null);
+    setActiveOverlayMenu(null);
+  }
+
+  function applyRecovery() {
+    if (!recoveryDraft || !selectedCharacter) {
+      return;
+    }
+
+    const amount = Math.max(0, Number.parseInt(recoveryDraft.amount || "0", 10) || 0);
+
+    if (amount <= 0) {
+      setRecoveryDraft(null);
+      return;
+    }
+
+    updateCharacter(selectedCharacter.id, (character) => {
+      if (recoveryDraft.mode === "heal") {
+        const nextPv = clampValue(character.pv.current + amount, character.pv.max);
+        const healed = nextPv - character.pv.current;
+        setRosterMessage(`Soin applique · +${healed} PV.`);
+
+        return {
+          ...character,
+          pv: {
+            ...character.pv,
+            current: nextPv,
+          },
+        };
+      }
+
+      setRosterMessage(`Bouclier ajoute · +${amount}.`);
+      return {
+        ...character,
+        pv: {
+          ...character.pv,
+          bonus: character.pv.bonus + amount,
+        },
+      };
+    });
+
+    setRecoveryDraft(null);
   }
 
   function toggleSpellActive(characterId: string, spellId: string) {
@@ -699,19 +1106,24 @@ export function CharacterSheetScreen() {
   function openEditor() {
     setEditorSection("all");
     setDraftCharacter(cloneTemplate(selectedCharacter!));
+    setQuickCastDraft(null);
+    setActiveOverlayMenu(null);
   }
 
   function openSectionEditor(section: EditorSection) {
     setEditorSection(section);
     setDraftCharacter(cloneTemplate(selectedCharacter!));
+    setQuickCastDraft(null);
+    setActiveOverlayMenu(null);
   }
 
   function closeEditor() {
-    setThemeMenuOpen(false);
-    setEditorArchetypeMenuOpen(false);
-    setEditorSpecializationMenuOpen(false);
+    setActiveOverlayMenu(null);
     setEditorSection("all");
     setDraftCharacter(null);
+    setDamageDraft(null);
+    setRecoveryDraft(null);
+    setQuickCastDraft(null);
   }
 
   function saveEditor() {
@@ -724,11 +1136,10 @@ export function CharacterSheetScreen() {
         character.id === draftCharacter.id ? draftCharacter : character,
       ),
     );
-    setThemeMenuOpen(false);
-    setEditorArchetypeMenuOpen(false);
-    setEditorSpecializationMenuOpen(false);
+    setActiveOverlayMenu(null);
     setEditorSection("all");
     setDraftCharacter(null);
+    setQuickCastDraft(null);
   }
 
   function deleteDraftCharacter() {
@@ -748,11 +1159,9 @@ export function CharacterSheetScreen() {
     setCharacters(remainingCharacters);
     setSelectedId(remainingCharacters[0]!.id);
     setDraftCharacter(null);
-    setThemeMenuOpen(false);
-    setEditorArchetypeMenuOpen(false);
-    setEditorSpecializationMenuOpen(false);
+    setActiveOverlayMenu(null);
     setEditorSection("all");
-    setCharacterMenuOpen(false);
+    setQuickCastDraft(null);
     setRosterMessage(`${draftCharacter.name} a ete supprime.`);
   }
 
@@ -776,7 +1185,7 @@ export function CharacterSheetScreen() {
             ...current,
             [key]: {
               ...current[key],
-              [field]: nextValue,
+              [field]: key === "psy" && field === "bonus" ? 0 : nextValue,
             },
           }
         : current,
@@ -860,13 +1269,12 @@ export function CharacterSheetScreen() {
           }
         : current,
     );
-    setEditorArchetypeMenuOpen(false);
-    setEditorSpecializationMenuOpen(false);
+    setActiveOverlayMenu(null);
   }
 
   function updateDraftSpecialization(value: string) {
     updateDraftField("specialization", value);
-    setEditorSpecializationMenuOpen(false);
+    setActiveOverlayMenu(null);
   }
 
   function updateDraftSpell(index: number, patch: Partial<Spell>) {
@@ -895,6 +1303,7 @@ export function CharacterSheetScreen() {
                 icon: "✦",
                 basePsyCost: 0,
                 reducible: true,
+                augmentable: false,
                 description: "",
                 tags: [],
                 activeEffects: [],
@@ -1064,6 +1473,66 @@ export function CharacterSheetScreen() {
     );
   }
 
+  function updateDraftEquipmentGrantedSpell(index: number, patch: Partial<Spell>) {
+    setDraftCharacter((current) =>
+      current
+        ? {
+            ...current,
+            equipment: current.equipment.map((item, itemIndex) => {
+              if (itemIndex !== index || !item.grantedSpell) {
+                return item;
+              }
+
+              return {
+                ...item,
+                grantedSpell: {
+                  ...item.grantedSpell,
+                  ...patch,
+                },
+              };
+            }),
+          }
+        : current,
+    );
+  }
+
+  function toggleDraftEquipmentGrantedSpell(index: number) {
+    setDraftCharacter((current) =>
+      current
+        ? {
+            ...current,
+            equipment: current.equipment.map((item, itemIndex) => {
+              if (itemIndex !== index) {
+                return item;
+              }
+
+              if (item.grantedSpell) {
+                return {
+                  ...item,
+                  grantedSpell: undefined,
+                };
+              }
+
+              return {
+                ...item,
+                grantedSpell: {
+                  id: makeId("equipment-spell"),
+                  name: `Don de ${item.name}`,
+                  basePsyCost: 0,
+                  reducible: true,
+                  augmentable: false,
+                  description: "",
+                  tags: [],
+                  activeEffects: [],
+                  passiveEffects: [],
+                },
+              };
+            }),
+          }
+        : current,
+    );
+  }
+
   function addDraftEquipment() {
     setDraftCharacter((current) =>
       current
@@ -1080,6 +1549,7 @@ export function CharacterSheetScreen() {
                 tags: [],
                 activeEffects: [],
                 passiveEffects: [],
+                grantedSpell: undefined,
               },
             ],
           }
@@ -1140,6 +1610,16 @@ export function CharacterSheetScreen() {
     updateDraftEquipment(index, { imageUrl: uri });
   }
 
+  async function uploadDraftEquipmentGrantedSpellImage(index: number) {
+    const uri = await pickImageUri();
+
+    if (!uri) {
+      return;
+    }
+
+    updateDraftEquipmentGrantedSpell(index, { imageUrl: uri });
+  }
+
   async function uploadDraftCharacterImage() {
     const uri = await pickImageUri();
 
@@ -1190,7 +1670,10 @@ export function CharacterSheetScreen() {
   return (
     <ScrollView
       style={[styles.scroll, { backgroundColor: activeTheme.pageBg }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        isPhone ? styles.contentPhone : isLaptop ? styles.contentLaptop : styles.contentTablet,
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <Image
@@ -1205,111 +1688,68 @@ export function CharacterSheetScreen() {
         ]}
       />
       <View style={[styles.pageGlow, { backgroundColor: activeTheme.accent }]} />
-      <View style={styles.navbar}>
-        <View>
-          <Text style={[styles.navBrand, { color: activeTheme.title }]}>Vade Retro</Text>
-          <Text style={[styles.navSubtle, { color: activeTheme.subtitle }]}>
+      <View
+        style={[
+          styles.navbar,
+          isPhone ? styles.navbarMobile : isLaptop ? styles.navbarLaptop : styles.navbarTablet,
+        ]}
+      >
+        <View style={styles.navBrandBlock}>
+          <View style={styles.navBrandRow}>
+            <Image
+              source={APP_LOGO}
+              style={[styles.navLogo, isPhone ? styles.navLogoPhone : null]}
+              resizeMode="contain"
+            />
+            <Text
+              style={[
+                styles.navBrand,
+                isPhone ? styles.navBrandPhone : null,
+                { color: activeTheme.title },
+              ]}
+            >
+              Vade Retro
+            </Text>
+          </View>
+          <Text
+            style={[
+              styles.navSubtle,
+              isPhone ? styles.navSubtlePhone : null,
+              { color: activeTheme.subtitle },
+            ]}
+          >
             Compagnon de campagne
           </Text>
         </View>
 
-        <View style={styles.navActions}>
-          <Pressable
-            onPress={createCharacter}
-            style={[
-              styles.navActionButton,
-              { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-            ]}
-          >
-            <Text style={[styles.navActionButtonLabel, { color: activeTheme.title }]}>
-              Nouveau
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              void handleImport();
-            }}
-            style={[
-              styles.navActionButton,
-              { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-            ]}
-          >
-            <Text style={[styles.navActionButtonLabel, { color: activeTheme.title }]}>
-              Importer
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              void handleExport();
-            }}
-            style={[
-              styles.navActionButton,
-              { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-            ]}
-          >
-            <Text style={[styles.navActionButtonLabel, { color: activeTheme.title }]}>
-              Exporter
-            </Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.navRightGroup}>
+        <View style={[styles.navRightGroup, isPhone ? styles.navRightGroupMobile : null]}>
           <View style={styles.navThemeWrap}>
             <Pressable
-              onPress={() => setThemeMenuOpen((current) => !current)}
+              onPress={() =>
+                setActiveOverlayMenu((current) => (current === "theme" ? null : "theme"))
+              }
               style={[
                 styles.navThemeButton,
                 { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
               ]}
             >
-              <Text style={[styles.navCharacterLabel, { color: activeTheme.subtitle }]}>
-                Theme
-              </Text>
-              <Text style={[styles.navThemeValue, { color: activeTheme.title }]}>
-                {THEME_LABELS[selectedCharacter.theme]}
-              </Text>
+              <View style={styles.navThemeText}>
+                <Text style={[styles.navCharacterLabel, { color: activeTheme.subtitle }]}>
+                  Theme
+                </Text>
+                <Text style={[styles.navThemeValue, { color: activeTheme.title }]}>
+                  {THEME_LABELS[selectedCharacter.theme]}
+                </Text>
+              </View>
               <Text style={[styles.navChevron, { color: activeTheme.title }]}>▾</Text>
             </Pressable>
-
-            {themeMenuOpen ? (
-              <View
-                style={[
-                  styles.dropdownFloating,
-                  { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
-                ]}
-              >
-                {(Object.keys(THEME_LABELS) as CharacterTheme[]).map((themeKey) => (
-                  <Pressable
-                    key={themeKey}
-                    onPress={() => setCharacterTheme(selectedCharacter.id, themeKey)}
-                    style={[
-                      styles.dropdownItem,
-                      selectedCharacter.theme === themeKey
-                        ? { backgroundColor: activeTheme.chipBg }
-                        : null,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.dropdownTitle,
-                        { color: activeTheme.title },
-                        selectedCharacter.theme === themeKey ? styles.dropdownTitleActive : null,
-                        selectedCharacter.theme === themeKey
-                          ? { color: activeTheme.accent }
-                          : null,
-                      ]}
-                    >
-                      {THEME_LABELS[themeKey]}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
           </View>
 
           <View style={styles.navMenuWrap}>
             <Pressable
-              onPress={() => setCharacterMenuOpen((current) => !current)}
+              onPress={() =>
+                setActiveOverlayMenu((current) => (current === "character" ? null : "character"))
+              }
               style={[
                 styles.navCharacterButton,
                 { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
@@ -1330,48 +1770,6 @@ export function CharacterSheetScreen() {
               </View>
               <Text style={[styles.navChevron, { color: activeTheme.title }]}>▾</Text>
             </Pressable>
-
-            {characterMenuOpen ? (
-              <View
-                style={[
-                  styles.dropdownFloating,
-                  { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
-                ]}
-              >
-                {characters.map((character) => {
-                  const active = character.id === selectedCharacter.id;
-
-                  return (
-                    <Pressable
-                      key={character.id}
-                      onPress={() => {
-                        setSelectedId(character.id);
-                        setCharacterMenuOpen(false);
-                      }}
-                      style={[
-                        styles.dropdownItem,
-                        active ? { backgroundColor: activeTheme.chipBg } : null,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.dropdownTitle,
-                          { color: activeTheme.title },
-                          active ? styles.dropdownTitleActive : null,
-                          active ? { color: activeTheme.accent } : null,
-                        ]}
-                      >
-                        {character.name}
-                      </Text>
-                      <Text style={[styles.dropdownSubtitle, { color: activeTheme.subtitle }]}>
-                        {character.archetype}
-                        {character.level ? ` · Niv ${character.level}` : ""}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : null}
           </View>
         </View>
       </View>
@@ -1392,6 +1790,7 @@ export function CharacterSheetScreen() {
       <View
         style={[
           styles.hero,
+          useWideHero ? styles.heroTablet : styles.heroMobile,
           { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
         ]}
       >
@@ -1416,15 +1815,36 @@ export function CharacterSheetScreen() {
               : ""}
             {selectedCharacter.level ? ` · Niveau ${selectedCharacter.level}` : ""}
           </Text>
+          <Pressable
+            onPress={() =>
+              setActiveOverlayMenu((current) => (current === "bioView" ? null : "bioView"))
+            }
+            style={[styles.heroBioButton, { backgroundColor: activeTheme.chipBg }]}
+          >
+            <Text style={[styles.heroBioButtonLabel, { color: activeTheme.title }]}>
+              {selectedCharacter.bio ? "Voir la bio" : "Ajouter une bio"}
+            </Text>
+          </Pressable>
         </View>
 
         <View style={styles.heroSide}>
+          <Pressable
+            onPress={() => openSectionEditor("identity")}
+            style={[
+              styles.heroEditIconButton,
+              { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+            ]}
+          >
+            <Text style={[styles.heroEditIconLabel, { color: activeTheme.title }]}>✎</Text>
+          </Pressable>
           <Text style={[styles.heroSideLabel, { color: activeTheme.subtitle }]}>
             Position actuelle
           </Text>
           <View style={styles.stanceDropdownWrap}>
             <Pressable
-              onPress={() => setStanceMenuOpen((current) => !current)}
+              onPress={() =>
+                setActiveOverlayMenu((current) => (current === "stance" ? null : "stance"))
+              }
               style={[
                 styles.stanceCompactButton,
                 { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
@@ -1437,58 +1857,10 @@ export function CharacterSheetScreen() {
                 ▾
               </Text>
             </Pressable>
-
-            {stanceMenuOpen ? (
-              <View
-                style={[
-                  styles.dropdownFloating,
-                  { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
-                ]}
-              >
-                {STANCES.map((stance) => (
-                  <Pressable
-                    key={stance}
-                    onPress={() => setStance(selectedCharacter.id, stance)}
-                    style={[
-                      styles.dropdownItem,
-                      stance === selectedCharacter.stance
-                        ? { backgroundColor: activeTheme.chipBg }
-                        : null,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.dropdownTitle,
-                        { color: activeTheme.title },
-                        stance === selectedCharacter.stance
-                          ? styles.dropdownTitleActive
-                          : null,
-                        stance === selectedCharacter.stance
-                          ? { color: activeTheme.accent }
-                          : null,
-                      ]}
-                    >
-                      {stanceLabels[stance]}
-                    </Text>
-                    <Text style={[styles.dropdownSubtitle, { color: activeTheme.subtitle }]}>
-                      {stanceDescriptions[stance]}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
           </View>
           <Text style={[styles.heroSideDescription, { color: activeTheme.subtitle }]}>
             {stanceDescriptions[selectedCharacter.stance]}
           </Text>
-          <Pressable
-            onPress={() => openSectionEditor("identity")}
-            style={[styles.editButton, { backgroundColor: activeTheme.chipBg }]}
-          >
-            <Text style={[styles.editButtonLabel, { color: activeTheme.title }]}>
-              Editer le profil
-            </Text>
-          </Pressable>
         </View>
       </View>
 
@@ -1507,6 +1879,15 @@ export function CharacterSheetScreen() {
                 contentContainerStyle={styles.editorModalContent}
                 showsVerticalScrollIndicator={false}
               >
+        <EditorFieldThemeProvider
+          value={{
+            label: activeTheme.subtitle,
+            inputBg: activeTheme.chipBg,
+            inputBorder: activeTheme.border,
+            inputText: activeTheme.title,
+            placeholder: activeTheme.subtitle,
+          }}
+        >
         <Section
           title="Edition ciblee"
           subtitle="Modifie uniquement la card ouverte puis sauvegarde."
@@ -1542,11 +1923,15 @@ export function CharacterSheetScreen() {
               onChangeText={(value) => updateDraftField("name", value)}
             />
             <View style={[styles.editorField, styles.editorFieldOverlayTop]}>
-              <Text style={styles.editorFieldLabel}>Archetype</Text>
+              <Text style={[styles.editorFieldLabel, { color: activeTheme.subtitle }]}>
+                Archetype
+              </Text>
               <View style={styles.editorDropdownWrap}>
                 <Pressable
                   onPress={() =>
-                    setEditorArchetypeMenuOpen((current) => !current)
+                    setActiveOverlayMenu((current) =>
+                      current === "editorArchetype" ? null : "editorArchetype",
+                    )
                   }
                   style={[
                     styles.editorSelectButton,
@@ -1563,59 +1948,21 @@ export function CharacterSheetScreen() {
                     ▾
                   </Text>
                 </Pressable>
-                {editorArchetypeMenuOpen ? (
-                  <View
-                    style={[
-                      styles.editorDropdownMenu,
-                      {
-                        backgroundColor: activeTheme.panelBg,
-                        borderColor: activeTheme.border,
-                      },
-                    ]}
-                  >
-                    {ARCHETYPE_OPTIONS.map((option) => (
-                      <Pressable
-                        key={option.id}
-                        onPress={() => applyArchetypeTemplate(option.id)}
-                        style={[
-                          styles.dropdownItem,
-                          draftCharacter.archetypeId === option.id
-                            ? { backgroundColor: activeTheme.chipBg }
-                            : null,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.dropdownTitle,
-                            { color: activeTheme.title },
-                            draftCharacter.archetypeId === option.id
-                              ? styles.dropdownTitleActive
-                              : null,
-                            draftCharacter.archetypeId === option.id
-                              ? { color: activeTheme.accent }
-                              : null,
-                          ]}
-                        >
-                          {option.label}
-                        </Text>
-                        <Text style={[styles.dropdownSubtitle, { color: activeTheme.subtitle }]}>
-                          {option.description}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
               </View>
               <Text style={styles.editorHint}>
                 {selectedArchetypeOption.description}
               </Text>
             </View>
             <View style={[styles.editorField, styles.editorFieldOverlayMid]}>
-              <Text style={styles.editorFieldLabel}>Specialisation</Text>
+              <Text style={[styles.editorFieldLabel, { color: activeTheme.subtitle }]}>
+                Specialisation
+              </Text>
               <View style={styles.editorDropdownWrap}>
                 <Pressable
                   onPress={() =>
-                    setEditorSpecializationMenuOpen((current) => !current)
+                    setActiveOverlayMenu((current) =>
+                      current === "editorSpecialization" ? null : "editorSpecialization",
+                    )
                   }
                   style={[
                     styles.editorSelectButton,
@@ -1632,45 +1979,6 @@ export function CharacterSheetScreen() {
                     ▾
                   </Text>
                 </Pressable>
-                {editorSpecializationMenuOpen ? (
-                  <View
-                    style={[
-                      styles.editorDropdownMenu,
-                      {
-                        backgroundColor: activeTheme.panelBg,
-                        borderColor: activeTheme.border,
-                      },
-                    ]}
-                  >
-                    {selectedArchetypeOption.specializations.map((specialization) => (
-                      <Pressable
-                        key={specialization}
-                        onPress={() => updateDraftSpecialization(specialization)}
-                        style={[
-                          styles.dropdownItem,
-                          draftCharacter.specialization === specialization
-                            ? { backgroundColor: activeTheme.chipBg }
-                            : null,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.dropdownTitle,
-                            { color: activeTheme.title },
-                            draftCharacter.specialization === specialization
-                              ? styles.dropdownTitleActive
-                              : null,
-                            draftCharacter.specialization === specialization
-                              ? { color: activeTheme.accent }
-                              : null,
-                          ]}
-                        >
-                          {specialization}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
               </View>
             </View>
             <EditorField
@@ -1693,6 +2001,22 @@ export function CharacterSheetScreen() {
               }
             />
           </View>
+          <Pressable
+            onPress={() =>
+              setActiveOverlayMenu((current) => (current === "bioEdit" ? null : "bioEdit"))
+            }
+            style={[
+              styles.editorBioButton,
+              { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+            ]}
+          >
+            <Text style={[styles.editorBioButtonLabel, { color: activeTheme.title }]}>
+              {draftCharacter.bio ? "Editer la bio" : "Ajouter une bio"}
+            </Text>
+            <Text style={[styles.editorBioButtonHint, { color: activeTheme.subtitle }]}>
+              Ouvre un dialog dedie pour les biographies longues.
+            </Text>
+          </Pressable>
           <View style={styles.editorMediaRow}>
             <AssetVisual
               label={draftCharacter.name}
@@ -1736,12 +2060,14 @@ export function CharacterSheetScreen() {
                     keyboardType="numeric"
                     onChangeText={(value) => updateDraftResource(key, "max", value)}
                   />
-                  <EditorField
-                    label="Bonus"
-                    value={String(draftCharacter[key].bonus)}
-                    keyboardType="numeric"
-                    onChangeText={(value) => updateDraftResource(key, "bonus", value)}
-                  />
+                  {key !== "psy" ? (
+                    <EditorField
+                      label={key === "pv" ? "Bouclier" : "Bonus"}
+                      value={String(draftCharacter[key].bonus)}
+                      keyboardType="numeric"
+                      onChangeText={(value) => updateDraftResource(key, "bonus", value)}
+                    />
+                  ) : null}
                 </View>
               </View>
             ))}
@@ -1843,10 +2169,18 @@ export function CharacterSheetScreen() {
                     onChangeText={(value) =>
                       updateDraftStatusEffect(index, { description: value })
                     }
-                    style={[styles.editorInput, styles.editorTextArea]}
+                    style={[
+                      styles.editorInput,
+                      styles.editorTextArea,
+                      {
+                        backgroundColor: activeTheme.chipBg,
+                        borderColor: activeTheme.border,
+                        color: activeTheme.title,
+                      },
+                    ]}
                     multiline
                     placeholder="Description de l'effet"
-                    placeholderTextColor="#6f84a7"
+                    placeholderTextColor={activeTheme.subtitle}
                   />
                 </View>
               ))}
@@ -1883,7 +2217,9 @@ export function CharacterSheetScreen() {
                       }
                     />
                     <View style={styles.editorField}>
-                      <Text style={styles.editorFieldLabel}>Type</Text>
+                      <Text style={[styles.editorFieldLabel, { color: activeTheme.subtitle }]}>
+                        Type
+                      </Text>
                       <View style={styles.themePicker}>
                         {(Object.keys(RESISTANCE_LABELS) as ResistanceType[]).map((type) => (
                           <Pressable
@@ -1910,10 +2246,18 @@ export function CharacterSheetScreen() {
                   <TextInput
                     value={entry.notes ?? ""}
                     onChangeText={(value) => updateDraftResistance(index, { notes: value })}
-                    style={[styles.editorInput, styles.editorTextArea]}
+                    style={[
+                      styles.editorInput,
+                      styles.editorTextArea,
+                      {
+                        backgroundColor: activeTheme.chipBg,
+                        borderColor: activeTheme.border,
+                        color: activeTheme.title,
+                      },
+                    ]}
                     multiline
                     placeholder="Notes sur l'affinite"
-                    placeholderTextColor="#6f84a7"
+                    placeholderTextColor={activeTheme.subtitle}
                   />
                 </View>
               ))}
@@ -1991,11 +2335,6 @@ export function CharacterSheetScreen() {
                       onChangeText={(value) => updateDraftSpell(index, { name: value })}
                     />
                     <EditorField
-                      label="Icone"
-                      value={spell.icon ?? ""}
-                      onChangeText={(value) => updateDraftSpell(index, { icon: value })}
-                    />
-                    <EditorField
                       label="Tags"
                       value={formatTags(spell.tags)}
                       onChangeText={(value) =>
@@ -2048,16 +2387,44 @@ export function CharacterSheetScreen() {
                       </Text>
                     </Pressable>
                   </View>
+                  <View style={styles.editorToggleRow}>
+                    <Text style={styles.editorInlineLabel}>Augmentable</Text>
+                    <Pressable
+                      onPress={() =>
+                        updateDraftSpell(index, { augmentable: !(spell.augmentable ?? false) })
+                      }
+                      style={[
+                        styles.editorToggleButton,
+                        spell.augmentable ? styles.editorToggleButtonActive : null,
+                      ]}
+                    >
+                      <Text style={styles.editorToggleButtonLabel}>
+                        {spell.augmentable ? "Oui" : "Non"}
+                      </Text>
+                    </Pressable>
+                  </View>
                   <TextInput
                     value={spell.description}
                     onChangeText={(value) =>
                       updateDraftSpell(index, { description: value })
                     }
-                    style={[styles.editorInput, styles.editorTextArea]}
+                    style={[
+                      styles.editorInput,
+                      styles.editorTextArea,
+                      {
+                        backgroundColor: activeTheme.chipBg,
+                        borderColor: activeTheme.border,
+                        color: activeTheme.title,
+                      },
+                    ]}
                     multiline
                     placeholder="Description du don"
-                    placeholderTextColor="#6f84a7"
+                    placeholderTextColor={activeTheme.subtitle}
                   />
+                  <Text style={[styles.editorHint, { color: activeTheme.subtitle, marginTop: 0 }]}>
+                    Si un don est augmentable, l'action rapide permettra d'injecter du PSY
+                    supplementaire selon la reserve restante du personnage.
+                  </Text>
                 </View>
               ))}
             </View>
@@ -2100,17 +2467,27 @@ export function CharacterSheetScreen() {
                       }
                     />
                     <EditorField
-                      label="Icone"
-                      value={item.icon ?? ""}
-                      onChangeText={(value) =>
-                        updateDraftEquipment(index, { icon: value })
-                      }
-                    />
-                    <EditorField
                       label="Tags"
                       value={formatTags(item.tags)}
                       onChangeText={(value) =>
                         updateDraftEquipment(index, { tags: parseTags(value) })
+                      }
+                    />
+                    <EditorField
+                      label="Action utilisable"
+                      value={item.usableLabel ?? ""}
+                      onChangeText={(value) =>
+                        updateDraftEquipment(index, { usableLabel: value })
+                      }
+                    />
+                    <EditorField
+                      label="Cout PSY"
+                      value={String(item.usePsyCost ?? 0)}
+                      keyboardType="numeric"
+                      onChangeText={(value) =>
+                        updateDraftEquipment(index, {
+                          usePsyCost: Math.max(0, Number.parseInt(value || "0", 10) || 0),
+                        })
                       }
                     />
                   </View>
@@ -2132,15 +2509,175 @@ export function CharacterSheetScreen() {
                       </Text>
                     </Pressable>
                   </View>
+                  <View style={styles.editorToggleRow}>
+                    <Text style={styles.editorInlineLabel}>Cout reductible en Focus</Text>
+                    <Pressable
+                      onPress={() =>
+                        updateDraftEquipment(index, { reducible: !(item.reducible ?? false) })
+                      }
+                      style={[
+                        styles.editorToggleButton,
+                        item.reducible ? styles.editorToggleButtonActive : null,
+                      ]}
+                    >
+                      <Text style={styles.editorToggleButtonLabel}>
+                        {item.reducible ? "Oui" : "Non"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <View style={styles.editorToggleRow}>
+                    <Text style={styles.editorInlineLabel}>Don associe</Text>
+                    <Pressable
+                      onPress={() => toggleDraftEquipmentGrantedSpell(index)}
+                      style={[
+                        styles.editorToggleButton,
+                        item.grantedSpell ? styles.editorToggleButtonActive : null,
+                      ]}
+                    >
+                      <Text style={styles.editorToggleButtonLabel}>
+                        {item.grantedSpell ? "Oui" : "Non"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  {item.grantedSpell ? (
+                    <View
+                      style={[
+                        styles.editorCard,
+                        {
+                          backgroundColor: activeTheme.panelBg,
+                          borderColor: activeTheme.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.editorCardTitle, { color: activeTheme.title }]}>
+                        Don de l'equipement
+                      </Text>
+                      <View style={styles.editorGrid}>
+                        <EditorField
+                          label="Nom"
+                          value={item.grantedSpell.name}
+                          onChangeText={(value) =>
+                            updateDraftEquipmentGrantedSpell(index, { name: value })
+                          }
+                        />
+                        <EditorField
+                          label="Tags"
+                          value={formatTags(item.grantedSpell.tags)}
+                          onChangeText={(value) =>
+                            updateDraftEquipmentGrantedSpell(index, {
+                              tags: parseTags(value),
+                            })
+                          }
+                        />
+                        <EditorField
+                          label="Cout PSY"
+                          value={String(item.grantedSpell.basePsyCost)}
+                          keyboardType="numeric"
+                          onChangeText={(value) =>
+                            updateDraftEquipmentGrantedSpell(index, {
+                              basePsyCost: Math.max(
+                                0,
+                                Number.parseInt(value || "0", 10) || 0,
+                              ),
+                            })
+                          }
+                        />
+                      </View>
+                      <View style={styles.editorMediaRow}>
+                        <AssetVisual
+                          label={item.grantedSpell.name}
+                          icon={item.grantedSpell.icon}
+                          imageUrl={item.grantedSpell.imageUrl}
+                          imageModule={item.grantedSpell.imageModule}
+                        />
+                        <Pressable
+                          onPress={() => {
+                            void uploadDraftEquipmentGrantedSpellImage(index);
+                          }}
+                          style={styles.editorUploadButton}
+                        >
+                          <Text style={styles.editorUploadButtonLabel}>
+                            Choisir une image
+                          </Text>
+                        </Pressable>
+                      </View>
+                      <View style={styles.editorToggleRow}>
+                        <Text style={styles.editorInlineLabel}>Reductible en Focus</Text>
+                        <Pressable
+                          onPress={() =>
+                            updateDraftEquipmentGrantedSpell(index, {
+                              reducible: !item.grantedSpell?.reducible,
+                            })
+                          }
+                          style={[
+                            styles.editorToggleButton,
+                            item.grantedSpell.reducible
+                              ? styles.editorToggleButtonActive
+                              : null,
+                          ]}
+                        >
+                          <Text style={styles.editorToggleButtonLabel}>
+                            {item.grantedSpell.reducible ? "Oui" : "Non"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                      <View style={styles.editorToggleRow}>
+                        <Text style={styles.editorInlineLabel}>Augmentable</Text>
+                        <Pressable
+                          onPress={() =>
+                            updateDraftEquipmentGrantedSpell(index, {
+                              augmentable: !(item.grantedSpell?.augmentable ?? false),
+                            })
+                          }
+                          style={[
+                            styles.editorToggleButton,
+                            item.grantedSpell.augmentable
+                              ? styles.editorToggleButtonActive
+                              : null,
+                          ]}
+                        >
+                          <Text style={styles.editorToggleButtonLabel}>
+                            {item.grantedSpell.augmentable ? "Oui" : "Non"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                      <TextInput
+                        value={item.grantedSpell.description}
+                        onChangeText={(value) =>
+                          updateDraftEquipmentGrantedSpell(index, { description: value })
+                        }
+                        style={[
+                          styles.editorInput,
+                          styles.editorTextArea,
+                          {
+                            backgroundColor: activeTheme.chipBg,
+                            borderColor: activeTheme.border,
+                            color: activeTheme.title,
+                          },
+                        ]}
+                        multiline
+                        placeholder="Description du don associe"
+                        placeholderTextColor={activeTheme.subtitle}
+                      />
+                    </View>
+                  ) : null}
                   <TextInput
                     value={item.notes ?? ""}
                     onChangeText={(value) =>
                       updateDraftEquipment(index, { notes: value })
                     }
-                    style={[styles.editorInput, styles.editorTextArea]}
+                    style={[
+                      styles.editorInput,
+                      styles.editorTextArea,
+                      {
+                        backgroundColor: activeTheme.chipBg,
+                        borderColor: activeTheme.border,
+                        color: activeTheme.title,
+                      },
+                    ]}
                     multiline
                     placeholder="Notes de l'equipement"
-                    placeholderTextColor="#6f84a7"
+                    placeholderTextColor={activeTheme.subtitle}
                   />
                 </View>
               ))}
@@ -2188,11 +2725,6 @@ export function CharacterSheetScreen() {
                       }
                     />
                     <EditorField
-                      label="Icone"
-                      value={item.icon ?? ""}
-                      onChangeText={(value) => updateDraftInventory(index, { icon: value })}
-                    />
-                    <EditorField
                       label="Tags"
                       value={formatTags(item.tags)}
                       onChangeText={(value) =>
@@ -2222,10 +2754,18 @@ export function CharacterSheetScreen() {
                   <TextInput
                     value={item.notes ?? ""}
                     onChangeText={(value) => updateDraftInventory(index, { notes: value })}
-                    style={[styles.editorInput, styles.editorTextArea]}
+                    style={[
+                      styles.editorInput,
+                      styles.editorTextArea,
+                      {
+                        backgroundColor: activeTheme.chipBg,
+                        borderColor: activeTheme.border,
+                        color: activeTheme.title,
+                      },
+                    ]}
                     multiline
                     placeholder="Commentaire d'inventaire"
-                    placeholderTextColor="#6f84a7"
+                    placeholderTextColor={activeTheme.subtitle}
                   />
                 </View>
               ))}
@@ -2233,7 +2773,1292 @@ export function CharacterSheetScreen() {
           </View>
           ) : null}
         </Section>
+        </EditorFieldThemeProvider>
               </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      ) : null}
+
+      {showOverlay ? (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setActiveOverlayMenu(null);
+            setCreationDraft(null);
+            setDamageDraft(null);
+            setRecoveryDraft(null);
+            setQuickCastDraft(null);
+          }}
+        >
+          <View style={styles.overlayBackdrop}>
+            <Pressable
+              style={StyleSheet.absoluteFillObject}
+              onPress={() => {
+                setActiveOverlayMenu(null);
+                setCreationDraft(null);
+                setDamageDraft(null);
+                setRecoveryDraft(null);
+                setQuickCastDraft(null);
+              }}
+            />
+            <View
+              style={[
+                styles.overlayCard,
+                {
+                  backgroundColor: activeTheme.panelBg,
+                  borderColor: activeTheme.border,
+                },
+              ]}
+            >
+              {damageDraft ? (
+                <>
+                  <View style={styles.overlayHeader}>
+                    <View style={styles.overlayHeaderText}>
+                      <Text style={[styles.overlayTitle, { color: activeTheme.title }]}>
+                        Prendre des degats
+                      </Text>
+                      <Text style={[styles.overlaySubtitle, { color: activeTheme.subtitle }]}>
+                        Les degats sont absorbes par l'armure, puis le bouclier, puis les PV.
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => setDamageDraft(null)}
+                      style={[styles.overlayCloseButton, { borderColor: activeTheme.border }]}
+                    >
+                      <Text style={[styles.overlayCloseButtonLabel, { color: activeTheme.title }]}>
+                        Fermer
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  <View style={styles.overlayOptionList}>
+                    <View
+                      style={[
+                        styles.damageEditorCard,
+                        { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                      ]}
+                    >
+                      <Text style={[styles.editorFieldLabel, { color: activeTheme.subtitle }]}>
+                        Montant des degats
+                      </Text>
+                      <TextInput
+                        value={damageDraft.amount}
+                        onChangeText={(amount) =>
+                          setDamageDraft((current) => (current ? { ...current, amount } : current))
+                        }
+                        keyboardType="numeric"
+                        style={[
+                          styles.editorInput,
+                          {
+                            backgroundColor: activeTheme.chipBg,
+                            borderColor: activeTheme.border,
+                            color: activeTheme.title,
+                          },
+                        ]}
+                        placeholder="0"
+                        placeholderTextColor={activeTheme.subtitle}
+                      />
+                      <Pressable
+                        onPress={() =>
+                          setDamageDraft((current) =>
+                            current
+                              ? { ...current, ignoreArmor: !current.ignoreArmor }
+                              : current,
+                          )
+                        }
+                        style={[
+                          styles.damageToggle,
+                          {
+                            backgroundColor: damageDraft.ignoreArmor
+                              ? activeTheme.accent
+                              : activeTheme.panelBg,
+                            borderColor: activeTheme.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.damageToggleLabel,
+                            {
+                              color: damageDraft.ignoreArmor
+                                ? activeTheme.pageBg
+                                : activeTheme.title,
+                            },
+                          ]}
+                        >
+                          {damageDraft.ignoreArmor ? "☑" : "☐"} Ignorer l'armure
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  <View style={styles.overlayActions}>
+                    <Pressable
+                      onPress={() => setDamageDraft(null)}
+                      style={[
+                        styles.overlaySecondaryButton,
+                        { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.overlaySecondaryButtonLabel, { color: activeTheme.title }]}
+                      >
+                        Annuler
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={applyDamage}
+                      style={[
+                        styles.overlayPrimaryButton,
+                        { backgroundColor: activeTheme.buttonBg },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.overlayPrimaryButtonLabel,
+                          { color: activeTheme.buttonText },
+                        ]}
+                      >
+                        Appliquer
+                      </Text>
+                    </Pressable>
+                  </View>
+                </>
+              ) : recoveryDraft ? (
+                <>
+                  <View style={styles.overlayHeader}>
+                    <View style={styles.overlayHeaderText}>
+                      <Text style={[styles.overlayTitle, { color: activeTheme.title }]}>
+                        Soigner / bouclier
+                      </Text>
+                      <Text style={[styles.overlaySubtitle, { color: activeTheme.subtitle }]}>
+                        Restaure des PV ou ajoute un bouclier temporaire.
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => setRecoveryDraft(null)}
+                      style={[styles.overlayCloseButton, { borderColor: activeTheme.border }]}
+                    >
+                      <Text style={[styles.overlayCloseButtonLabel, { color: activeTheme.title }]}>
+                        Fermer
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <View style={styles.overlayOptionList}>
+                    <View
+                      style={[
+                        styles.damageEditorCard,
+                        { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                      ]}
+                    >
+                      <View style={styles.quickModeRow}>
+                        <Pressable
+                          onPress={() =>
+                            setRecoveryDraft((current) =>
+                              current ? { ...current, mode: "heal" } : current,
+                            )
+                          }
+                          style={[
+                            styles.quickModeButton,
+                            recoveryDraft.mode === "heal"
+                              ? { backgroundColor: activeTheme.buttonBg }
+                              : { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.quickModeButtonLabel,
+                              {
+                                color:
+                                  recoveryDraft.mode === "heal"
+                                    ? activeTheme.buttonText
+                                    : activeTheme.title,
+                              },
+                            ]}
+                          >
+                            Soigner
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() =>
+                            setRecoveryDraft((current) =>
+                              current ? { ...current, mode: "shield" } : current,
+                            )
+                          }
+                          style={[
+                            styles.quickModeButton,
+                            recoveryDraft.mode === "shield"
+                              ? { backgroundColor: activeTheme.buttonBg }
+                              : { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.quickModeButtonLabel,
+                              {
+                                color:
+                                  recoveryDraft.mode === "shield"
+                                    ? activeTheme.buttonText
+                                    : activeTheme.title,
+                              },
+                            ]}
+                          >
+                            Bouclier
+                          </Text>
+                        </Pressable>
+                      </View>
+                      <Text style={[styles.editorFieldLabel, { color: activeTheme.subtitle }]}>
+                        Montant
+                      </Text>
+                      <TextInput
+                        value={recoveryDraft.amount}
+                        onChangeText={(amount) =>
+                          setRecoveryDraft((current) => (current ? { ...current, amount } : current))
+                        }
+                        keyboardType="numeric"
+                        style={[
+                          styles.editorInput,
+                          {
+                            backgroundColor: activeTheme.chipBg,
+                            borderColor: activeTheme.border,
+                            color: activeTheme.title,
+                          },
+                        ]}
+                        placeholder="0"
+                        placeholderTextColor={activeTheme.subtitle}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.overlayActions}>
+                    <Pressable
+                      onPress={() => setRecoveryDraft(null)}
+                      style={[
+                        styles.overlaySecondaryButton,
+                        { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.overlaySecondaryButtonLabel, { color: activeTheme.title }]}
+                      >
+                        Annuler
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={applyRecovery}
+                      style={[
+                        styles.overlayPrimaryButton,
+                        { backgroundColor: activeTheme.buttonBg },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.overlayPrimaryButtonLabel,
+                          { color: activeTheme.buttonText },
+                        ]}
+                      >
+                        Appliquer
+                      </Text>
+                    </Pressable>
+                  </View>
+                </>
+              ) : activeOverlayMenu === "quickCast" ? (
+                <>
+                  <View style={styles.overlayHeader}>
+                    <View style={styles.overlayHeaderText}>
+                      <Text style={[styles.overlayTitle, { color: activeTheme.title }]}>
+                        Lancer un sort
+                      </Text>
+                      <Text style={[styles.overlaySubtitle, { color: activeTheme.subtitle }]}>
+                        Dons et equipements utilisables qui consomment du PSY.
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => {
+                        setQuickCastDraft(null);
+                        setActiveOverlayMenu(null);
+                      }}
+                      style={[styles.overlayCloseButton, { borderColor: activeTheme.border }]}
+                    >
+                      <Text style={[styles.overlayCloseButtonLabel, { color: activeTheme.title }]}>
+                        Fermer
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <View style={styles.overlayOptionList}>
+                    {selectedCharacter.spells.map((spell) => {
+                      const cost = getSpellCost(spell, selectedCharacter.stance);
+                      const reduced = spell.reducible && cost < spell.basePsyCost;
+                      const isSelected =
+                        quickCastDraft?.kind === "spell" && quickCastDraft.id === spell.id;
+
+                      return (
+                        <Pressable
+                          key={spell.id}
+                          onPress={() => selectQuickCastSpell(spell.id)}
+                          style={[
+                            styles.overlayOptionCard,
+                            {
+                              backgroundColor: activeTheme.chipBg,
+                              borderColor: isSelected ? activeTheme.accent : activeTheme.border,
+                            },
+                          ]}
+                        >
+                          <View style={styles.quickCastRow}>
+                            <AssetVisual
+                              label={spell.name}
+                              icon={spell.icon}
+                              imageUrl={spell.imageUrl}
+                              imageModule={spell.imageModule}
+                              small
+                            />
+                            <View style={styles.quickCastBody}>
+                              <View style={styles.quickCastHeader}>
+                                <Text
+                                  style={[styles.overlayOptionTitle, { color: activeTheme.title }]}
+                                >
+                                  {spell.name}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.quickCastCost,
+                                    reduced ? styles.quickCastCostReduced : null,
+                                  ]}
+                                >
+                                  {cost} PSY
+                                </Text>
+                              </View>
+                              <Text
+                                style={[
+                                  styles.overlayOptionDescription,
+                                  { color: activeTheme.subtitle },
+                                ]}
+                              >
+                                {spell.description}
+                              </Text>
+                              {spell.augmentable ? (
+                                <Text
+                                  style={[
+                                    styles.quickCastScalingHint,
+                                    { color: activeTheme.subtitle },
+                                  ]}
+                                >
+                                  Injection de PSY supplementaire possible
+                                </Text>
+                              ) : null}
+                            </View>
+                          </View>
+                        </Pressable>
+                      );
+                    })}
+                    {selectedCharacter.equipment
+                      .filter((item) => (item.usePsyCost ?? 0) > 0)
+                      .map((item) => {
+                        const cost = getReducibleCost(
+                          item.usePsyCost ?? 0,
+                          item.reducible ?? false,
+                          selectedCharacter.stance,
+                        );
+                        const reduced =
+                          (item.reducible ?? false) && cost < (item.usePsyCost ?? 0);
+                        const isSelected =
+                          quickCastDraft?.kind === "equipment" && quickCastDraft.id === item.id;
+
+                        return (
+                          <Pressable
+                            key={item.id}
+                            onPress={() => selectQuickCastEquipment(item.id)}
+                            style={[
+                              styles.overlayOptionCard,
+                              {
+                                backgroundColor: activeTheme.chipBg,
+                                borderColor: isSelected ? activeTheme.accent : activeTheme.border,
+                              },
+                            ]}
+                          >
+                            <View style={styles.quickCastHeader}>
+                              <Text style={[styles.overlayOptionTitle, { color: activeTheme.title }]}>
+                                {item.usableLabel ?? item.name}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.quickCastCost,
+                                  reduced ? styles.quickCastCostReduced : null,
+                                ]}
+                              >
+                                {cost} PSY
+                              </Text>
+                            </View>
+                            <Text
+                              style={[styles.overlayOptionDescription, { color: activeTheme.subtitle }]}
+                            >
+                              Equipement · {item.name}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    {selectedCharacter.equipment
+                      .filter((item) => item.grantedSpell)
+                      .map((item) => {
+                        const spell = item.grantedSpell!;
+                        const cost = getSpellCost(spell, selectedCharacter.stance);
+                        const reduced = spell.reducible && cost < spell.basePsyCost;
+                        const isSelected =
+                          quickCastDraft?.kind === "equipmentSpell" &&
+                          quickCastDraft.id === spell.id &&
+                          quickCastDraft.sourceEquipmentId === item.id;
+
+                        return (
+                          <Pressable
+                            key={`${item.id}-${spell.id}`}
+                            onPress={() => selectQuickCastEquipmentSpell(item.id, spell.id)}
+                            style={[
+                              styles.overlayOptionCard,
+                              {
+                                backgroundColor: activeTheme.chipBg,
+                                borderColor: isSelected ? activeTheme.accent : activeTheme.border,
+                              },
+                            ]}
+                          >
+                            <View style={styles.quickCastRow}>
+                              <AssetVisual
+                                label={spell.name}
+                                icon={spell.icon}
+                                imageUrl={spell.imageUrl}
+                                imageModule={spell.imageModule}
+                                small
+                              />
+                              <View style={styles.quickCastBody}>
+                                <View style={styles.quickCastHeader}>
+                                  <Text
+                                    style={[styles.overlayOptionTitle, { color: activeTheme.title }]}
+                                  >
+                                    {spell.name}
+                                  </Text>
+                                  <Text
+                                    style={[
+                                      styles.quickCastCost,
+                                      reduced ? styles.quickCastCostReduced : null,
+                                    ]}
+                                  >
+                                    {cost} PSY
+                                  </Text>
+                                </View>
+                                <Text
+                                  style={[
+                                    styles.overlayOptionDescription,
+                                    { color: activeTheme.subtitle },
+                                  ]}
+                                >
+                                  Don d'equipement · {item.name}
+                                </Text>
+                                {spell.augmentable ? (
+                                  <Text
+                                    style={[
+                                      styles.quickCastScalingHint,
+                                      { color: activeTheme.subtitle },
+                                    ]}
+                                  >
+                                    Injection de PSY supplementaire possible
+                                  </Text>
+                                ) : null}
+                              </View>
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                  </View>
+                  {selectedQuickCastSpell ? (
+                    <View
+                      style={[
+                        styles.quickCastDetailCard,
+                        { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                      ]}
+                    >
+                      <Text style={[styles.quickCastDetailTitle, { color: activeTheme.title }]}>
+                        Reglage du sort · {selectedQuickCastSpell.name}
+                      </Text>
+                      <Text
+                        style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                      >
+                        Cout de base applique:{" "}
+                        {getSpellCost(selectedQuickCastSpell, selectedCharacter.stance)} PSY
+                        {selectedQuickCastSpell.reducible &&
+                        getSpellCost(selectedQuickCastSpell, selectedCharacter.stance) <
+                          selectedQuickCastSpell.basePsyCost
+                          ? " (Focus deja pris en compte)"
+                          : ""}
+                      </Text>
+                      {selectedQuickCastSpell.augmentable ? (
+                        <>
+                          {(() => {
+                            const baseCost = getSpellCost(
+                              selectedQuickCastSpell,
+                              selectedCharacter.stance,
+                            );
+                            const maxExtraPsy = Math.max(
+                              0,
+                              selectedCharacter.psy.current - baseCost,
+                            );
+
+                            return (
+                              <>
+                          <Text
+                            style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                          >
+                            PSY supplementaire disponible: {maxExtraPsy}
+                          </Text>
+                          <View style={styles.quickCastAdjustRow}>
+                            <Pressable
+                              onPress={() => adjustQuickCastExtra(-1)}
+                              style={[
+                                styles.quickCastAdjustButton,
+                                {
+                                  backgroundColor: activeTheme.buttonBg,
+                                  opacity: quickCastDraft?.extraPsy ? 1 : 0.55,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.quickCastAdjustButtonLabel,
+                                  { color: activeTheme.buttonText },
+                                ]}
+                              >
+                                -1 PSY
+                              </Text>
+                            </Pressable>
+                            <View
+                              style={[
+                                styles.quickCastAdjustValue,
+                                { borderColor: activeTheme.border },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.quickCastAdjustValueLabel,
+                                  { color: activeTheme.title },
+                                ]}
+                              >
+                                +{quickCastDraft?.extraPsy ?? 0} PSY
+                              </Text>
+                            </View>
+                            <Pressable
+                              onPress={() => adjustQuickCastExtra(1)}
+                              style={[
+                                styles.quickCastAdjustButton,
+                                {
+                                  backgroundColor: activeTheme.buttonBg,
+                                  opacity: (quickCastDraft?.extraPsy ?? 0) < maxExtraPsy ? 1 : 0.55,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.quickCastAdjustButtonLabel,
+                                  { color: activeTheme.buttonText },
+                                ]}
+                              >
+                                +1 PSY
+                              </Text>
+                            </Pressable>
+                          </View>
+                          <Text
+                            style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                          >
+                            Total:{" "}
+                            {getScaledSpellCost(
+                              selectedQuickCastSpell,
+                              selectedCharacter.stance,
+                              quickCastDraft?.extraPsy ?? 0,
+                            )}{" "}
+                            PSY
+                          </Text>
+                          <Text
+                            style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                          >
+                            Injection actuelle: +{quickCastDraft?.extraPsy ?? 0} PSY
+                          </Text>
+                              </>
+                            );
+                          })()}
+                        </>
+                      ) : (
+                        <Text
+                          style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                        >
+                          Ce sort a un cout fixe. Aucun PSY supplementaire ne peut etre ajoute.
+                        </Text>
+                      )}
+                      <View style={styles.overlayActions}>
+                        <Pressable
+                          onPress={() => setQuickCastDraft(null)}
+                          style={[
+                            styles.overlaySecondaryButton,
+                            { borderColor: activeTheme.border },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.overlaySecondaryButtonLabel,
+                              { color: activeTheme.title },
+                            ]}
+                          >
+                            Retour
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={confirmQuickCast}
+                          style={[
+                            styles.overlayPrimaryButton,
+                            { backgroundColor: activeTheme.buttonBg },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.overlayPrimaryButtonLabel,
+                              { color: activeTheme.buttonText },
+                            ]}
+                          >
+                            Lancer
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : null}
+                  {selectedQuickCastEquipmentSpell && selectedQuickCastEquipmentSpellSource ? (
+                    <View
+                      style={[
+                        styles.quickCastDetailCard,
+                        { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                      ]}
+                    >
+                      <Text style={[styles.quickCastDetailTitle, { color: activeTheme.title }]}>
+                        Reglage du don d'equipement · {selectedQuickCastEquipmentSpell.name}
+                      </Text>
+                      <Text
+                        style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                      >
+                        Equipement source · {selectedQuickCastEquipmentSpellSource.name}
+                      </Text>
+                      <Text
+                        style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                      >
+                        Cout de base applique:{" "}
+                        {getSpellCost(selectedQuickCastEquipmentSpell, selectedCharacter.stance)} PSY
+                        {selectedQuickCastEquipmentSpell.reducible &&
+                        getSpellCost(selectedQuickCastEquipmentSpell, selectedCharacter.stance) <
+                          selectedQuickCastEquipmentSpell.basePsyCost
+                          ? " (Focus deja pris en compte)"
+                          : ""}
+                      </Text>
+                      {selectedQuickCastEquipmentSpell.augmentable ? (
+                        <>
+                          {(() => {
+                            const baseCost = getSpellCost(
+                              selectedQuickCastEquipmentSpell,
+                              selectedCharacter.stance,
+                            );
+                            const maxExtraPsy = Math.max(
+                              0,
+                              selectedCharacter.psy.current - baseCost,
+                            );
+
+                            return (
+                              <>
+                                <Text
+                                  style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                                >
+                                  PSY supplementaire disponible: {maxExtraPsy}
+                                </Text>
+                                <View style={styles.quickCastAdjustRow}>
+                                  <Pressable
+                                    onPress={() => adjustQuickCastExtra(-1)}
+                                    style={[
+                                      styles.quickCastAdjustButton,
+                                      {
+                                        backgroundColor: activeTheme.buttonBg,
+                                        opacity: quickCastDraft?.extraPsy ? 1 : 0.55,
+                                      },
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.quickCastAdjustButtonLabel,
+                                        { color: activeTheme.buttonText },
+                                      ]}
+                                    >
+                                      -1 PSY
+                                    </Text>
+                                  </Pressable>
+                                  <View
+                                    style={[
+                                      styles.quickCastAdjustValue,
+                                      { borderColor: activeTheme.border },
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.quickCastAdjustValueLabel,
+                                        { color: activeTheme.title },
+                                      ]}
+                                    >
+                                      +{quickCastDraft?.extraPsy ?? 0} PSY
+                                    </Text>
+                                  </View>
+                                  <Pressable
+                                    onPress={() => adjustQuickCastExtra(1)}
+                                    style={[
+                                      styles.quickCastAdjustButton,
+                                      {
+                                        backgroundColor: activeTheme.buttonBg,
+                                        opacity:
+                                          (quickCastDraft?.extraPsy ?? 0) < maxExtraPsy ? 1 : 0.55,
+                                      },
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.quickCastAdjustButtonLabel,
+                                        { color: activeTheme.buttonText },
+                                      ]}
+                                    >
+                                      +1 PSY
+                                    </Text>
+                                  </Pressable>
+                                </View>
+                                <Text
+                                  style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                                >
+                                  Total:{" "}
+                                  {getScaledSpellCost(
+                                    selectedQuickCastEquipmentSpell,
+                                    selectedCharacter.stance,
+                                    quickCastDraft?.extraPsy ?? 0,
+                                  )}{" "}
+                                  PSY
+                                </Text>
+                                <Text
+                                  style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                                >
+                                  Injection actuelle: +{quickCastDraft?.extraPsy ?? 0} PSY
+                                </Text>
+                              </>
+                            );
+                          })()}
+                        </>
+                      ) : (
+                        <Text
+                          style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                        >
+                          Ce don a un cout fixe. Aucun PSY supplementaire ne peut etre ajoute.
+                        </Text>
+                      )}
+                      <View style={styles.overlayActions}>
+                        <Pressable
+                          onPress={() => setQuickCastDraft(null)}
+                          style={[
+                            styles.overlaySecondaryButton,
+                            { borderColor: activeTheme.border },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.overlaySecondaryButtonLabel,
+                              { color: activeTheme.title },
+                            ]}
+                          >
+                            Retour
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={confirmQuickCast}
+                          style={[
+                            styles.overlayPrimaryButton,
+                            { backgroundColor: activeTheme.buttonBg },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.overlayPrimaryButtonLabel,
+                              { color: activeTheme.buttonText },
+                            ]}
+                          >
+                            Lancer
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : null}
+                  {selectedQuickCastEquipment ? (
+                    <View
+                      style={[
+                        styles.quickCastDetailCard,
+                        { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                      ]}
+                    >
+                      <Text style={[styles.quickCastDetailTitle, { color: activeTheme.title }]}>
+                        Utiliser l'equipement · {selectedQuickCastEquipment.usableLabel ??
+                          selectedQuickCastEquipment.name}
+                      </Text>
+                      <Text
+                        style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                      >
+                        Cout total:{" "}
+                        {getReducibleCost(
+                          selectedQuickCastEquipment.usePsyCost ?? 0,
+                          selectedQuickCastEquipment.reducible ?? false,
+                          selectedCharacter.stance,
+                        )}{" "}
+                        PSY
+                      </Text>
+                      <Text
+                        style={[styles.quickCastDetailText, { color: activeTheme.subtitle }]}
+                      >
+                        Equipement source · {selectedQuickCastEquipment.name}
+                      </Text>
+                      <View style={styles.overlayActions}>
+                        <Pressable
+                          onPress={() => setQuickCastDraft(null)}
+                          style={[
+                            styles.overlaySecondaryButton,
+                            { borderColor: activeTheme.border },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.overlaySecondaryButtonLabel,
+                              { color: activeTheme.title },
+                            ]}
+                          >
+                            Retour
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={confirmQuickCast}
+                          style={[
+                            styles.overlayPrimaryButton,
+                            { backgroundColor: activeTheme.buttonBg },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.overlayPrimaryButtonLabel,
+                              { color: activeTheme.buttonText },
+                            ]}
+                          >
+                            Utiliser
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : null}
+                </>
+              ) : activeOverlayMenu === "bioView" ? (
+                <>
+                  <View style={styles.overlayHeader}>
+                    <View style={styles.overlayHeaderText}>
+                      <Text style={[styles.overlayTitle, { color: activeTheme.title }]}>
+                        Bio de {selectedCharacter.name}
+                      </Text>
+                      <Text style={[styles.overlaySubtitle, { color: activeTheme.subtitle }]}>
+                        Historique, temperament, croyances ou details de roleplay.
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => setActiveOverlayMenu(null)}
+                      style={[styles.overlayCloseButton, { borderColor: activeTheme.border }]}
+                    >
+                      <Text style={[styles.overlayCloseButtonLabel, { color: activeTheme.title }]}>
+                        Fermer
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <View
+                    style={[
+                      styles.bioDialogCard,
+                      { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                    ]}
+                  >
+                    <ScrollView style={styles.bioDialogScroll} showsVerticalScrollIndicator={false}>
+                      <Text style={[styles.bioDialogText, { color: activeTheme.title }]}>
+                        {selectedCharacter.bio || "Aucune bio renseignee."}
+                      </Text>
+                    </ScrollView>
+                  </View>
+                </>
+              ) : activeOverlayMenu === "bioEdit" && draftCharacter ? (
+                <>
+                  <View style={styles.overlayHeader}>
+                    <View style={styles.overlayHeaderText}>
+                      <Text style={[styles.overlayTitle, { color: activeTheme.title }]}>
+                        Bio du personnage
+                      </Text>
+                      <Text style={[styles.overlaySubtitle, { color: activeTheme.subtitle }]}>
+                        Texte libre pour l'historique, les intentions et le roleplay.
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => setActiveOverlayMenu(null)}
+                      style={[styles.overlayCloseButton, { borderColor: activeTheme.border }]}
+                    >
+                      <Text style={[styles.overlayCloseButtonLabel, { color: activeTheme.title }]}>
+                        Fermer
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <TextInput
+                    value={draftCharacter.bio ?? ""}
+                    onChangeText={(value) => updateDraftField("bio", value)}
+                    style={[
+                      styles.editorInput,
+                      styles.bioEditorInput,
+                      {
+                        backgroundColor: activeTheme.chipBg,
+                        borderColor: activeTheme.border,
+                        color: activeTheme.title,
+                      },
+                    ]}
+                    multiline
+                    textAlignVertical="top"
+                    placeholder="Bio du personnage"
+                    placeholderTextColor={activeTheme.subtitle}
+                  />
+                </>
+              ) : creationDraft ? (
+                <>
+                  <View style={styles.overlayHeader}>
+                    <View style={styles.overlayHeaderText}>
+                      <Text style={[styles.overlayTitle, { color: activeTheme.title }]}>
+                        Nouveau personnage
+                      </Text>
+                      <Text style={[styles.overlaySubtitle, { color: activeTheme.subtitle }]}>
+                        {creationDraft.step === 1
+                          ? "Choisis un archetype de base."
+                          : "Choisis la specialisation, puis cree la fiche pre-remplie."}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => setCreationDraft(null)}
+                      style={[styles.overlayCloseButton, { borderColor: activeTheme.border }]}
+                    >
+                      <Text style={[styles.overlayCloseButtonLabel, { color: activeTheme.title }]}>
+                        Fermer
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  {creationDraft.step === 1 ? (
+                    <View style={styles.overlayOptionList}>
+                      {ARCHETYPE_OPTIONS.map((option) => (
+                        <Pressable
+                          key={option.id}
+                          onPress={() => updateCreationArchetype(option.id)}
+                          style={[
+                            styles.overlayOptionCard,
+                            {
+                              backgroundColor: activeTheme.chipBg,
+                              borderColor:
+                                creationDraft.archetypeId === option.id
+                                  ? activeTheme.accent
+                                  : activeTheme.border,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.overlayOptionTitle, { color: activeTheme.title }]}>
+                            {option.label}
+                          </Text>
+                          <Text
+                            style={[styles.overlayOptionDescription, { color: activeTheme.subtitle }]}
+                          >
+                            {option.description}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : (
+                    <>
+                      <View
+                        style={[
+                          styles.creationSummaryCard,
+                          { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                        ]}
+                      >
+                        <Text style={[styles.creationSummaryTitle, { color: activeTheme.title }]}>
+                          {creationArchetypeOption.label}
+                        </Text>
+                        <Text
+                          style={[styles.creationSummaryDescription, { color: activeTheme.subtitle }]}
+                        >
+                          {creationArchetypeOption.description}
+                        </Text>
+                        <Text style={[styles.creationSummaryMeta, { color: activeTheme.subtitle }]}>
+                          Theme suggere · {THEME_LABELS[creationArchetypeOption.theme]}
+                        </Text>
+                      </View>
+
+                      <View style={styles.overlayOptionList}>
+                        {creationArchetypeOption.specializations.map((specialization) => (
+                          <Pressable
+                            key={specialization}
+                            onPress={() =>
+                              setCreationDraft((current) =>
+                                current ? { ...current, specialization } : current,
+                              )
+                            }
+                            style={[
+                              styles.overlayOptionCard,
+                              {
+                                backgroundColor: activeTheme.chipBg,
+                                borderColor:
+                                  creationDraft.specialization === specialization
+                                    ? activeTheme.accent
+                                    : activeTheme.border,
+                              },
+                            ]}
+                          >
+                            <Text style={[styles.overlayOptionTitle, { color: activeTheme.title }]}>
+                              {specialization}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+
+                      <View style={styles.overlayActions}>
+                        <Pressable
+                          onPress={() =>
+                            setCreationDraft((current) =>
+                              current ? { ...current, step: 1 } : current,
+                            )
+                          }
+                          style={[
+                            styles.overlaySecondaryButton,
+                            { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.overlaySecondaryButtonLabel, { color: activeTheme.title }]}
+                          >
+                            Retour
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={createCharacter}
+                          style={[
+                            styles.overlayPrimaryButton,
+                            { backgroundColor: activeTheme.buttonBg },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.overlayPrimaryButtonLabel,
+                              { color: activeTheme.buttonText },
+                            ]}
+                          >
+                            Creer la fiche
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </>
+                  )}
+                </>
+              ) : activeOverlayMenu === "theme" ? (
+                <View style={styles.overlayOptionList}>
+                  {(Object.keys(THEME_LABELS) as CharacterTheme[]).map((themeKey) => (
+                    <Pressable
+                      key={themeKey}
+                      onPress={() => setCharacterTheme(selectedCharacter.id, themeKey)}
+                      style={[
+                        styles.overlayOptionCard,
+                        {
+                          backgroundColor: activeTheme.chipBg,
+                          borderColor:
+                            selectedCharacter.theme === themeKey
+                              ? activeTheme.accent
+                              : activeTheme.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.overlayOptionTitle, { color: activeTheme.title }]}>
+                        {THEME_LABELS[themeKey]}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : activeOverlayMenu === "character" ? (
+                <View style={styles.overlayOptionList}>
+                  <View
+                    style={[
+                      styles.characterOverlayActions,
+                      { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                    ]}
+                  >
+                    <Pressable
+                      onPress={openCreationWizard}
+                      style={[
+                        styles.characterOverlayActionButton,
+                        { backgroundColor: activeTheme.buttonBg },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.characterOverlayActionLabel,
+                          { color: activeTheme.buttonText },
+                        ]}
+                      >
+                        Nouveau
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        void handleImport();
+                      }}
+                      style={[
+                        styles.characterOverlayActionButton,
+                        { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.characterOverlayActionLabel,
+                          { color: activeTheme.title },
+                        ]}
+                      >
+                        Importer
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        void handleExport();
+                      }}
+                      style={[
+                        styles.characterOverlayActionButton,
+                        { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.characterOverlayActionLabel,
+                          { color: activeTheme.title },
+                        ]}
+                      >
+                        Exporter
+                      </Text>
+                    </Pressable>
+                  </View>
+                  {characters.map((character) => {
+                    const active = character.id === selectedCharacter.id;
+
+                    return (
+                      <Pressable
+                        key={character.id}
+                        onPress={() => {
+                          setSelectedId(character.id);
+                          setActiveOverlayMenu(null);
+                        }}
+                        style={[
+                          styles.overlayOptionCard,
+                          {
+                            backgroundColor: activeTheme.chipBg,
+                            borderColor: active ? activeTheme.accent : activeTheme.border,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.overlayOptionTitle, { color: activeTheme.title }]}>
+                          {character.name}
+                        </Text>
+                        <Text
+                          style={[styles.overlayOptionDescription, { color: activeTheme.subtitle }]}
+                        >
+                          {character.archetype}
+                          {character.level ? ` · Niv ${character.level}` : ""}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : activeOverlayMenu === "stance" ? (
+                <View style={styles.overlayOptionList}>
+                  {STANCES.map((stance) => (
+                    <Pressable
+                      key={stance}
+                      onPress={() => setStance(selectedCharacter.id, stance)}
+                      style={[
+                        styles.overlayOptionCard,
+                        {
+                          backgroundColor: activeTheme.chipBg,
+                          borderColor:
+                            stance === selectedCharacter.stance
+                              ? activeTheme.accent
+                              : activeTheme.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.overlayOptionTitle, { color: activeTheme.title }]}>
+                        {stanceLabels[stance]}
+                      </Text>
+                      <Text
+                        style={[styles.overlayOptionDescription, { color: activeTheme.subtitle }]}
+                      >
+                        {stanceDescriptions[stance]}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : activeOverlayMenu === "editorArchetype" && draftCharacter ? (
+                <View style={styles.overlayOptionList}>
+                  {ARCHETYPE_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option.id}
+                      onPress={() => applyArchetypeTemplate(option.id)}
+                      style={[
+                        styles.overlayOptionCard,
+                        {
+                          backgroundColor: activeTheme.chipBg,
+                          borderColor:
+                            draftCharacter.archetypeId === option.id
+                              ? activeTheme.accent
+                              : activeTheme.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.overlayOptionTitle, { color: activeTheme.title }]}>
+                        {option.label}
+                      </Text>
+                      <Text
+                        style={[styles.overlayOptionDescription, { color: activeTheme.subtitle }]}
+                      >
+                        {option.description}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : activeOverlayMenu === "editorSpecialization" && draftCharacter ? (
+                <View style={styles.overlayOptionList}>
+                  {selectedArchetypeOption.specializations.map((specialization) => (
+                    <Pressable
+                      key={specialization}
+                      onPress={() => updateDraftSpecialization(specialization)}
+                      style={[
+                        styles.overlayOptionCard,
+                        {
+                          backgroundColor: activeTheme.chipBg,
+                          borderColor:
+                            draftCharacter.specialization === specialization
+                              ? activeTheme.accent
+                              : activeTheme.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.overlayOptionTitle, { color: activeTheme.title }]}>
+                        {specialization}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
             </View>
           </View>
         </Modal>
@@ -2255,899 +4080,202 @@ export function CharacterSheetScreen() {
             {selectedCharacter.inventory.length} objets
           </Text>
         </View>
-        <View style={[styles.bannerTag, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}>
-          <Text style={[styles.bannerTagLabel, { color: activeTheme.title }]}>
-            {selectedCharacter.statusEffects.filter((effect) => effect.active).length} effets actifs
-          </Text>
-        </View>
       </View>
 
-      <Section
-        title="Ressources"
-        subtitle="Ajustement rapide pendant la partie."
-        theme={{
-          sectionBg: activeTheme.panelBg,
-          sectionBorder: activeTheme.border,
-          title: activeTheme.title,
-          subtitle: activeTheme.subtitle,
-        }}
-        rightSlot={
-          <Pressable
-            onPress={() => openSectionEditor("resources")}
-            style={[
-              styles.sectionEditButton,
-              { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-            ]}
-          >
-            <Text style={[styles.sectionEditButtonLabel, { color: activeTheme.title }]}>✎</Text>
-          </Pressable>
-        }
-      >
-        <View style={styles.resourceGrid}>
-          <ResourceMeter
-            label="PV"
-            glyph="♥"
-            accent="#ef4444"
-            resource={selectedCharacter.pv}
-            glyphScale={1}
-            theme={activeTheme}
-            onAdjust={(delta) => updateResource(selectedCharacter.id, "pv", delta)}
-            onAdjustBonus={(delta) =>
-              updateResourceBonus(selectedCharacter.id, "pv", delta)
-            }
-          />
-          <ResourceMeter
-            label="PSY"
-            glyph="💧"
-            accent="#38bdf8"
-            resource={selectedCharacter.psy}
-            glyphScale={0.78}
-            theme={activeTheme}
-            onAdjust={(delta) => updateResource(selectedCharacter.id, "psy", delta)}
-            onAdjustBonus={(delta) =>
-              updateResourceBonus(selectedCharacter.id, "psy", delta)
-            }
-          />
-          <ResourceMeter
-            label="Armure"
-            glyph="🛡"
-            accent="#f59e0b"
-            resource={selectedCharacter.armor}
-            glyphScale={1}
-            theme={activeTheme}
-            onAdjust={(delta) => updateResource(selectedCharacter.id, "armor", delta)}
-            onAdjustBonus={(delta) =>
-              updateResourceBonus(selectedCharacter.id, "armor", delta)
-            }
-          />
-          <AttackBonusCard
-            value={selectedCharacter.attackBonus}
-            theme={activeTheme}
-            onAdjust={(delta) => updateAttackBonus(selectedCharacter.id, delta)}
-          />
-        </View>
-      </Section>
-
-      <View style={styles.dualColumns}>
-        <View style={styles.dualColumn}>
-          <Section
-            title="Effets actifs"
-            subtitle="Suivi des effets persistants, dons et benedictions."
-            theme={{
-              sectionBg: activeTheme.panelBg,
-              sectionBorder: activeTheme.border,
-              title: activeTheme.title,
-              subtitle: activeTheme.subtitle,
-            }}
-            rightSlot={
-              <Pressable
-                onPress={() => openSectionEditor("effects")}
-                style={[
-                  styles.sectionEditButton,
-                  { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                ]}
-              >
-                <Text style={[styles.sectionEditButtonLabel, { color: activeTheme.title }]}>✎</Text>
-              </Pressable>
-            }
-          >
-            <View style={styles.effectList}>
-              {selectedCharacter.statusEffects.length ? (
-                selectedCharacter.statusEffects.map((effect) => (
-                  <View
-                    key={effect.id}
-                    style={[
-                      styles.effectCard,
-                      {
-                        backgroundColor: activeTheme.chipBg,
-                        borderColor: effect.active ? activeTheme.accent : activeTheme.border,
-                      },
-                    ]}
-                  >
-                    <View style={styles.effectHeader}>
-                      <View style={styles.effectHeaderText}>
-                        <Text style={[styles.effectTitle, { color: activeTheme.title }]}>
-                          {effect.name}
-                        </Text>
-                        {effect.source ? (
-                          <Text style={[styles.effectSource, { color: activeTheme.subtitle }]}>
-                            Source · {effect.source}
-                          </Text>
-                        ) : null}
-                      </View>
-                      <Pressable
-                        onPress={() => toggleStatusActive(selectedCharacter.id, effect.id)}
-                        style={[
-                          styles.effectActiveToggle,
-                          {
-                            backgroundColor: effect.active
-                              ? activeTheme.accent
-                              : activeTheme.panelBg,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.effectActiveToggleLabel,
-                            { color: effect.active ? activeTheme.pageBg : activeTheme.title },
-                          ]}
-                        >
-                          {effect.active ? "Actif" : "Off"}
-                        </Text>
-                      </Pressable>
-                    </View>
-                    <Text style={[styles.effectDescription, { color: activeTheme.subtitle }]}>
-                      {effect.description}
-                    </Text>
-                    {effect.tags.length ? (
-                      <View style={styles.assetTags}>
-                        {effect.tags.map((tag) => (
-                          <View
-                            key={`${effect.id}-${tag}`}
-                            style={[
-                              styles.assetTag,
-                              {
-                                backgroundColor: activeTheme.panelBg,
-                                borderColor: activeTheme.border,
-                              },
-                            ]}
-                          >
-                            <Text style={[styles.assetTagLabel, { color: activeTheme.title }]}>
-                              {tag}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    ) : null}
-                    <View style={styles.effectFooter}>
-                      <Text style={[styles.effectTurns, { color: activeTheme.title }]}>
-                        {effect.durationTurns === null
-                          ? "Permanent"
-                          : `${effect.durationTurns} tour(s)`}
-                      </Text>
-                      {effect.durationTurns !== null ? (
-                        <View style={styles.resourceButtons}>
-                          <AdjustButton
-                            label="-1"
-                            onPress={() => stepStatusDuration(selectedCharacter.id, effect.id, -1)}
-                            theme={activeTheme}
-                          />
-                          <AdjustButton
-                            label="+1"
-                            onPress={() => stepStatusDuration(selectedCharacter.id, effect.id, 1)}
-                            theme={activeTheme}
-                          />
-                        </View>
-                      ) : null}
-                    </View>
-                  </View>
-                ))
-              ) : (
-                <Text style={[styles.emptyText, { color: activeTheme.subtitle }]}>
-                  Aucun effet persistant.
-                </Text>
-              )}
-            </View>
-          </Section>
-        </View>
-        <View style={styles.dualColumn}>
-          <Section
-            title="Affinites"
-            subtitle="Resistances, faiblesses et immunites connues."
-            theme={{
-              sectionBg: activeTheme.panelBg,
-              sectionBorder: activeTheme.border,
-              title: activeTheme.title,
-              subtitle: activeTheme.subtitle,
-            }}
-            rightSlot={
-              <Pressable
-                onPress={() => openSectionEditor("resistances")}
-                style={[
-                  styles.sectionEditButton,
-                  { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                ]}
-              >
-                <Text style={[styles.sectionEditButtonLabel, { color: activeTheme.title }]}>✎</Text>
-              </Pressable>
-            }
-          >
-            <View style={styles.resistanceList}>
-              {selectedCharacter.resistances.length ? (
-                selectedCharacter.resistances.map((entry) => (
-                  <View
-                    key={entry.id}
-                    style={[
-                      styles.resistanceCard,
-                      { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                    ]}
-                  >
-                    <View style={styles.resistanceHeader}>
-                      <Text style={[styles.resistanceLabel, { color: activeTheme.title }]}>
-                        {entry.label}
-                      </Text>
-                      <View
-                        style={[
-                          styles.resistanceBadge,
-                          {
-                            backgroundColor:
-                              entry.type === "immunite"
-                                ? activeTheme.accent
-                                : activeTheme.panelBg,
-                            borderColor: activeTheme.border,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.resistanceBadgeLabel,
-                            {
-                              color:
-                                entry.type === "immunite"
-                                  ? activeTheme.pageBg
-                                  : activeTheme.title,
-                            },
-                          ]}
-                        >
-                          {RESISTANCE_LABELS[entry.type]}
-                        </Text>
-                      </View>
-                    </View>
-                    {entry.notes ? (
-                      <Text style={[styles.effectDescription, { color: activeTheme.subtitle }]}>
-                        {entry.notes}
-                      </Text>
-                    ) : null}
-                  </View>
-                ))
-              ) : (
-                <Text style={[styles.emptyText, { color: activeTheme.subtitle }]}>
-                  Aucune affinite renseignee.
-                </Text>
-              )}
-            </View>
-          </Section>
-        </View>
-      </View>
-
-      <View style={styles.dualColumns}>
-        <View style={styles.dualColumn}>
-          <View style={styles.equalHeightCard}>
-            <Section
-              title="Stats"
-              subtitle="Valeurs de base en pourcentage."
-              theme={{
-                sectionBg: activeTheme.panelBg,
-                sectionBorder: activeTheme.border,
-                title: activeTheme.title,
-                subtitle: activeTheme.subtitle,
-              }}
-              rightSlot={
-                <Pressable
-                  onPress={() => openSectionEditor("stats")}
-                  style={[
-                    styles.sectionEditButton,
-                    { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                  ]}
-                >
-                  <Text style={[styles.sectionEditButtonLabel, { color: activeTheme.title }]}>✎</Text>
-                </Pressable>
-              }
-            >
-              <View style={styles.statsGrid}>
-                {Object.entries(selectedCharacter.stats).map(([key, value]) => (
-                <View
-                  key={key}
-                  style={[
-                    styles.statCard,
-                    { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                  ]}
-                >
-                  <View style={styles.statHeader}>
-                    <View style={styles.statIconWrap}>
-                      <Text style={[styles.statIcon, { color: activeTheme.accent }]}>
-                        {STAT_ICONS[key as keyof Character["stats"]]}
-                      </Text>
-                    </View>
-                    <Text style={[styles.statLabel, { color: activeTheme.subtitle }]}>
-                      {key}
-                    </Text>
-                  </View>
-                  <Text style={[styles.statValue, { color: activeTheme.title }]}>
-                    {value}%
-                  </Text>
-                </View>
-                ))}
-              </View>
-            </Section>
-          </View>
-        </View>
-
-        <View style={styles.dualColumn}>
-          <View style={styles.equalHeightCard}>
-            <Section
-              title="Competences"
-              subtitle="Bonus appliques aux actions specialisees."
-              theme={{
-                sectionBg: activeTheme.panelBg,
-                sectionBorder: activeTheme.border,
-                title: activeTheme.title,
-                subtitle: activeTheme.subtitle,
-              }}
-              rightSlot={
-                <Pressable
-                  onPress={() => openSectionEditor("skills")}
-                  style={[
-                    styles.sectionEditButton,
-                    { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                  ]}
-                >
-                  <Text style={[styles.sectionEditButtonLabel, { color: activeTheme.title }]}>✎</Text>
-                </Pressable>
-              }
-            >
-              <View style={styles.table}>
-              <View style={[styles.tableHeader, { backgroundColor: activeTheme.chipBg }]}>
-                <Text
-                  style={[
-                    styles.tableHeaderText,
-                    styles.tableNameColumn,
-                    { color: activeTheme.subtitle },
-                  ]}
-                >
-                  Competence
-                </Text>
-                <Text style={[styles.tableHeaderText, { color: activeTheme.subtitle }]}>
-                  Bonus
-                </Text>
-              </View>
-              {selectedCharacter.skills.map((skill) => (
-                <View
-                  key={skill.id}
-                  style={[
-                    styles.tableRow,
-                    { backgroundColor: activeTheme.chipBg, borderTopColor: activeTheme.border },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.tableCell,
-                      styles.tableNameColumn,
-                      { color: activeTheme.title },
-                    ]}
-                  >
-                    {skill.name}
-                  </Text>
-                  <Text style={[styles.tableBonus, { color: activeTheme.accent }]}>
-                    +{skill.value}%
-                  </Text>
-                </View>
-              ))}
-              </View>
-            </Section>
-          </View>
-        </View>
-      </View>
-
-      <Section
-        title="Inventaire"
-        subtitle="Objets emportes par le personnage."
-        theme={{
-          sectionBg: activeTheme.panelBg,
-          sectionBorder: activeTheme.border,
-          title: activeTheme.title,
-          subtitle: activeTheme.subtitle,
-        }}
-        rightSlot={
-          <Pressable
-            onPress={() => openSectionEditor("inventory")}
-            style={[
-              styles.sectionEditButton,
-              { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-            ]}
-          >
-            <Text style={[styles.sectionEditButtonLabel, { color: activeTheme.title }]}>✎</Text>
-          </Pressable>
-        }
-      >
-        <View style={styles.inventoryList}>
-          {selectedCharacter.inventory.map((item) => (
-              <View
-                key={item.id}
-                style={[
-                  styles.inventoryItem,
-                  { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                ]}
-              >
-              <AssetVisual
-                label={item.name}
-                icon={item.icon}
-                imageUrl={item.imageUrl}
-                imageModule={item.imageModule}
-                small
-              />
-              <View style={styles.inventoryBody}>
-                  <Text style={[styles.inventoryName, { color: activeTheme.title }]}>
-                    {item.name}
-                  </Text>
-                  {item.tags.length ? (
-                    <View style={styles.assetTags}>
-                      {item.tags.map((tag) => (
-                        <View
-                          key={`${item.id}-${tag}`}
-                          style={[
-                            styles.assetTag,
-                            {
-                              backgroundColor: activeTheme.panelBg,
-                              borderColor: activeTheme.border,
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.assetTagLabel, { color: activeTheme.title }]}>
-                            {tag}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  ) : null}
-                  {item.notes ? (
-                    <Text style={[styles.inventoryNotes, { color: activeTheme.subtitle }]}>
-                      {item.notes}
-                    </Text>
-                  ) : null}
-                </View>
-                <Text style={[styles.inventoryQty, { color: activeTheme.accent }]}>
-                  x{item.quantity}
-                </Text>
-              </View>
-          ))}
-        </View>
-      </Section>
-
-      <Section
-        title="Dons et sorts"
-        subtitle="Couts recalcules selon la posture actuelle."
-        theme={{
-          sectionBg: activeTheme.panelBg,
-          sectionBorder: activeTheme.border,
-          title: activeTheme.title,
-          subtitle: activeTheme.subtitle,
-        }}
-        rightSlot={
-          <Pressable
-            onPress={() => openSectionEditor("spells")}
-            style={[
-              styles.sectionEditButton,
-              { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-            ]}
-          >
-            <Text style={[styles.sectionEditButtonLabel, { color: activeTheme.title }]}>✎</Text>
-          </Pressable>
-        }
-      >
-        <View style={styles.assetGrid}>
-          {selectedCharacter.spells.length ? (
-            selectedCharacter.spells.map((spell) => {
-              const computedCost = getSpellCost(spell, selectedCharacter.stance);
-              const reduced = spell.reducible && computedCost < spell.basePsyCost;
-              const isActive = selectedCharacter.activeSpellIds.includes(spell.id);
-
-              return (
-                <View
-                  key={spell.id}
-                  style={[
-                    styles.assetCard,
-                    { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                    isActive ? styles.assetCardActive : null,
-                  ]}
-                >
-                  <AssetVisual
-                    label={spell.name}
-                    icon={spell.icon}
-                    imageUrl={spell.imageUrl}
-                    imageModule={spell.imageModule}
-                    onPress={() => toggleSpellActive(selectedCharacter.id, spell.id)}
-                    active={isActive}
-                  />
-                  <View style={styles.assetBody}>
-                    <View style={styles.assetHeader}>
-                      <View style={styles.assetHeading}>
-                        <Text style={[styles.assetTitle, { color: activeTheme.title }]}>
-                          {spell.name}
-                        </Text>
-                        <Text style={[styles.assetMeta, { color: activeTheme.subtitle }]}>
-                          {spell.reducible
-                            ? "Don reductible"
-                            : "Don a cout fixe"}
-                        </Text>
-                      </View>
-                      <View style={styles.assetBadgeColumn}>
-                        {isActive ? (
-                          <Text style={styles.activeBadge}>Actif</Text>
-                        ) : null}
-                        <Text
-                          style={[
-                            styles.costBadge,
-                            reduced ? styles.costBadgeReduced : null,
-                          ]}
-                        >
-                          {computedCost} PSY
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={[styles.assetDescription, { color: activeTheme.title }]}>
-                      {spell.description}
-                    </Text>
-                    {spell.tags.length ? (
-                      <View style={styles.assetTags}>
-                        {spell.tags.map((tag) => (
-                          <View
-                            key={`${spell.id}-${tag}`}
-                            style={[
-                              styles.assetTag,
-                              {
-                                backgroundColor: activeTheme.panelBg,
-                                borderColor: activeTheme.border,
-                              },
-                            ]}
-                          >
-                            <Text style={[styles.assetTagLabel, { color: activeTheme.title }]}>
-                              {tag}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    ) : null}
-                    {spell.activeEffects.map((effect) => (
-                      <Text
-                        key={effect.id}
-                        style={[styles.assetEffect, { color: activeTheme.subtitle }]}
-                      >
-                        Actif · {effect.label} · {effect.description}
-                      </Text>
-                    ))}
-                    {spell.passiveEffects.map((effect) => (
-                      <Text
-                        key={effect.id}
-                        style={[styles.assetEffect, { color: activeTheme.subtitle }]}
-                      >
-                        Passif · {effect.label} · {effect.description}
-                      </Text>
-                    ))}
-                  </View>
-                </View>
-              );
-            })
-          ) : (
-            <Text style={[styles.emptyText, { color: activeTheme.subtitle }]}>
-              Aucun don renseigne.
-            </Text>
-          )}
-        </View>
-      </Section>
-
-      <Section
-        title="Equipement"
-        subtitle="L'equipement occupe l'espace principal de la feuille."
-        theme={{
-          sectionBg: activeTheme.panelBg,
-          sectionBorder: activeTheme.border,
-          title: activeTheme.title,
-          subtitle: activeTheme.subtitle,
-        }}
-        rightSlot={
-          <Pressable
-            onPress={() => openSectionEditor("equipment")}
-            style={[
-              styles.sectionEditButton,
-              { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-            ]}
-          >
-            <Text style={[styles.sectionEditButtonLabel, { color: activeTheme.title }]}>✎</Text>
-          </Pressable>
-        }
-      >
-        <View style={styles.equipmentList}>
-          {selectedCharacter.equipment.map((item) => (
+      {useSplitLayout ? (
+        <>
+          <View style={styles.tabletSectionGrid}>
             <View
-              key={item.id}
               style={[
-                styles.equipmentCard,
-                { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                styles.tabletPrimaryColumn,
+                isLaptop ? styles.tabletPrimaryColumnLaptop : styles.tabletPrimaryColumnTablet,
               ]}
             >
-              <AssetVisual
-                label={item.name}
-                icon={item.icon}
-                imageUrl={item.imageUrl}
-                imageModule={item.imageModule}
+              <ResourcesSection
+                character={selectedCharacter}
+                theme={activeTheme}
+                onEdit={() => openSectionEditor("resources")}
+                onAdjustResource={(resourceKey, delta) =>
+                  updateResource(selectedCharacter.id, resourceKey, delta)
+                }
+                onAdjustResourceBonus={(resourceKey, delta) =>
+                  updateResourceBonus(selectedCharacter.id, resourceKey, delta)
+                }
+                onAdjustAttackBonus={(delta) => updateAttackBonus(selectedCharacter.id, delta)}
               />
-              <View style={styles.equipmentBody}>
-                <View style={styles.assetHeader}>
-                  <View style={styles.assetHeading}>
-                    <Text style={[styles.assetTitle, { color: activeTheme.title }]}>
-                      {item.name}
-                    </Text>
-                    <Text style={[styles.assetMeta, { color: activeTheme.subtitle }]}>
-                      {item.category}
-                    </Text>
-                  </View>
-                </View>
-                {item.notes ? (
-                  <Text style={[styles.assetDescription, { color: activeTheme.title }]}>
-                    {item.notes}
-                  </Text>
-                ) : null}
-                {item.tags.length ? (
-                  <View style={styles.assetTags}>
-                    {item.tags.map((tag) => (
-                      <View
-                        key={`${item.id}-${tag}`}
-                        style={[
-                          styles.assetTag,
-                          {
-                            backgroundColor: activeTheme.panelBg,
-                            borderColor: activeTheme.border,
-                          },
-                        ]}
-                      >
-                        <Text style={[styles.assetTagLabel, { color: activeTheme.title }]}>
-                          {tag}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-                {item.activeEffects.map((effect) => (
-                  <Text
-                    key={effect.id}
-                    style={[styles.assetEffect, { color: activeTheme.subtitle }]}
-                  >
-                    Actif · {effect.label} · {effect.description}
-                  </Text>
-                ))}
-                {item.passiveEffects.map((effect) => (
-                  <Text
-                    key={effect.id}
-                    style={[styles.assetEffect, { color: activeTheme.subtitle }]}
-                  >
-                    Passif · {effect.label} · {effect.description}
-                  </Text>
-                ))}
-              </View>
+              <InventorySection
+                character={selectedCharacter}
+                theme={activeTheme}
+                onEdit={() => openSectionEditor("inventory")}
+              />
             </View>
-          ))}
-        </View>
-      </Section>
-    </ScrollView>
-  );
-}
+            <View
+              style={[
+                styles.tabletSecondaryColumn,
+                isLaptop
+                  ? styles.tabletSecondaryColumnLaptop
+                  : styles.tabletSecondaryColumnTablet,
+              ]}
+            >
+              <View
+                style={[
+                  styles.quickActionsCard,
+                  { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
+                ]}
+              >
+                <Text style={[styles.quickActionsHint, { color: activeTheme.subtitle }]}>
+                  Actions rapides
+                </Text>
+                <View style={styles.quickActionsButtons}>
+                  <Pressable
+                    onPress={openDamageDialog}
+                    style={[styles.quickActionButton, { backgroundColor: activeTheme.buttonBg }]}
+                  >
+                    <Text
+                      style={[
+                        styles.quickActionButtonLabel,
+                        { color: activeTheme.buttonText },
+                      ]}
+                    >
+                      Prendre des degats
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={openQuickCastDialog}
+                    style={[styles.quickActionButton, { backgroundColor: activeTheme.chipBg }]}
+                  >
+                    <Text style={[styles.quickActionButtonLabel, { color: activeTheme.title }]}>
+                      Lancer un sort
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={openRecoveryDialog}
+                    style={[styles.quickActionButton, { backgroundColor: activeTheme.chipBg }]}
+                  >
+                    <Text style={[styles.quickActionButtonLabel, { color: activeTheme.title }]}>
+                      Soigner / bouclier
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+              <StatsSkillsSection
+                character={selectedCharacter}
+                theme={activeTheme}
+                onEditStats={() => openSectionEditor("stats")}
+                onEditSkills={() => openSectionEditor("skills")}
+              />
+          <StatusSections
+            character={selectedCharacter}
+            theme={activeTheme}
+            onEditResistances={() => openSectionEditor("resistances")}
+          />
+              <SpellsSection
+                character={selectedCharacter}
+                theme={activeTheme}
+                onEdit={() => openSectionEditor("spells")}
+                onToggleSpellActive={(spellId) =>
+                  toggleSpellActive(selectedCharacter.id, spellId)
+                }
+              />
+            </View>
+          </View>
+          <EquipmentSection
+            character={selectedCharacter}
+            theme={activeTheme}
+            onEdit={() => openSectionEditor("equipment")}
+          />
+        </>
+      ) : (
+        <>
+          <ResourcesSection
+            character={selectedCharacter}
+            theme={activeTheme}
+            onEdit={() => openSectionEditor("resources")}
+            onAdjustResource={(resourceKey, delta) =>
+              updateResource(selectedCharacter.id, resourceKey, delta)
+            }
+            onAdjustResourceBonus={(resourceKey, delta) =>
+              updateResourceBonus(selectedCharacter.id, resourceKey, delta)
+            }
+            onAdjustAttackBonus={(delta) => updateAttackBonus(selectedCharacter.id, delta)}
+          />
 
-type ResourceMeterProps = {
-  label: string;
-  glyph: string;
-  accent: string;
-  resource: ResourcePool;
-  glyphScale?: number;
-  theme: {
-    chipBg: string;
-    border: string;
-    title: string;
-    subtitle: string;
-    buttonBg: string;
-    buttonText: string;
-  };
-  onAdjust: (delta: number) => void;
-  onAdjustBonus: (delta: number) => void;
-};
-
-function ResourceMeter({
-  label,
-  glyph,
-  accent,
-  resource,
-  glyphScale = 1,
-  theme,
-  onAdjust,
-  onAdjustBonus,
-}: ResourceMeterProps) {
-  const fillRatio = resource.max === 0 ? 0 : resource.current / resource.max;
-
-  return (
-    <View
-      style={[
-        styles.resourceCard,
-        { backgroundColor: theme.chipBg, borderColor: theme.border },
-      ]}
-    >
-      <Text style={[styles.resourceName, { color: theme.title }]}>{label}</Text>
-      <View style={styles.resourceGlyphFrame}>
-        <View style={[styles.resourceGlyphFillMask, { height: `${fillRatio * 100}%` }]}>
-          <Text
+          <View
             style={[
-              styles.resourceGlyphFill,
-              { color: accent, transform: [{ scale: glyphScale }] },
+              styles.quickActionsCard,
+              { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
             ]}
           >
-            {glyph}
-          </Text>
-        </View>
-      </View>
-      <Text style={[styles.resourceCount, { color: theme.title }]}>
-        {resource.current}/{resource.max}
-      </Text>
-      <Text style={[styles.resourceBonus, { color: theme.subtitle }]}>
-        Bonus +{resource.bonus}
-      </Text>
-      <View style={styles.resourceButtons}>
-        <AdjustButton label="-1" onPress={() => onAdjust(-1)} theme={theme} />
-        <AdjustButton label="+1" onPress={() => onAdjust(1)} theme={theme} />
-      </View>
-      <View style={styles.resourceButtons}>
-        <AdjustButton label="-B" onPress={() => onAdjustBonus(-1)} theme={theme} />
-        <AdjustButton label="+B" onPress={() => onAdjustBonus(1)} theme={theme} />
-      </View>
-    </View>
-  );
-}
+            <Text style={[styles.quickActionsHint, { color: activeTheme.subtitle }]}>
+              Actions rapides
+            </Text>
+            <View style={styles.quickActionsButtons}>
+              <Pressable
+                onPress={openDamageDialog}
+                style={[styles.quickActionButton, { backgroundColor: activeTheme.buttonBg }]}
+              >
+                <Text
+                  style={[
+                    styles.quickActionButtonLabel,
+                    { color: activeTheme.buttonText },
+                  ]}
+                >
+                  Prendre des degats
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={openQuickCastDialog}
+                style={[styles.quickActionButton, { backgroundColor: activeTheme.chipBg }]}
+              >
+                <Text style={[styles.quickActionButtonLabel, { color: activeTheme.title }]}>
+                  Lancer un sort
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={openRecoveryDialog}
+                style={[styles.quickActionButton, { backgroundColor: activeTheme.chipBg }]}
+              >
+                <Text style={[styles.quickActionButtonLabel, { color: activeTheme.title }]}>
+                  Soigner / bouclier
+                </Text>
+              </Pressable>
+            </View>
+          </View>
 
-type AttackBonusCardProps = {
-  value: number;
-  theme: {
-    chipBg: string;
-    border: string;
-    title: string;
-    subtitle: string;
-    accent: string;
-    buttonBg: string;
-    buttonText: string;
-  };
-  onAdjust: (delta: number) => void;
-};
+          <StatsSkillsSection
+            character={selectedCharacter}
+            theme={activeTheme}
+            onEditStats={() => openSectionEditor("stats")}
+            onEditSkills={() => openSectionEditor("skills")}
+          />
 
-function AttackBonusCard({ value, theme, onAdjust }: AttackBonusCardProps) {
-  return (
-    <View
-      style={[
-        styles.resourceCard,
-        { backgroundColor: theme.chipBg, borderColor: theme.border },
-      ]}
-    >
-      <Text style={[styles.resourceName, { color: theme.title }]}>Attaque bonus</Text>
-      <View style={styles.resourceGlyphWrap}>
-        <Text style={[styles.attackGlyph, { color: theme.accent }]}>✦</Text>
-      </View>
-      <Text style={[styles.resourceCount, { color: theme.title }]}>+{value}</Text>
-      <Text style={[styles.resourceBonus, { color: theme.subtitle }]}>
-        Modificateur offensif
-      </Text>
-      <View style={styles.resourceButtons}>
-        <AdjustButton label="-1" onPress={() => onAdjust(-1)} theme={theme} />
-        <AdjustButton label="+1" onPress={() => onAdjust(1)} theme={theme} />
-      </View>
-    </View>
-  );
-}
+          <StatusSections
+            character={selectedCharacter}
+            theme={activeTheme}
+            onEditResistances={() => openSectionEditor("resistances")}
+          />
 
-type EditorFieldProps = {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  keyboardType?: "default" | "numeric";
-};
+          <InventorySection
+            character={selectedCharacter}
+            theme={activeTheme}
+            onEdit={() => openSectionEditor("inventory")}
+          />
 
-function EditorField({
-  label,
-  value,
-  onChangeText,
-  keyboardType = "default",
-}: EditorFieldProps) {
-  return (
-    <View style={styles.editorField}>
-      <Text style={styles.editorFieldLabel}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        style={styles.editorInput}
-        placeholderTextColor="#6f84a7"
-      />
-    </View>
-  );
-}
+          <SpellsSection
+            character={selectedCharacter}
+            theme={activeTheme}
+            onEdit={() => openSectionEditor("spells")}
+            onToggleSpellActive={(spellId) => toggleSpellActive(selectedCharacter.id, spellId)}
+          />
 
-type AssetVisualProps = {
-  label: string;
-  icon?: string;
-  imageUrl?: string;
-  imageModule?: number;
-  small?: boolean;
-  character?: boolean;
-  onPress?: () => void;
-  active?: boolean;
-};
-
-function AssetVisual({
-  label,
-  icon,
-  imageUrl,
-  imageModule,
-  small = false,
-  character = false,
-  onPress,
-  active = false,
-}: AssetVisualProps) {
-  const sizeStyle = character
-    ? styles.characterVisual
-    : small
-      ? styles.assetVisualSmall
-      : styles.assetVisual;
-  const content = imageUrl || imageModule ? (
-    <Image
-      source={imageUrl ? { uri: imageUrl } : imageModule}
-      style={sizeStyle}
-      resizeMode="cover"
-    />
-  ) : (
-    <View style={[sizeStyle, styles.assetFallback, active ? styles.assetFallbackActive : null]}>
-      <Text style={small ? styles.assetFallbackSmallText : styles.assetFallbackText}>
-        {icon ?? label.slice(0, 1)}
-      </Text>
-    </View>
-  );
-
-  if (onPress) {
-    return (
-      <Pressable onPress={onPress} style={styles.assetVisualButton}>
-        {content}
-      </Pressable>
-    );
-  }
-
-  return content;
-}
-
-type AdjustButtonProps = {
-  label: string;
-  theme: {
-    border: string;
-    buttonBg: string;
-    buttonText: string;
-  };
-  onPress: () => void;
-};
-
-function AdjustButton({ label, theme, onPress }: AdjustButtonProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.adjustButton,
-        { backgroundColor: theme.buttonBg, borderColor: theme.border },
-      ]}
-    >
-      <Text style={[styles.adjustButtonLabel, { color: theme.buttonText }]}>{label}</Text>
-    </Pressable>
+          <EquipmentSection
+            character={selectedCharacter}
+            theme={activeTheme}
+            onEdit={() => openSectionEditor("equipment")}
+          />
+        </>
+      )}
+    </ScrollView>
   );
 }
 
@@ -3161,6 +4289,24 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 48,
     gap: 18,
+  },
+  contentPhone: {
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 28,
+    gap: 14,
+  },
+  contentTablet: {
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: 1120,
+    paddingHorizontal: 22,
+  },
+  contentLaptop: {
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: 1480,
+    paddingHorizontal: 28,
   },
   pageBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -3182,11 +4328,38 @@ const styles = StyleSheet.create({
     opacity: 0.1,
   },
   navbar: {
+    gap: 16,
+    zIndex: 100,
+  },
+  navbarTablet: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 16,
-    zIndex: 100,
+  },
+  navbarLaptop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  navbarMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
+  },
+  navBrandBlock: {
+    flexShrink: 1,
+  },
+  navBrandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  navLogo: {
+    width: 42,
+    height: 42,
+  },
+  navLogoPhone: {
+    width: 34,
+    height: 34,
   },
   navBrand: {
     color: "#f8fafc",
@@ -3194,19 +4367,33 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0.8,
   },
+  navBrandPhone: {
+    fontSize: 22,
+  },
   navSubtle: {
     color: "#8ea0bf",
     marginTop: 4,
+  },
+  navSubtlePhone: {
+    fontSize: 12,
   },
   navActions: {
     flexDirection: "row",
     gap: 10,
     alignItems: "center",
+    flexWrap: "wrap",
+  },
+  navActionsMobile: {
+    justifyContent: "flex-start",
   },
   navRightGroup: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 10,
+    flexWrap: "wrap",
+  },
+  navRightGroupMobile: {
+    justifyContent: "space-between",
   },
   navActionButton: {
     paddingHorizontal: 12,
@@ -3224,12 +4411,14 @@ const styles = StyleSheet.create({
     position: "relative",
     minWidth: 230,
     maxWidth: 320,
+    flexGrow: 1,
     alignSelf: "stretch",
     zIndex: 120,
   },
   navThemeWrap: {
     position: "relative",
     minWidth: 150,
+    flexGrow: 1,
     zIndex: 121,
   },
   navThemeButton: {
@@ -3238,7 +4427,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 18,
     borderWidth: 1,
-    justifyContent: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  navThemeText: {
+    flex: 1,
     gap: 2,
   },
   navThemeValue: {
@@ -3337,8 +4532,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   hero: {
-    flexDirection: "row",
-    alignItems: "flex-start",
     gap: 18,
     padding: 22,
     borderRadius: 28,
@@ -3347,6 +4540,14 @@ const styles = StyleSheet.create({
     borderColor: "rgba(245, 158, 11, 0.14)",
     overflow: "visible",
     zIndex: 20,
+  },
+  heroTablet: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  heroMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
   },
   messageBanner: {
     paddingHorizontal: 14,
@@ -3359,6 +4560,152 @@ const styles = StyleSheet.create({
   messageBannerText: {
     color: "#dbe4f0",
     fontWeight: "700",
+  },
+  overlayBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(3, 6, 14, 0.58)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 24,
+  },
+  overlayCard: {
+    width: "100%",
+    maxWidth: 760,
+    maxHeight: "88%",
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 18,
+    gap: 16,
+  },
+  overlayHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+    alignItems: "flex-start",
+  },
+  overlayHeaderText: {
+    flex: 1,
+    gap: 4,
+  },
+  overlayTitle: {
+    fontSize: 22,
+    fontWeight: "900",
+  },
+  overlaySubtitle: {
+    lineHeight: 20,
+  },
+  overlayCloseButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.18)",
+  },
+  overlayCloseButtonLabel: {
+    fontWeight: "800",
+  },
+  overlayOptionList: {
+    gap: 12,
+  },
+  characterOverlayActions: {
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  characterOverlayActionButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  characterOverlayActionLabel: {
+    fontWeight: "800",
+  },
+  overlayOptionCard: {
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 6,
+  },
+  overlayOptionTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  overlayOptionDescription: {
+    lineHeight: 20,
+  },
+  bioDialogCard: {
+    maxHeight: 420,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  bioDialogScroll: {
+    maxHeight: 380,
+  },
+  bioDialogText: {
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  damageEditorCard: {
+    gap: 12,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  damageToggle: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  damageToggleLabel: {
+    fontWeight: "800",
+  },
+  creationSummaryCard: {
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 6,
+  },
+  creationSummaryTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  creationSummaryDescription: {
+    lineHeight: 20,
+  },
+  creationSummaryMeta: {
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  overlayActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  overlaySecondaryButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  overlaySecondaryButtonLabel: {
+    fontWeight: "800",
+  },
+  overlayPrimaryButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  overlayPrimaryButtonLabel: {
+    fontWeight: "900",
   },
   editorModalBackdrop: {
     flex: 1,
@@ -3408,10 +4755,35 @@ const styles = StyleSheet.create({
     color: "#b9c6da",
     fontSize: 15,
   },
+  heroBioButton: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginTop: 2,
+  },
+  heroBioButtonLabel: {
+    fontWeight: "800",
+  },
   heroSide: {
-    width: 280,
+    width: "100%",
+    maxWidth: 280,
     gap: 8,
     zIndex: 25,
+  },
+  heroEditIconButton: {
+    alignSelf: "flex-end",
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  heroEditIconLabel: {
+    fontSize: 16,
+    fontWeight: "800",
   },
   heroSideLabel: {
     color: "#8ea0bf",
@@ -3446,21 +4818,23 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontSize: 13,
   },
-  editButton: {
-    alignSelf: "flex-start",
-    marginTop: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: "#1b2740",
-  },
-  editButtonLabel: {
-    color: "#f8fafc",
-    fontWeight: "800",
-  },
   editorActions: {
     flexDirection: "row",
     gap: 10,
+  },
+  editorBioButton: {
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  editorBioButtonLabel: {
+    fontWeight: "800",
+  },
+  editorBioButtonHint: {
+    fontSize: 12,
+    lineHeight: 18,
   },
   editorDangerButton: {
     paddingHorizontal: 12,
@@ -3594,6 +4968,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(148, 163, 184, 0.14)",
     color: "#f8fafc",
   },
+  bioEditorInput: {
+    minHeight: 280,
+  },
   editorTextArea: {
     minHeight: 88,
     textAlignVertical: "top",
@@ -3720,6 +5097,31 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 10,
   },
+  tabletSectionGrid: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 18,
+  },
+  tabletPrimaryColumn: {
+    flex: 1.05,
+    gap: 18,
+  },
+  tabletPrimaryColumnTablet: {
+    flex: 1,
+  },
+  tabletPrimaryColumnLaptop: {
+    flex: 1.08,
+  },
+  tabletSecondaryColumn: {
+    flex: 0.95,
+    gap: 18,
+  },
+  tabletSecondaryColumnTablet: {
+    flex: 1,
+  },
+  tabletSecondaryColumnLaptop: {
+    flex: 0.92,
+  },
   bannerTag: {
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -3732,6 +5134,115 @@ const styles = StyleSheet.create({
     color: "#dbe4f0",
     fontWeight: "700",
     fontSize: 12,
+  },
+  quickActionsCard: {
+    gap: 10,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  quickActionsHint: {
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    fontWeight: "700",
+  },
+  quickActionsButtons: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  quickActionButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  quickActionButtonLabel: {
+    fontWeight: "900",
+  },
+  quickModeRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  quickModeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  quickModeButtonLabel: {
+    fontWeight: "800",
+  },
+  quickCastHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  quickCastRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  quickCastBody: {
+    flex: 1,
+    gap: 6,
+  },
+  quickCastScalingHint: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  quickCastCost: {
+    color: "#082f49",
+    backgroundColor: "#bae6fd",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    overflow: "hidden",
+    fontWeight: "900",
+  },
+  quickCastCostReduced: {
+    color: "#3f2200",
+    backgroundColor: "#fbbf24",
+  },
+  quickCastDetailCard: {
+    gap: 12,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginTop: 2,
+  },
+  quickCastDetailTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  quickCastDetailText: {
+    lineHeight: 20,
+  },
+  quickCastAdjustRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  quickCastAdjustButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  quickCastAdjustButtonLabel: {
+    fontWeight: "900",
+  },
+  quickCastAdjustValue: {
+    minWidth: 96,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  quickCastAdjustValueLabel: {
+    fontWeight: "900",
   },
   dualColumns: {
     flexDirection: "row",
