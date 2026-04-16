@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   Image,
@@ -30,7 +30,6 @@ import { ResourcesSection } from "../components/character-sheet/ResourcesSection
 import { SpellsSection } from "../components/character-sheet/SpellsSection";
 import { StatsSkillsSection } from "../components/character-sheet/StatsSkillsSection";
 import { StatusSections } from "../components/character-sheet/StatusSections";
-import { sampleCharacters } from "../data/sampleCharacters";
 import {
   ArchetypeId,
   Character,
@@ -53,11 +52,10 @@ import {
   stanceDescriptions,
   stanceLabels,
 } from "../utils/game";
+import { normalizeCharacter } from "../utils/characters";
 import {
   exportCharacters,
   importCharacters,
-  loadCharactersFromStorage,
-  persistCharactersToStorage,
 } from "../utils/persistence";
 
 const STANCES: CombatStance[] = ["focus", "combat", "defensif"];
@@ -509,34 +507,6 @@ function createTemplateCharacter(
   };
 }
 
-function normalizeCharacter(character: Character): Character {
-  return {
-    ...character,
-    archetypeId: character.archetypeId ?? "libre",
-    specialization: character.specialization ?? "",
-    bio: character.bio ?? "",
-    theme: character.theme ?? "humain",
-    pv: { ...character.pv, bonus: character.pv?.bonus ?? 0 },
-    psy: { ...character.psy, bonus: 0 },
-    armor: { ...character.armor, bonus: character.armor?.bonus ?? 0 },
-    imageModule: character.imageModule,
-    equipment: character.equipment.map((item) => ({
-      ...item,
-      imageModule: item.imageModule,
-      grantedSpell: item.grantedSpell ? normalizeSpell(item.grantedSpell) : undefined,
-      tags: item.tags ?? [],
-    })),
-    spells: character.spells.map(normalizeSpell),
-    inventory: character.inventory.map((item) => ({
-      ...item,
-      imageModule: item.imageModule,
-      tags: item.tags ?? [],
-    })),
-    statusEffects: character.statusEffects ?? [],
-    resistances: character.resistances ?? [],
-  };
-}
-
 function makeId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -587,10 +557,22 @@ type QuickCastDraft = {
   extraPsy: number;
 };
 
-export function CharacterSheetScreen() {
+type CharacterSheetScreenProps = {
+  characters: Character[];
+  setCharacters: Dispatch<SetStateAction<Character[]>>;
+  selectedId: string;
+  setSelectedId: Dispatch<SetStateAction<string>>;
+  onOpenHome?: () => void;
+};
+
+export function CharacterSheetScreen({
+  characters,
+  setCharacters,
+  selectedId,
+  setSelectedId,
+  onOpenHome,
+}: CharacterSheetScreenProps) {
   const { width } = useWindowDimensions();
-  const [characters, setCharacters] = useState(sampleCharacters);
-  const [selectedId, setSelectedId] = useState(sampleCharacters[0]?.id ?? "");
   const [activeOverlayMenu, setActiveOverlayMenu] = useState<OverlayMenu | null>(null);
   const [creationDraft, setCreationDraft] = useState<CreationDraft | null>(null);
   const [damageDraft, setDamageDraft] = useState<DamageDraft | null>(null);
@@ -598,49 +580,10 @@ export function CharacterSheetScreen() {
   const [quickCastDraft, setQuickCastDraft] = useState<QuickCastDraft | null>(null);
   const [draftCharacter, setDraftCharacter] = useState<Character | null>(null);
   const [editorSection, setEditorSection] = useState<EditorSection>("all");
-  const [storageReady, setStorageReady] = useState(false);
   const [rosterMessage, setRosterMessage] = useState<string | null>(null);
 
   const selectedCharacter =
     characters.find((character) => character.id === selectedId) ?? characters[0];
-
-  useEffect(() => {
-    let active = true;
-
-    async function hydrate() {
-      try {
-        const stored = await loadCharactersFromStorage();
-
-        if (!active) {
-          return;
-        }
-
-        if (stored.characters?.length) {
-          const normalizedCharacters = stored.characters.map(normalizeCharacter);
-          setCharacters(normalizedCharacters);
-          setSelectedId(stored.selectedId ?? normalizedCharacters[0]!.id);
-        }
-      } finally {
-        if (active) {
-          setStorageReady(true);
-        }
-      }
-    }
-
-    void hydrate();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!storageReady) {
-      return;
-    }
-
-    void persistCharactersToStorage(characters, selectedId);
-  }, [characters, selectedId, storageReady]);
 
   if (!selectedCharacter) {
     return null;
@@ -1695,22 +1638,28 @@ export function CharacterSheetScreen() {
         ]}
       >
         <View style={styles.navBrandBlock}>
-          <View style={styles.navBrandRow}>
-            <Image
-              source={APP_LOGO}
-              style={[styles.navLogo, isPhone ? styles.navLogoPhone : null]}
-              resizeMode="contain"
-            />
-            <Text
-              style={[
-                styles.navBrand,
-                isPhone ? styles.navBrandPhone : null,
-                { color: activeTheme.title },
-              ]}
-            >
-              Vade Retro
-            </Text>
-          </View>
+          <Pressable
+            disabled={!onOpenHome}
+            onPress={onOpenHome}
+            style={styles.navBrandPressable}
+          >
+            <View style={styles.navBrandRow}>
+              <Image
+                source={APP_LOGO}
+                style={[styles.navLogo, isPhone ? styles.navLogoPhone : null]}
+                resizeMode="contain"
+              />
+              <Text
+                style={[
+                  styles.navBrand,
+                  isPhone ? styles.navBrandPhone : null,
+                  { color: activeTheme.title },
+                ]}
+              >
+                Vade Retro
+              </Text>
+            </View>
+          </Pressable>
           <Text
             style={[
               styles.navSubtle,
@@ -1718,7 +1667,7 @@ export function CharacterSheetScreen() {
               { color: activeTheme.subtitle },
             ]}
           >
-            Compagnon de campagne
+            {onOpenHome ? "Accueil et feuille de personnage" : "Compagnon de campagne"}
           </Text>
         </View>
 
@@ -4347,6 +4296,9 @@ const styles = StyleSheet.create({
   },
   navBrandBlock: {
     flexShrink: 1,
+  },
+  navBrandPressable: {
+    alignSelf: "flex-start",
   },
   navBrandRow: {
     flexDirection: "row",
