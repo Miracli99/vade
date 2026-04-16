@@ -1,5 +1,13 @@
 export type CombatStance = "focus" | "combat" | "defensif";
 export type CharacterTheme = "vide" | "ange" | "demon" | "foret" | "humain" | "nain";
+export type ArchetypeId =
+  | "paladin"
+  | "tireur"
+  | "dresseur"
+  | "lecteur"
+  | "guerisseur"
+  | "receptacle"
+  | "libre";
 
 export type PercentStatKey = "physique" | "mentale" | "sociale";
 
@@ -25,13 +33,34 @@ export type Effect = {
   kind: "active" | "passive";
 };
 
+export type StatusEffect = {
+  id: string;
+  name: string;
+  description: string;
+  source?: string;
+  durationTurns: number | null;
+  active: boolean;
+  tags: string[];
+};
+
+export type ResistanceType = "resistance" | "faiblesse" | "immunite";
+
+export type ResistanceProfile = {
+  id: string;
+  label: string;
+  type: ResistanceType;
+  notes?: string;
+};
+
 export type EquipmentItem = {
   id: string;
   name: string;
   category: string;
   icon?: string;
   imageUrl?: string;
+  imageModule?: number;
   notes?: string;
+  tags: string[];
   activeEffects: Effect[];
   passiveEffects: Effect[];
 };
@@ -41,9 +70,11 @@ export type Spell = {
   name: string;
   icon?: string;
   imageUrl?: string;
+  imageModule?: number;
   basePsyCost: number;
   reducible: boolean;
   description: string;
+  tags: string[];
   activeEffects: Effect[];
   passiveEffects: Effect[];
 };
@@ -53,15 +84,20 @@ export type InventoryItem = {
   name: string;
   icon?: string;
   imageUrl?: string;
+  imageModule?: number;
   quantity: number;
   notes?: string;
+  tags: string[];
 };
 
 export type Character = {
   id: string;
   name: string;
+  archetypeId: ArchetypeId;
   archetype: string;
+  specialization?: string;
   imageUrl?: string;
+  imageModule?: number;
   theme: CharacterTheme;
   level?: number;
   pv: ResourcePool;
@@ -73,6 +109,8 @@ export type Character = {
   equipment: EquipmentItem[];
   spells: Spell[];
   activeSpellIds: string[];
+  statusEffects: StatusEffect[];
+  resistances: ResistanceProfile[];
   inventory: InventoryItem[];
   stance: CombatStance;
 };

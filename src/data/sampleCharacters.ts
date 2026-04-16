@@ -4,7 +4,9 @@ export const sampleCharacters: Character[] = [
   {
     id: "soeur-agnes",
     name: "Soeur Agnes",
-    archetype: "Exorciste",
+    archetypeId: "lecteur",
+    archetype: "Lecteur de versets",
+    specialization: "Aria",
     imageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=320&q=80",
     theme: "ange",
     level: 4,
@@ -28,7 +30,9 @@ export const sampleCharacters: Character[] = [
         name: "Lame benite",
         category: "Arme",
         icon: "🗡️",
+        imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image11.png"),
         notes: "Au combat, inflige toujours les degats maximums en posture combat.",
+        tags: ["ange", "sceau", "corps-a-corps"],
         activeEffects: [
           {
             id: "lame-benite-frappe",
@@ -52,9 +56,11 @@ export const sampleCharacters: Character[] = [
         id: "sceau-lumiere",
         name: "Sceau de lumiere",
         icon: "✨",
+        imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image11.png"),
         basePsyCost: 4,
         reducible: true,
         description: "Aveugle une cible pendant un tour.",
+        tags: ["ange", "sceau", "controle"],
         activeEffects: [
           {
             id: "sceau-aveugle",
@@ -72,6 +78,7 @@ export const sampleCharacters: Character[] = [
         basePsyCost: 3,
         reducible: false,
         description: "Ajoute 2 d'armure psychique jusqu'a la fin de la scene.",
+        tags: ["protection", "esprit", "ange"],
         activeEffects: [],
         passiveEffects: [
           {
@@ -83,7 +90,22 @@ export const sampleCharacters: Character[] = [
         ],
       },
     ],
-    activeSpellIds: [],
+    activeSpellIds: ["rempart-mental"],
+    statusEffects: [
+      {
+        id: "barriere-chorale",
+        name: "Barriere chorale",
+        description: "Les allies proches gagnent une resistance spirituelle.",
+        source: "Rempart mental",
+        durationTurns: 3,
+        active: true,
+        tags: ["protection", "ange"],
+      },
+    ],
+    resistances: [
+      { id: "res1", label: "Demoniaque", type: "resistance", notes: "Foi disciplinee." },
+      { id: "res2", label: "Corruption mentale", type: "resistance" },
+    ],
     inventory: [
       {
         id: "fioles",
@@ -91,6 +113,7 @@ export const sampleCharacters: Character[] = [
         icon: "🧪",
         quantity: 2,
         notes: "Reservee aux rituels d'exorcisme.",
+        tags: ["consommable", "ange"],
       },
       {
         id: "corde",
@@ -98,6 +121,7 @@ export const sampleCharacters: Character[] = [
         icon: "🪢",
         quantity: 1,
         notes: "Marquee de sceaux pour les entraves.",
+        tags: ["rituel", "entrave"],
       },
       {
         id: "notes",
@@ -105,6 +129,7 @@ export const sampleCharacters: Character[] = [
         icon: "📖",
         quantity: 1,
         notes: "Contient les invocations de terrain.",
+        tags: ["rituel", "lecture"],
       },
     ],
     stance: "focus",
@@ -112,7 +137,9 @@ export const sampleCharacters: Character[] = [
   {
     id: "marco-vale",
     name: "Marco Vale",
-    archetype: "Chasseur",
+    archetypeId: "tireur",
+    archetype: "Tireur",
+    specialization: "Ritualiste",
     imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=320&q=80",
     theme: "humain",
     level: 3,
@@ -136,6 +163,8 @@ export const sampleCharacters: Character[] = [
         name: "Arbalete lourde",
         category: "Arme",
         icon: "🏹",
+        imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image12.png"),
+        tags: ["distance", "rituel"],
         activeEffects: [
           {
             id: "tir-percant",
@@ -151,6 +180,7 @@ export const sampleCharacters: Character[] = [
         name: "Plastron de cuir",
         category: "Armure",
         icon: "🛡️",
+        tags: ["armure", "leger"],
         activeEffects: [],
         passiveEffects: [
           {
@@ -162,8 +192,43 @@ export const sampleCharacters: Character[] = [
         ],
       },
     ],
-    spells: [],
+    spells: [
+      {
+        id: "cercle-runique",
+        name: "Cercle runique",
+        icon: "◎",
+        imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image18.png"),
+        basePsyCost: 5,
+        reducible: true,
+        description: "Trace une zone rituelle qui fragilise les demons.",
+        tags: ["rituel", "zone", "vide"],
+        activeEffects: [
+          {
+            id: "cercle-zone",
+            label: "Zone consacree",
+            description: "Les ennemis dans le cercle subissent un malus de 10%.",
+            kind: "active",
+          },
+        ],
+        passiveEffects: [],
+      },
+    ],
     activeSpellIds: [],
+    statusEffects: [
+      {
+        id: "vigilance",
+        name: "Vigilance du tireur",
+        description: "Bonus d'initiative tant que Marco n'a pas bouge.",
+        source: "Posture de couverture",
+        durationTurns: 2,
+        active: true,
+        tags: ["distance", "tactique"],
+      },
+    ],
+    resistances: [
+      { id: "res3", label: "Projectiles", type: "resistance", notes: "Usage du couvert." },
+      { id: "res4", label: "Possession", type: "faiblesse", notes: "Volonte instable." },
+    ],
     inventory: [
       {
         id: "carreaux",
@@ -171,6 +236,7 @@ export const sampleCharacters: Character[] = [
         icon: "📦",
         quantity: 18,
         notes: "6 carreaux benis melanges au lot.",
+        tags: ["munition"],
       },
       {
         id: "trousse",
@@ -178,6 +244,7 @@ export const sampleCharacters: Character[] = [
         icon: "🩹",
         quantity: 1,
         notes: "Utilisation rapide hors corruption lourde.",
+        tags: ["soin", "consommable"],
       },
     ],
     stance: "combat",
