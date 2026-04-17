@@ -4,6 +4,7 @@
     "slug": "vade-retro-companion",
     "scheme": "vaderetro",
     "version": "0.1.0",
+    "icon": "./assets/vade-retro-logo.png",
     "orientation": "default",
     "userInterfaceStyle": "dark",
     "assetBundlePatterns": [
@@ -14,10 +15,18 @@
       "web"
     ],
     "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/vade-retro-logo.png",
+        "backgroundColor": "#0b1020"
+      },
       "package": "com.vaderetro.companion"
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/vade-retro-logo.png"
+    },
+    "extra": {
+      "updateManifestUrl": ""
     }
   }
 }

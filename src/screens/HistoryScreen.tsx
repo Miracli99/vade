@@ -1,6 +1,6 @@
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
-import { historySections } from "../data/historyContent";
+import { HistoryContentBlock, historySections } from "../data/historyContent";
 
 type HistoryScreenProps = {
   onOpenHome: () => void;
@@ -31,20 +31,40 @@ export function HistoryScreen({ onOpenHome }: HistoryScreenProps) {
         {historySections.map((section) => (
           <View key={section.id} style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
-            {"quote" in section && section.quote ? (
-              <Text style={styles.quote}>“{section.quote}”</Text>
-            ) : null}
-            <View style={styles.bodyList}>
-              {section.body.map((paragraph) => (
-                <Text key={paragraph} style={styles.paragraph}>
-                  {paragraph}
-                </Text>
+            <View style={styles.contentList}>
+              {section.content.map((block, index) => (
+                <HistoryBlock key={`${section.id}-${index}`} block={block} />
               ))}
             </View>
           </View>
         ))}
       </View>
     </ScrollView>
+  );
+}
+
+function HistoryBlock({ block }: { block: HistoryContentBlock }) {
+  if (block.type === "paragraph") {
+    return <Text style={styles.paragraph}>{block.text}</Text>;
+  }
+
+  if (block.type === "quote") {
+    return <Text style={styles.quote}>“{block.text}”</Text>;
+  }
+
+  if (!block.imageModule && !block.imageUrl) {
+    return null;
+  }
+
+  return (
+    <View style={styles.imageBlock}>
+      <Image
+        source={block.imageModule ? block.imageModule : { uri: block.imageUrl }}
+        style={styles.image}
+        resizeMode="cover"
+      />
+      {block.caption ? <Text style={styles.imageCaption}>{block.caption}</Text> : null}
+    </View>
   );
 }
 
@@ -126,12 +146,26 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontStyle: "italic",
   },
-  bodyList: {
+  contentList: {
     gap: 10,
   },
   paragraph: {
     color: "#cbd5e1",
     lineHeight: 24,
     fontSize: 15,
+  },
+  imageBlock: {
+    gap: 8,
+  },
+  image: {
+    width: "100%",
+    minHeight: 220,
+    borderRadius: 18,
+    backgroundColor: "rgba(15, 23, 42, 0.8)",
+  },
+  imageCaption: {
+    color: "#94a3b8",
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
