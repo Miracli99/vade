@@ -1,5 +1,10 @@
 import { Character } from "../types/game";
 
+const ANGE_ASSET = require("../../assets/themes/ange.png");
+const HUMAIN_ASSET = require("../../assets/themes/humain.png");
+const NAIN_ASSET = require("../../assets/themes/nain.png");
+const VIDE_ASSET = require("../../assets/themes/vide.png");
+
 export const sampleCharacters: Character[] = [
   {
     id: "soeur-agnes",
@@ -31,7 +36,7 @@ export const sampleCharacters: Character[] = [
         name: "Lame benite",
         category: "Arme",
         icon: "🗡️",
-        imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image11.png"),
+        imageModule: ANGE_ASSET,
         notes: "Au combat, inflige toujours les degats maximums en posture combat.",
         usableLabel: "Liberation du sceau",
         usePsyCost: 2,
@@ -60,7 +65,7 @@ export const sampleCharacters: Character[] = [
         id: "sceau-lumiere",
         name: "Sceau de lumiere",
         icon: "✨",
-        imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image11.png"),
+        imageModule: ANGE_ASSET,
         basePsyCost: 4,
         reducible: true,
         augmentable: true,
@@ -170,7 +175,7 @@ export const sampleCharacters: Character[] = [
         name: "Arbalete lourde",
         category: "Arme",
         icon: "🏹",
-        imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image12.png"),
+        imageModule: NAIN_ASSET,
         usableLabel: "Trait consacre",
         usePsyCost: 3,
         reducible: false,
@@ -207,7 +212,7 @@ export const sampleCharacters: Character[] = [
         id: "cercle-runique",
         name: "Cercle runique",
         icon: "◎",
-        imageModule: require("../../history/VadeRetroAngelis_extracted/word/media/image18.png"),
+        imageModule: VIDE_ASSET,
         basePsyCost: 5,
         reducible: true,
         augmentable: true,
