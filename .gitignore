@@ -1,7 +1,7 @@
 node_modules
 .expo
 .expo-shared
-history
+/history
 dist
 web-build
 npm-debug.log*
