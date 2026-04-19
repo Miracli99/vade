@@ -52,8 +52,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
+    flexWrap: "wrap",
   },
   headerText: {
     flex: 1,

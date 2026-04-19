@@ -16,12 +16,12 @@ export function HistoryScreen({ onOpenHome }: HistoryScreenProps) {
       contentContainerStyle={[styles.content, isPhone ? styles.contentPhone : styles.contentWide]}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, isPhone ? styles.headerPhone : null]}>
         <Pressable onPress={onOpenHome} style={styles.backButton}>
           <Text style={styles.backButtonLabel}>← Accueil</Text>
         </Pressable>
         <Text style={styles.eyebrow}>Histoire</Text>
-        <Text style={styles.title}>Chroniques de Vade Retro</Text>
+        <Text style={[styles.title, isPhone ? styles.titlePhone : null]}>Chroniques de Vade Retro</Text>
         <Text style={styles.description}>
           Lecture synthétique du cadre de jeu, de la genese au ton general de la campagne.
         </Text>
@@ -29,11 +29,13 @@ export function HistoryScreen({ onOpenHome }: HistoryScreenProps) {
 
       <View style={styles.sectionList}>
         {historySections.map((section) => (
-          <View key={section.id} style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
+          <View key={section.id} style={[styles.sectionCard, isPhone ? styles.sectionCardPhone : null]}>
+            <Text style={[styles.sectionTitle, isPhone ? styles.sectionTitlePhone : null]}>
+              {section.title}
+            </Text>
             <View style={styles.contentList}>
               {section.content.map((block, index) => (
-                <HistoryBlock key={`${section.id}-${index}`} block={block} />
+                <HistoryBlock key={`${section.id}-${index}`} block={block} isPhone={isPhone} />
               ))}
             </View>
           </View>
@@ -43,7 +45,7 @@ export function HistoryScreen({ onOpenHome }: HistoryScreenProps) {
   );
 }
 
-function HistoryBlock({ block }: { block: HistoryContentBlock }) {
+function HistoryBlock({ block, isPhone }: { block: HistoryContentBlock; isPhone: boolean }) {
   if (block.type === "paragraph") {
     return <Text style={styles.paragraph}>{block.text}</Text>;
   }
@@ -60,7 +62,7 @@ function HistoryBlock({ block }: { block: HistoryContentBlock }) {
     <View style={styles.imageBlock}>
       <Image
         source={block.imageModule ? block.imageModule : { uri: block.imageUrl }}
-        style={styles.image}
+        style={[styles.image, isPhone ? styles.imagePhone : null]}
         resizeMode="cover"
       />
       {block.caption ? <Text style={styles.imageCaption}>{block.caption}</Text> : null}
@@ -95,6 +97,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(251, 191, 36, 0.22)",
   },
+  headerPhone: {
+    padding: 18,
+  },
   backButton: {
     alignSelf: "flex-start",
     paddingHorizontal: 12,
@@ -120,6 +125,9 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: "900",
   },
+  titlePhone: {
+    fontSize: 24,
+  },
   description: {
     color: "#fed7aa",
     lineHeight: 22,
@@ -135,10 +143,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(148, 163, 184, 0.16)",
   },
+  sectionCardPhone: {
+    padding: 16,
+  },
   sectionTitle: {
     color: "#f8fafc",
     fontSize: 22,
     fontWeight: "900",
+  },
+  sectionTitlePhone: {
+    fontSize: 18,
   },
   quote: {
     color: "#fbbf24",
@@ -162,6 +176,9 @@ const styles = StyleSheet.create({
     minHeight: 220,
     borderRadius: 18,
     backgroundColor: "rgba(15, 23, 42, 0.8)",
+  },
+  imagePhone: {
+    minHeight: 180,
   },
   imageCaption: {
     color: "#94a3b8",

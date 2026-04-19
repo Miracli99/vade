@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
 import { Section } from "../Section";
@@ -23,6 +23,10 @@ export function ResourcesSection({
   onAdjustResourceBonus,
   onAdjustAttackBonus,
 }: ResourcesSectionProps) {
+  const { width } = useWindowDimensions();
+  const isPhone = width < 720;
+  const isTablet = width >= 720 && width < 1180;
+
   return (
     <Section
       title="Ressources"
@@ -36,42 +40,48 @@ export function ResourcesSection({
       rightSlot={<SectionEditButton theme={theme} onPress={onEdit} />}
     >
       <View style={styles.grid}>
-        <ResourceMeter
-          label="PV"
-          glyph="♥"
-          accent="#ef4444"
-          resource={character.pv}
-          bonusLabel="Bouclier"
-          glyphScale={1}
-          theme={theme}
-          onAdjust={(delta) => onAdjustResource("pv", delta)}
-          onAdjustBonus={(delta) => onAdjustResourceBonus("pv", delta)}
-        />
-        <ResourceMeter
-          label="PSY"
-          glyph="💧"
-          accent="#38bdf8"
-          resource={character.psy}
-          glyphScale={0.78}
-          theme={theme}
-          onAdjust={(delta) => onAdjustResource("psy", delta)}
-        />
-        <ResourceMeter
-          label="Armure"
-          glyph="🛡"
-          accent="#f59e0b"
-          resource={character.armor}
-          bonusLabel="Bonus"
-          glyphScale={1}
-          theme={theme}
-          onAdjust={(delta) => onAdjustResource("armor", delta)}
-          onAdjustBonus={(delta) => onAdjustResourceBonus("armor", delta)}
-        />
-        <AttackBonusCard
-          value={character.attackBonus}
-          theme={theme}
-          onAdjust={onAdjustAttackBonus}
-        />
+        <View style={[styles.cell, isPhone ? styles.cellPhone : isTablet ? styles.cellTablet : styles.cellDesktop]}>
+          <ResourceMeter
+            label="PV"
+            glyph="♥"
+            accent="#ef4444"
+            resource={character.pv}
+            bonusLabel="Bouclier"
+            overlayBonus
+            theme={theme}
+            onAdjust={(delta) => onAdjustResource("pv", delta)}
+            onAdjustBonus={(delta) => onAdjustResourceBonus("pv", delta)}
+          />
+        </View>
+        <View style={[styles.cell, isPhone ? styles.cellPhone : isTablet ? styles.cellTablet : styles.cellDesktop]}>
+          <ResourceMeter
+            label="PSY"
+            glyph="💧"
+            accent="#38bdf8"
+            resource={character.psy}
+            theme={theme}
+            onAdjust={(delta) => onAdjustResource("psy", delta)}
+          />
+        </View>
+        <View style={[styles.cell, isPhone ? styles.cellPhone : isTablet ? styles.cellTablet : styles.cellDesktop]}>
+          <ResourceMeter
+            label="Armure"
+            glyph="🛡"
+            accent="#f59e0b"
+            resource={character.armor}
+            bonusLabel="Bonus"
+            theme={theme}
+            onAdjust={(delta) => onAdjustResource("armor", delta)}
+            onAdjustBonus={(delta) => onAdjustResourceBonus("armor", delta)}
+          />
+        </View>
+        <View style={[styles.cell, isPhone ? styles.cellPhone : isTablet ? styles.cellTablet : styles.cellDesktop]}>
+          <AttackBonusCard
+            value={character.attackBonus}
+            theme={theme}
+            onAdjust={onAdjustAttackBonus}
+          />
+        </View>
       </View>
     </Section>
   );
@@ -82,5 +92,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 14,
+  },
+  cell: {
+    flexGrow: 1,
+  },
+  cellPhone: {
+    flexBasis: "100%",
+  },
+  cellTablet: {
+    flexBasis: "48%",
+  },
+  cellDesktop: {
+    flexBasis: 220,
   },
 });

@@ -7,6 +7,7 @@ type AssetVisualProps = {
   imageModule?: number;
   small?: boolean;
   character?: boolean;
+  large?: boolean;
   onPress?: () => void;
   active?: boolean;
 };
@@ -18,20 +19,26 @@ export function AssetVisual({
   imageModule,
   small = false,
   character = false,
+  large = false,
   onPress,
   active = false,
 }: AssetVisualProps) {
   const sizeStyle = character
-    ? styles.characterVisual
+    ? large
+      ? styles.characterVisualLarge
+      : styles.characterVisual
     : small
       ? styles.assetVisualSmall
       : styles.assetVisual;
+  const imageResizeMode = "contain";
   const content = imageUrl || imageModule ? (
-    <Image
-      source={imageUrl ? { uri: imageUrl } : imageModule}
-      style={sizeStyle}
-      resizeMode="cover"
-    />
+    <View style={[sizeStyle, styles.imageFrame]}>
+      <Image
+        source={imageUrl ? { uri: imageUrl } : imageModule}
+        style={styles.imageContent}
+        resizeMode={imageResizeMode}
+      />
+    </View>
   ) : (
     <View style={[sizeStyle, styles.assetFallback, active ? styles.assetFallbackActive : null]}>
       <Text style={small ? styles.assetFallbackSmallText : styles.assetFallbackText}>
@@ -59,8 +66,13 @@ const styles = StyleSheet.create({
   },
   characterVisual: {
     width: 96,
-    height: 96,
+    height: 128,
     borderRadius: 24,
+  },
+  characterVisualLarge: {
+    width: 144,
+    height: 188,
+    borderRadius: 28,
   },
   assetVisualButton: {
     borderRadius: 20,
@@ -86,5 +98,13 @@ const styles = StyleSheet.create({
   },
   assetFallbackSmallText: {
     fontSize: 18,
+  },
+  imageFrame: {
+    overflow: "hidden",
+    backgroundColor: "transparent",
+  },
+  imageContent: {
+    width: "100%",
+    height: "100%",
   },
 });

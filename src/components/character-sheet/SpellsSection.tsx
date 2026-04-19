@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
 import { getSpellCost } from "../../utils/game";
@@ -20,6 +20,9 @@ export function SpellsSection({
   onEdit,
   onToggleSpellActive,
 }: SpellsSectionProps) {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 720;
+
   return (
     <Section
       title="Dons et sorts"
@@ -44,8 +47,11 @@ export function SpellsSection({
                 key={spell.id}
                 style={[
                   styles.card,
-                  { backgroundColor: theme.chipBg, borderColor: theme.border },
-                  isActive ? styles.cardActive : null,
+                  isCompact ? styles.cardCompact : null,
+                  {
+                    backgroundColor: isActive ? theme.panelBg : theme.chipBg,
+                    borderColor: isActive ? theme.accent : theme.border,
+                  },
                 ]}
               >
                 <AssetVisual
@@ -59,13 +65,28 @@ export function SpellsSection({
                 <View style={styles.body}>
                   <View style={styles.header}>
                     <View style={styles.heading}>
-                      <Text style={[styles.title, { color: theme.title }]}>{spell.name}</Text>
+                      <Text style={[styles.title, { color: theme.title }]} numberOfLines={isCompact ? 2 : 1}>
+                        {spell.name}
+                      </Text>
                       <Text style={[styles.meta, { color: theme.subtitle }]}>
                         {spell.reducible ? "Don reductible" : "Don a cout fixe"}
                       </Text>
                     </View>
                     <View style={styles.badges}>
-                      {isActive ? <Text style={styles.activeBadge}>Actif</Text> : null}
+                      {isActive ? (
+                        <Text
+                          style={[
+                            styles.activeBadge,
+                            {
+                              color: theme.buttonText,
+                              backgroundColor: theme.accent,
+                              borderColor: theme.border,
+                            },
+                          ]}
+                        >
+                          Actif
+                        </Text>
+                      ) : null}
                       <Text style={[styles.costBadge, reduced ? styles.costBadgeReduced : null]}>
                         {computedCost} PSY
                       </Text>
@@ -125,7 +146,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
   },
-  cardActive: { backgroundColor: "#122237", borderColor: "rgba(251, 191, 36, 0.4)" },
+  cardCompact: {
+    flexDirection: "column",
+  },
   body: { flex: 1, gap: 8 },
   header: {
     flexDirection: "row",
@@ -148,13 +171,12 @@ const styles = StyleSheet.create({
   },
   costBadgeReduced: { color: "#3f2200", backgroundColor: "#fbbf24" },
   activeBadge: {
-    color: "#3f2200",
-    backgroundColor: "#fde68a",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
     overflow: "hidden",
     fontWeight: "900",
+    borderWidth: 1,
   },
   description: { lineHeight: 21 },
   effect: { lineHeight: 20 },

@@ -23,8 +23,8 @@ export function SectionEditButton({ theme, onPress }: SectionEditButtonProps) {
 
 const styles = StyleSheet.create({
   button: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",

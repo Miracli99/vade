@@ -2,6 +2,7 @@ import { Dispatch, SetStateAction, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   Image,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -57,6 +58,11 @@ import {
   exportCharacters,
   importCharacters,
 } from "../utils/persistence";
+import {
+  LOCAL_IMAGE_LIBRARY,
+  ImageLibraryCategory,
+  LocalImageOption,
+} from "../data/image-library";
 
 const STANCES: CombatStance[] = ["focus", "combat", "defensif"];
 const THEME_BACKGROUNDS: Record<CharacterTheme, number> = {
@@ -66,6 +72,10 @@ const THEME_BACKGROUNDS: Record<CharacterTheme, number> = {
   foret: require("../../assets/themes/foret.png"),
   humain: require("../../assets/themes/humain.png"),
   nain: require("../../assets/themes/nain.png"),
+  occulte: require("../../assets/themes/vide.png"),
+  abyssal: require("../../assets/themes/humain.png"),
+  cendre: require("../../assets/themes/demon.png"),
+  glace: require("../../assets/themes/ange.png"),
 };
 const APP_LOGO = require("../../assets/vade-retro-logo.png");
 const STAT_ICONS: Record<keyof Character["stats"], string> = {
@@ -80,6 +90,22 @@ const THEME_LABELS: Record<CharacterTheme, string> = {
   foret: "Foret",
   humain: "Humain",
   nain: "Nain",
+  occulte: "Occulte",
+  abyssal: "Abyssal",
+  cendre: "Cendre",
+  glace: "Glace",
+};
+const THEME_DESCRIPTIONS: Record<CharacterTheme, string> = {
+  vide: "Mystique obscure et energie violette.",
+  ange: "Lumiere sacree, ivoire et or ancien.",
+  demon: "Rouges profonds, rituel infernal et tension brute.",
+  foret: "Vert ancien, reliques naturelles et souffle vivant.",
+  humain: "Acier, pierre et sobriete militaire.",
+  nain: "Forge froide, metal brut et discipline runique.",
+  occulte: "Noir liturgique, cuivre sombre et symboles caches.",
+  abyssal: "Bleu des profondeurs, pression froide et eclat marin.",
+  cendre: "Braise eteinte, charbon et poussiere de bataille.",
+  glace: "Givre pale, cristal et lueur hivernale.",
 };
 const THEME_PRESETS: Record<
   CharacterTheme,
@@ -167,6 +193,54 @@ const THEME_PRESETS: Record<
     chipBg: "#374151",
     buttonBg: "#9ca3af",
     buttonText: "#111827",
+  },
+  occulte: {
+    pageBg: "#09070b",
+    backgroundImage: THEME_BACKGROUNDS.occulte,
+    panelBg: "rgba(22, 16, 20, 0.9)",
+    border: "rgba(166, 124, 82, 0.34)",
+    accent: "#a67c52",
+    title: "#f4e7d3",
+    subtitle: "#d3b58f",
+    chipBg: "#1b1417",
+    buttonBg: "#7c5c3c",
+    buttonText: "#fff6ea",
+  },
+  abyssal: {
+    pageBg: "#030b13",
+    backgroundImage: THEME_BACKGROUNDS.abyssal,
+    panelBg: "rgba(8, 24, 38, 0.9)",
+    border: "rgba(56, 189, 248, 0.28)",
+    accent: "#38bdf8",
+    title: "#e0f2fe",
+    subtitle: "#93c5fd",
+    chipBg: "#0b1a2a",
+    buttonBg: "#0ea5e9",
+    buttonText: "#eaf8ff",
+  },
+  cendre: {
+    pageBg: "#120d0c",
+    backgroundImage: THEME_BACKGROUNDS.cendre,
+    panelBg: "rgba(34, 26, 24, 0.92)",
+    border: "rgba(245, 158, 11, 0.26)",
+    accent: "#f59e0b",
+    title: "#f5ebe6",
+    subtitle: "#d6b5a3",
+    chipBg: "#211817",
+    buttonBg: "#c2410c",
+    buttonText: "#fff3ec",
+  },
+  glace: {
+    pageBg: "#eaf4fb",
+    backgroundImage: THEME_BACKGROUNDS.glace,
+    panelBg: "rgba(240, 248, 255, 0.94)",
+    border: "rgba(96, 165, 250, 0.32)",
+    accent: "#60a5fa",
+    title: "#17324d",
+    subtitle: "#4b6b8d",
+    chipBg: "#dceefd",
+    buttonBg: "#3b82f6",
+    buttonText: "#eff6ff",
   },
 };
 
@@ -531,6 +605,7 @@ type OverlayMenu =
   | "bioEdit"
   | "quickCast"
   | "quickRecovery"
+  | "editorTheme"
   | "editorArchetype"
   | "editorSpecialization";
 
@@ -557,6 +632,13 @@ type QuickCastDraft = {
   extraPsy: number;
 };
 
+type ImageLibraryTarget =
+  | { kind: "character" }
+  | { kind: "spell"; index: number }
+  | { kind: "equipment"; index: number }
+  | { kind: "equipmentSpell"; index: number }
+  | { kind: "inventory"; index: number };
+
 type CharacterSheetScreenProps = {
   characters: Character[];
   setCharacters: Dispatch<SetStateAction<Character[]>>;
@@ -581,6 +663,8 @@ export function CharacterSheetScreen({
   const [draftCharacter, setDraftCharacter] = useState<Character | null>(null);
   const [editorSection, setEditorSection] = useState<EditorSection>("all");
   const [rosterMessage, setRosterMessage] = useState<string | null>(null);
+  const [deleteCharacterConfirm, setDeleteCharacterConfirm] = useState(false);
+  const [imageLibraryTarget, setImageLibraryTarget] = useState<ImageLibraryTarget | null>(null);
 
   const selectedCharacter =
     characters.find((character) => character.id === selectedId) ?? characters[0];
@@ -620,12 +704,98 @@ export function CharacterSheetScreen({
   const isPhone = width < 720;
   const isLaptop = width >= 1280;
   const useSplitLayout = width >= 980;
-  const useWideHero = width >= 860;
+  const useWideHero = width >= 720;
+  const useQuickActionsColumns = width >= 1280 ? 4 : width >= 720 ? 2 : 1;
+  const imageLibraryOptions = imageLibraryTarget
+    ? LOCAL_IMAGE_LIBRARY[getImageLibraryCategory(imageLibraryTarget)]
+    : [];
   const showOverlay =
     activeOverlayMenu !== null ||
     creationDraft !== null ||
     damageDraft !== null ||
     recoveryDraft !== null;
+  const editorSectionTitleStyle = [styles.editorGroupTitle, { color: activeTheme.title }];
+  const editorHintStyle = [styles.editorHint, { color: activeTheme.subtitle }];
+  const editorCardStyle = [
+    styles.editorCard,
+    { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
+  ];
+  const editorCardTitleStyle = [styles.editorCardTitle, { color: activeTheme.title }];
+  const editorInlineLabelStyle = [styles.editorInlineLabel, { color: activeTheme.title }];
+  const editorAddButtonStyle = [
+    styles.editorAddButton,
+    { backgroundColor: activeTheme.buttonBg, borderColor: activeTheme.border },
+  ];
+  const editorAddButtonLabelStyle = [
+    styles.editorAddButtonLabel,
+    { color: activeTheme.buttonText },
+  ];
+  const editorUploadButtonStyle = [
+    styles.editorUploadButton,
+    { backgroundColor: activeTheme.buttonBg, borderColor: activeTheme.border },
+  ];
+  const editorUploadButtonLabelStyle = [
+    styles.editorUploadButtonLabel,
+    { color: activeTheme.buttonText },
+  ];
+  const editorGhostButtonStyle = [
+    styles.editorGhostButton,
+    { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+  ];
+  const editorGhostButtonLabelStyle = [
+    styles.editorGhostButtonLabel,
+    { color: activeTheme.title },
+  ];
+  const editorPrimaryButtonStyle = [
+    styles.editorPrimaryButton,
+    { backgroundColor: activeTheme.buttonBg, borderColor: activeTheme.border },
+  ];
+  const editorPrimaryButtonLabelStyle = [
+    styles.editorPrimaryButtonLabel,
+    { color: activeTheme.buttonText },
+  ];
+  const editorDangerButtonStyle = [
+    styles.editorDangerButton,
+    {
+      backgroundColor: activeTheme.panelBg,
+      borderColor: activeTheme.accent,
+    },
+  ];
+  const editorDangerButtonLabelStyle = [
+    styles.editorDangerButtonLabel,
+    { color: activeTheme.title },
+  ];
+
+  function getEditorRemoveButtonStyle() {
+    return [
+      styles.editorRemoveButton,
+      { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+    ];
+  }
+
+  function getEditorRemoveButtonLabelStyle() {
+    return [
+      styles.editorRemoveButtonLabel,
+      { color: activeTheme.title },
+    ];
+  }
+
+  function getEditorToggleButtonStyle(isActive: boolean) {
+    return [
+      styles.editorToggleButton,
+      {
+        backgroundColor: isActive ? activeTheme.buttonBg : activeTheme.chipBg,
+        borderColor: isActive ? activeTheme.accent : activeTheme.border,
+      },
+    ];
+  }
+
+  function getEditorToggleButtonLabelStyle(isActive: boolean) {
+    return [
+      styles.editorToggleButtonLabel,
+      { color: isActive ? activeTheme.buttonText : activeTheme.title },
+    ];
+  }
 
   function updateCharacter(
     characterId: string,
@@ -816,23 +986,21 @@ export function CharacterSheetScreen({
 
     updateCharacter(selectedCharacter.id, (character) => {
       let remaining = amount;
-      let armorAbsorbed = 0;
       let shieldAbsorbed = 0;
+      let armorReduced = 0;
       let pvAbsorbed = 0;
 
-      const nextArmor = { ...character.armor };
       const nextPv = { ...character.pv };
-
-      if (!damageDraft.ignoreArmor && remaining > 0) {
-        armorAbsorbed = Math.min(nextArmor.current, remaining);
-        nextArmor.current -= armorAbsorbed;
-        remaining -= armorAbsorbed;
-      }
 
       if (remaining > 0) {
         shieldAbsorbed = Math.min(nextPv.bonus, remaining);
         nextPv.bonus -= shieldAbsorbed;
         remaining -= shieldAbsorbed;
+      }
+
+      if (!damageDraft.ignoreArmor && remaining > 0) {
+        armorReduced = Math.min(character.armor.current, remaining);
+        remaining -= armorReduced;
       }
 
       if (remaining > 0) {
@@ -843,8 +1011,8 @@ export function CharacterSheetScreen({
 
       const messageParts = [
         `${amount} degats recus`,
-        !damageDraft.ignoreArmor && armorAbsorbed > 0 ? `${armorAbsorbed} absorbes par l'armure` : null,
         shieldAbsorbed > 0 ? `${shieldAbsorbed} absorbes par le bouclier` : null,
+        armorReduced > 0 ? `${armorReduced} reduits par l'armure` : null,
         pvAbsorbed > 0 ? `${pvAbsorbed} retires aux PV` : null,
         remaining > 0 ? `${remaining} non absorbes` : null,
       ].filter(Boolean);
@@ -853,7 +1021,6 @@ export function CharacterSheetScreen({
 
       return {
         ...character,
-        armor: nextArmor,
         pv: nextPv,
       };
     });
@@ -905,6 +1072,145 @@ export function CharacterSheetScreen({
       ...quickCastDraft,
       extraPsy: clampValue(quickCastDraft.extraPsy + delta, maxExtraPsy),
     });
+  }
+
+  const quickActions = [
+    {
+      id: "damage",
+      title: "Prendre des degats",
+      description: "Le bouclier absorbe, l'armure reduit, puis les PV encaissent le reste.",
+      icon: "✦",
+      tone: "primary" as const,
+      onPress: openDamageDialog,
+    },
+    {
+      id: "cast",
+      title: "Lancer un sort",
+      description: "Choisit un don ou un equipement qui consomme du PSY.",
+      icon: "◌",
+      tone: "secondary" as const,
+      onPress: openQuickCastDialog,
+    },
+    {
+      id: "recovery",
+      title: "Soigner / bouclier",
+      description: "Rend des PV ou ajoute un bouclier temporaire rapidement.",
+      icon: "+",
+      tone: "secondary" as const,
+      onPress: openRecoveryDialog,
+    },
+    {
+      id: "stance",
+      title: "Position actuelle",
+      description: stanceDescriptions[selectedCharacter.stance],
+      icon: "◎",
+      tone: "secondary" as const,
+      value: stanceLabels[selectedCharacter.stance],
+      onPress: () =>
+        setActiveOverlayMenu((current) => (current === "stance" ? null : "stance")),
+    },
+  ];
+
+  function renderQuickActions() {
+    return (
+      <View
+        style={[
+          styles.quickActionsCard,
+          { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
+        ]}
+      >
+        <View style={styles.quickActionsHeader}>
+          <View style={styles.quickActionsHeaderText}>
+            <Text style={[styles.quickActionsHint, { color: activeTheme.subtitle }]}>
+              Actions rapides
+            </Text>
+            <Text style={[styles.quickActionsTitle, { color: activeTheme.title }]}>
+              Raccourcis de tour
+            </Text>
+          </View>
+          <Text style={[styles.quickActionsMeta, { color: activeTheme.subtitle }]}>
+            {useQuickActionsColumns} colonne{useQuickActionsColumns > 1 ? "s" : ""}
+          </Text>
+        </View>
+        <View style={styles.quickActionsButtons}>
+          {quickActions.map((action) => (
+            <Pressable
+              key={action.id}
+              onPress={action.onPress}
+              style={[
+                styles.quickActionButton,
+                useQuickActionsColumns === 1
+                  ? styles.quickActionButtonSingle
+                  : useQuickActionsColumns === 2
+                    ? styles.quickActionButtonDouble
+                    : styles.quickActionButtonTriple,
+                action.tone === "primary"
+                  ? { backgroundColor: activeTheme.buttonBg, borderColor: activeTheme.buttonBg }
+                  : { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+              ]}
+            >
+              <View
+                style={[
+                  styles.quickActionIconWrap,
+                  action.tone === "primary"
+                    ? {
+                        backgroundColor: "rgba(255,255,255,0.16)",
+                        borderColor: "rgba(255,255,255,0.2)",
+                      }
+                    : {
+                        backgroundColor: activeTheme.panelBg,
+                        borderColor: activeTheme.border,
+                      },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.quickActionIcon,
+                    {
+                      color:
+                        action.tone === "primary" ? activeTheme.buttonText : activeTheme.accent,
+                    },
+                  ]}
+                >
+                  {action.icon}
+                </Text>
+              </View>
+              <View style={styles.quickActionBody}>
+                <Text
+                  style={[
+                    styles.quickActionButtonLabel,
+                    {
+                      color:
+                        action.tone === "primary" ? activeTheme.buttonText : activeTheme.title,
+                    },
+                  ]}
+                >
+                  {action.title}
+                </Text>
+                {"value" in action && action.value ? (
+                  <Text style={[styles.quickActionValue, { color: activeTheme.title }]}>
+                    {action.value}
+                  </Text>
+                ) : null}
+                <Text
+                  style={[
+                    styles.quickActionDescription,
+                    {
+                      color:
+                        action.tone === "primary"
+                          ? "rgba(255,255,255,0.86)"
+                          : activeTheme.subtitle,
+                    },
+                  ]}
+                >
+                  {action.description}
+                </Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    );
   }
 
   function confirmQuickCast() {
@@ -1049,6 +1355,7 @@ export function CharacterSheetScreen({
   function openEditor() {
     setEditorSection("all");
     setDraftCharacter(cloneTemplate(selectedCharacter!));
+    setDeleteCharacterConfirm(false);
     setQuickCastDraft(null);
     setActiveOverlayMenu(null);
   }
@@ -1056,6 +1363,7 @@ export function CharacterSheetScreen({
   function openSectionEditor(section: EditorSection) {
     setEditorSection(section);
     setDraftCharacter(cloneTemplate(selectedCharacter!));
+    setDeleteCharacterConfirm(false);
     setQuickCastDraft(null);
     setActiveOverlayMenu(null);
   }
@@ -1064,6 +1372,8 @@ export function CharacterSheetScreen({
     setActiveOverlayMenu(null);
     setEditorSection("all");
     setDraftCharacter(null);
+    setDeleteCharacterConfirm(false);
+    setImageLibraryTarget(null);
     setDamageDraft(null);
     setRecoveryDraft(null);
     setQuickCastDraft(null);
@@ -1082,6 +1392,8 @@ export function CharacterSheetScreen({
     setActiveOverlayMenu(null);
     setEditorSection("all");
     setDraftCharacter(null);
+    setDeleteCharacterConfirm(false);
+    setImageLibraryTarget(null);
     setQuickCastDraft(null);
   }
 
@@ -1102,10 +1414,99 @@ export function CharacterSheetScreen({
     setCharacters(remainingCharacters);
     setSelectedId(remainingCharacters[0]!.id);
     setDraftCharacter(null);
+    setDeleteCharacterConfirm(false);
+    setImageLibraryTarget(null);
     setActiveOverlayMenu(null);
     setEditorSection("all");
     setQuickCastDraft(null);
     setRosterMessage(`${draftCharacter.name} a ete supprime.`);
+  }
+
+  function getImageLibraryCategory(target: ImageLibraryTarget): ImageLibraryCategory {
+    switch (target.kind) {
+      case "character":
+        return "character";
+      case "spell":
+      case "equipmentSpell":
+        return "spell";
+      case "equipment":
+        return "equipment";
+      case "inventory":
+        return "inventory";
+    }
+  }
+
+  function getImageLibraryTitle(target: ImageLibraryTarget) {
+    switch (target.kind) {
+      case "character":
+        return "Choisir une image de personnage";
+      case "spell":
+        return "Choisir une image de don";
+      case "equipmentSpell":
+        return "Choisir une image de don associe";
+      case "equipment":
+        return "Choisir une image d'equipement";
+      case "inventory":
+        return "Choisir une image d'inventaire";
+    }
+  }
+
+  function applyLocalImage(target: ImageLibraryTarget, option: LocalImageOption) {
+    switch (target.kind) {
+      case "character":
+        updateDraftField("imageModule", option.imageModule);
+        updateDraftField("imageUrl", undefined);
+        break;
+      case "spell":
+        updateDraftSpell(target.index, { imageModule: option.imageModule, imageUrl: undefined });
+        break;
+      case "equipment":
+        updateDraftEquipment(target.index, {
+          imageModule: option.imageModule,
+          imageUrl: undefined,
+        });
+        break;
+      case "equipmentSpell":
+        updateDraftEquipmentGrantedSpell(target.index, {
+          imageModule: option.imageModule,
+          imageUrl: undefined,
+        });
+        break;
+      case "inventory":
+        updateDraftInventory(target.index, {
+          imageModule: option.imageModule,
+          imageUrl: undefined,
+        });
+        break;
+    }
+
+    setImageLibraryTarget(null);
+  }
+
+  function clearImageSelection(target: ImageLibraryTarget) {
+    switch (target.kind) {
+      case "character":
+        updateDraftField("imageModule", undefined);
+        updateDraftField("imageUrl", undefined);
+        break;
+      case "spell":
+        updateDraftSpell(target.index, { imageModule: undefined, imageUrl: undefined });
+        break;
+      case "equipment":
+        updateDraftEquipment(target.index, { imageModule: undefined, imageUrl: undefined });
+        break;
+      case "equipmentSpell":
+        updateDraftEquipmentGrantedSpell(target.index, {
+          imageModule: undefined,
+          imageUrl: undefined,
+        });
+        break;
+      case "inventory":
+        updateDraftInventory(target.index, { imageModule: undefined, imageUrl: undefined });
+        break;
+    }
+
+    setImageLibraryTarget(null);
   }
 
   function updateDraftField<Key extends keyof Character>(
@@ -1533,54 +1934,36 @@ export function CharacterSheetScreen({
     return result.assets[0]?.uri ?? null;
   }
 
-  async function uploadDraftSpellImage(index: number) {
+  async function uploadCustomImage(target: ImageLibraryTarget) {
     const uri = await pickImageUri();
 
     if (!uri) {
       return;
     }
 
-    updateDraftSpell(index, { imageUrl: uri });
-  }
-
-  async function uploadDraftEquipmentImage(index: number) {
-    const uri = await pickImageUri();
-
-    if (!uri) {
-      return;
+    switch (target.kind) {
+      case "character":
+        updateDraftField("imageUrl", uri);
+        updateDraftField("imageModule", undefined);
+        break;
+      case "spell":
+        updateDraftSpell(target.index, { imageUrl: uri, imageModule: undefined });
+        break;
+      case "equipment":
+        updateDraftEquipment(target.index, { imageUrl: uri, imageModule: undefined });
+        break;
+      case "equipmentSpell":
+        updateDraftEquipmentGrantedSpell(target.index, {
+          imageUrl: uri,
+          imageModule: undefined,
+        });
+        break;
+      case "inventory":
+        updateDraftInventory(target.index, { imageUrl: uri, imageModule: undefined });
+        break;
     }
 
-    updateDraftEquipment(index, { imageUrl: uri });
-  }
-
-  async function uploadDraftEquipmentGrantedSpellImage(index: number) {
-    const uri = await pickImageUri();
-
-    if (!uri) {
-      return;
-    }
-
-    updateDraftEquipmentGrantedSpell(index, { imageUrl: uri });
-  }
-
-  async function uploadDraftCharacterImage() {
-    const uri = await pickImageUri();
-
-    if (!uri) {
-      return;
-    }
-
-    updateDraftField("imageUrl", uri);
-  }
-
-  async function uploadDraftInventoryImage(index: number) {
-    const uri = await pickImageUri();
-
-    if (!uri) {
-      return;
-    }
-
-    updateDraftInventory(index, { imageUrl: uri });
+    setImageLibraryTarget(null);
   }
 
   function stepStatusDuration(characterId: string, statusId: string, delta: number) {
@@ -1672,29 +2055,7 @@ export function CharacterSheetScreen({
         </View>
 
         <View style={[styles.navRightGroup, isPhone ? styles.navRightGroupMobile : null]}>
-          <View style={styles.navThemeWrap}>
-            <Pressable
-              onPress={() =>
-                setActiveOverlayMenu((current) => (current === "theme" ? null : "theme"))
-              }
-              style={[
-                styles.navThemeButton,
-                { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
-              ]}
-            >
-              <View style={styles.navThemeText}>
-                <Text style={[styles.navCharacterLabel, { color: activeTheme.subtitle }]}>
-                  Theme
-                </Text>
-                <Text style={[styles.navThemeValue, { color: activeTheme.title }]}>
-                  {THEME_LABELS[selectedCharacter.theme]}
-                </Text>
-              </View>
-              <Text style={[styles.navChevron, { color: activeTheme.title }]}>▾</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.navMenuWrap}>
+          <View style={[styles.navMenuWrap, isPhone ? styles.navMenuWrapMobile : null]}>
             <Pressable
               onPress={() =>
                 setActiveOverlayMenu((current) => (current === "character" ? null : "character"))
@@ -1713,7 +2074,10 @@ export function CharacterSheetScreen({
                 <Text style={[styles.navCharacterLabel, { color: activeTheme.subtitle }]}>
                   Personnage actif
                 </Text>
-                <Text style={[styles.navCharacterName, { color: activeTheme.title }]}>
+                <Text
+                  style={[styles.navCharacterName, { color: activeTheme.title }]}
+                  numberOfLines={1}
+                >
                   {selectedCharacter.name}
                 </Text>
               </View>
@@ -1743,32 +2107,70 @@ export function CharacterSheetScreen({
           { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
         ]}
       >
-        <AssetVisual
-          label={selectedCharacter.name}
-          imageUrl={selectedCharacter.imageUrl}
-          imageModule={selectedCharacter.imageModule}
-          icon={selectedCharacter.name.slice(0, 1)}
-          character
-        />
+        <Pressable
+          onPress={() => openSectionEditor("identity")}
+          style={[
+            styles.heroEditIconButton,
+            styles.heroEditIconButtonFloating,
+            { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+          ]}
+        >
+          <Text style={[styles.heroEditIconLabel, { color: activeTheme.title }]}>✎</Text>
+        </Pressable>
+        <View
+          style={[
+            styles.heroVisualCard,
+            isPhone ? styles.heroVisualCardPhone : null,
+            { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+          ]}
+        >
+          <AssetVisual
+            label={selectedCharacter.name}
+            imageUrl={selectedCharacter.imageUrl}
+            imageModule={selectedCharacter.imageModule}
+            icon={selectedCharacter.name.slice(0, 1)}
+            character
+            large
+          />
+        </View>
+
         <View style={styles.heroText}>
-          <Text style={[styles.eyebrow, { color: activeTheme.accent }]}>
-            Feuille de personnage
-          </Text>
-          <Text style={[styles.title, { color: activeTheme.title }]}>
+          <View style={styles.heroTextHeader}>
+            <Text style={[styles.eyebrow, { color: activeTheme.accent }]}>
+              Feuille de personnage
+            </Text>
+          </View>
+          <Text style={[styles.title, isPhone ? styles.titlePhone : null, { color: activeTheme.title }]}>
             {selectedCharacter.name}
           </Text>
-          <Text style={[styles.description, { color: activeTheme.subtitle }]}>
+          <Text style={[styles.description, styles.heroDescription, { color: activeTheme.subtitle }]}>
             {selectedCharacter.archetype}
-            {selectedCharacter.specialization
-              ? ` · ${selectedCharacter.specialization}`
-              : ""}
-            {selectedCharacter.level ? ` · Niveau ${selectedCharacter.level}` : ""}
+            {selectedCharacter.specialization ? ` · ${selectedCharacter.specialization}` : ""}
           </Text>
+
+          <View style={styles.heroChipRow}>
+            <View style={[styles.heroChip, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}>
+              <Text style={[styles.heroChipLabel, { color: activeTheme.title }]}>
+                Niveau {selectedCharacter.level ?? 0}
+              </Text>
+            </View>
+            <View style={[styles.heroChip, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}>
+              <Text style={[styles.heroChipLabel, { color: activeTheme.title }]}>
+                {selectedCharacter.spells.length} dons
+              </Text>
+            </View>
+            <View style={[styles.heroChip, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}>
+              <Text style={[styles.heroChipLabel, { color: activeTheme.title }]}>
+                {selectedCharacter.inventory.length} objets
+              </Text>
+            </View>
+          </View>
+
           <Pressable
             onPress={() =>
               setActiveOverlayMenu((current) => (current === "bioView" ? null : "bioView"))
             }
-            style={[styles.heroBioButton, { backgroundColor: activeTheme.chipBg }]}
+            style={[styles.heroBioButton, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}
           >
             <Text style={[styles.heroBioButtonLabel, { color: activeTheme.title }]}>
               {selectedCharacter.bio ? "Voir la bio" : "Ajouter une bio"}
@@ -1776,41 +2178,6 @@ export function CharacterSheetScreen({
           </Pressable>
         </View>
 
-        <View style={styles.heroSide}>
-          <Pressable
-            onPress={() => openSectionEditor("identity")}
-            style={[
-              styles.heroEditIconButton,
-              { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-            ]}
-          >
-            <Text style={[styles.heroEditIconLabel, { color: activeTheme.title }]}>✎</Text>
-          </Pressable>
-          <Text style={[styles.heroSideLabel, { color: activeTheme.subtitle }]}>
-            Position actuelle
-          </Text>
-          <View style={styles.stanceDropdownWrap}>
-            <Pressable
-              onPress={() =>
-                setActiveOverlayMenu((current) => (current === "stance" ? null : "stance"))
-              }
-              style={[
-                styles.stanceCompactButton,
-                { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-              ]}
-            >
-              <Text style={[styles.stanceCompactValue, { color: activeTheme.title }]}>
-                {stanceLabels[selectedCharacter.stance]}
-              </Text>
-              <Text style={[styles.stanceCompactChevron, { color: activeTheme.title }]}>
-                ▾
-              </Text>
-            </Pressable>
-          </View>
-          <Text style={[styles.heroSideDescription, { color: activeTheme.subtitle }]}>
-            {stanceDescriptions[selectedCharacter.stance]}
-          </Text>
-        </View>
       </View>
 
       {draftCharacter ? (
@@ -1820,13 +2187,17 @@ export function CharacterSheetScreen({
           animationType="fade"
           onRequestClose={closeEditor}
         >
-          <View style={styles.editorModalBackdrop}>
+          <KeyboardAvoidingView
+            style={styles.editorModalBackdrop}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
             <Pressable style={StyleSheet.absoluteFillObject} onPress={closeEditor} />
             <View style={styles.editorModalWrap}>
               <ScrollView
                 style={styles.editorModalScroll}
                 contentContainerStyle={styles.editorModalContent}
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
               >
         <EditorFieldThemeProvider
           value={{
@@ -1848,17 +2219,11 @@ export function CharacterSheetScreen({
           }}
           rightSlot={
             <View style={styles.editorActions}>
-              <Pressable
-                onPress={deleteDraftCharacter}
-                style={styles.editorDangerButton}
-              >
-                <Text style={styles.editorDangerButtonLabel}>Supprimer</Text>
+              <Pressable onPress={closeEditor} style={editorGhostButtonStyle}>
+                <Text style={editorGhostButtonLabelStyle}>Annuler</Text>
               </Pressable>
-              <Pressable onPress={closeEditor} style={styles.editorGhostButton}>
-                <Text style={styles.editorGhostButtonLabel}>Annuler</Text>
-              </Pressable>
-              <Pressable onPress={saveEditor} style={styles.editorPrimaryButton}>
-                <Text style={styles.editorPrimaryButtonLabel}>Sauvegarder</Text>
+              <Pressable onPress={saveEditor} style={editorPrimaryButtonStyle}>
+                <Text style={editorPrimaryButtonLabelStyle}>Sauvegarder</Text>
               </Pressable>
             </View>
           }
@@ -1898,7 +2263,7 @@ export function CharacterSheetScreen({
                   </Text>
                 </Pressable>
               </View>
-              <Text style={styles.editorHint}>
+              <Text style={editorHintStyle}>
                 {selectedArchetypeOption.description}
               </Text>
             </View>
@@ -1950,6 +2315,31 @@ export function CharacterSheetScreen({
               }
             />
           </View>
+          <View style={styles.editorGroup}>
+            <Text style={editorSectionTitleStyle}>Theme</Text>
+            <View style={styles.editorDropdownWrap}>
+              <Pressable
+                onPress={() =>
+                  setActiveOverlayMenu((current) =>
+                    current === "editorTheme" ? null : "editorTheme",
+                  )
+                }
+                style={[
+                  styles.editorSelectButton,
+                  {
+                    backgroundColor: activeTheme.chipBg,
+                    borderColor: activeTheme.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.editorSelectValue, { color: activeTheme.title }]}>
+                  {THEME_LABELS[draftCharacter.theme]}
+                </Text>
+                <Text style={[styles.editorSelectChevron, { color: activeTheme.title }]}>▾</Text>
+              </Pressable>
+            </View>
+            <Text style={editorHintStyle}>{THEME_DESCRIPTIONS[draftCharacter.theme]}</Text>
+          </View>
           <Pressable
             onPress={() =>
               setActiveOverlayMenu((current) => (current === "bioEdit" ? null : "bioEdit"))
@@ -1976,26 +2366,65 @@ export function CharacterSheetScreen({
             />
             <Pressable
               onPress={() => {
-                void uploadDraftCharacterImage();
+                setImageLibraryTarget({ kind: "character" });
               }}
-              style={styles.editorUploadButton}
+              style={editorUploadButtonStyle}
             >
-              <Text style={styles.editorUploadButtonLabel}>Choisir une image</Text>
+              <Text style={editorUploadButtonLabelStyle}>Choisir une image</Text>
             </Pressable>
+          </View>
+          <View
+            style={[
+              styles.editorDeletePanel,
+              {
+                backgroundColor: activeTheme.panelBg,
+                borderColor: deleteCharacterConfirm ? activeTheme.accent : activeTheme.border,
+              },
+            ]}
+          >
+            <Text style={[styles.editorDeleteTitle, { color: activeTheme.title }]}>
+              Supprimer le personnage
+            </Text>
+            <Text style={[styles.editorDeleteHint, { color: activeTheme.subtitle }]}>
+              Cette action retire definitivement la fiche active.
+            </Text>
+            {deleteCharacterConfirm ? (
+              <View style={styles.editorDeleteActions}>
+                <Pressable
+                  onPress={() => setDeleteCharacterConfirm(false)}
+                  style={editorGhostButtonStyle}
+                >
+                  <Text style={editorGhostButtonLabelStyle}>Annuler</Text>
+                </Pressable>
+                <Pressable
+                  onPress={deleteDraftCharacter}
+                  style={editorDangerButtonStyle}
+                >
+                  <Text style={editorDangerButtonLabelStyle}>Confirmer la suppression</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => setDeleteCharacterConfirm(true)}
+                style={editorDangerButtonStyle}
+              >
+                <Text style={editorDangerButtonLabelStyle}>Supprimer le personnage</Text>
+              </Pressable>
+            )}
           </View>
           </>
           ) : null}
 
           {editingAll || editorSection === "resources" ? (
           <View style={styles.editorGroup}>
-            <Text style={styles.editorGroupTitle}>Ressources</Text>
+            <Text style={editorSectionTitleStyle}>Ressources</Text>
             {([
               ["pv", "PV"],
               ["psy", "PSY"],
               ["armor", "Armure"],
             ] as const).map(([key, label]) => (
               <View key={key} style={styles.editorResourceBlock}>
-                <Text style={styles.editorResourceTitle}>{label}</Text>
+                <Text style={[styles.editorResourceTitle, { color: activeTheme.accent }]}>{label}</Text>
                 <View style={styles.editorGrid}>
                   <EditorField
                     label="Actuel"
@@ -2025,7 +2454,7 @@ export function CharacterSheetScreen({
 
           {editingAll || editorSection === "stats" ? (
           <View style={styles.editorGroup}>
-            <Text style={styles.editorGroupTitle}>Stats</Text>
+            <Text style={editorSectionTitleStyle}>Stats</Text>
             <View style={styles.editorGrid}>
               {(Object.entries(draftCharacter.stats) as Array<
                 [keyof Character["stats"], number]
@@ -2045,21 +2474,21 @@ export function CharacterSheetScreen({
           {editingAll || editorSection === "effects" ? (
           <View style={styles.editorGroup}>
             <View style={styles.editorGroupHeader}>
-              <Text style={styles.editorGroupTitle}>Effets persistants</Text>
-              <Pressable onPress={addDraftStatusEffect} style={styles.editorAddButton}>
-                <Text style={styles.editorAddButtonLabel}>Ajouter</Text>
+              <Text style={editorSectionTitleStyle}>Effets persistants</Text>
+              <Pressable onPress={addDraftStatusEffect} style={editorAddButtonStyle}>
+                <Text style={editorAddButtonLabelStyle}>Ajouter</Text>
               </Pressable>
             </View>
             <View style={styles.editorList}>
               {draftCharacter.statusEffects.map((effect, index) => (
-                <View key={effect.id} style={styles.editorCard}>
+                <View key={effect.id} style={editorCardStyle}>
                   <View style={styles.editorCardHeader}>
-                    <Text style={styles.editorCardTitle}>Effet</Text>
+                    <Text style={editorCardTitleStyle}>Effet</Text>
                     <Pressable
                       onPress={() => removeDraftStatusEffect(index)}
-                      style={styles.editorRemoveButton}
+                      style={getEditorRemoveButtonStyle()}
                     >
-                      <Text style={styles.editorRemoveButtonLabel}>Supprimer</Text>
+                      <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
                     </Pressable>
                   </View>
                   <View style={styles.editorGrid}>
@@ -2098,17 +2527,14 @@ export function CharacterSheetScreen({
                     />
                   </View>
                   <View style={styles.editorToggleRow}>
-                    <Text style={styles.editorInlineLabel}>Effet actif</Text>
+                    <Text style={editorInlineLabelStyle}>Effet actif</Text>
                     <Pressable
                       onPress={() =>
                         updateDraftStatusEffect(index, { active: !effect.active })
                       }
-                      style={[
-                        styles.editorToggleButton,
-                        effect.active ? styles.editorToggleButtonActive : null,
-                      ]}
+                      style={getEditorToggleButtonStyle(effect.active)}
                     >
-                      <Text style={styles.editorToggleButtonLabel}>
+                      <Text style={getEditorToggleButtonLabelStyle(effect.active)}>
                         {effect.active ? "Actif" : "Inactif"}
                       </Text>
                     </Pressable>
@@ -2140,21 +2566,21 @@ export function CharacterSheetScreen({
           {editingAll || editorSection === "resistances" ? (
           <View style={styles.editorGroup}>
             <View style={styles.editorGroupHeader}>
-              <Text style={styles.editorGroupTitle}>Affinites</Text>
-              <Pressable onPress={addDraftResistance} style={styles.editorAddButton}>
-                <Text style={styles.editorAddButtonLabel}>Ajouter</Text>
+              <Text style={editorSectionTitleStyle}>Affinites</Text>
+              <Pressable onPress={addDraftResistance} style={editorAddButtonStyle}>
+                <Text style={editorAddButtonLabelStyle}>Ajouter</Text>
               </Pressable>
             </View>
             <View style={styles.editorList}>
               {draftCharacter.resistances.map((entry, index) => (
-                <View key={entry.id} style={styles.editorCard}>
+                <View key={entry.id} style={editorCardStyle}>
                   <View style={styles.editorCardHeader}>
-                    <Text style={styles.editorCardTitle}>Affinite</Text>
+                    <Text style={editorCardTitleStyle}>Affinite</Text>
                     <Pressable
                       onPress={() => removeDraftResistance(index)}
-                      style={styles.editorRemoveButton}
+                      style={getEditorRemoveButtonStyle()}
                     >
-                      <Text style={styles.editorRemoveButtonLabel}>Supprimer</Text>
+                      <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
                     </Pressable>
                   </View>
                   <View style={styles.editorGrid}>
@@ -2176,13 +2602,21 @@ export function CharacterSheetScreen({
                             onPress={() => updateDraftResistance(index, { type })}
                             style={[
                               styles.themeOption,
-                              entry.type === type ? styles.themeOptionActive : null,
+                              {
+                                backgroundColor:
+                                  entry.type === type ? activeTheme.chipBg : "rgba(15, 23, 42, 0.78)",
+                                borderColor:
+                                  entry.type === type ? activeTheme.accent : activeTheme.border,
+                              },
                             ]}
                           >
                             <Text
                               style={[
                                 styles.themeOptionLabel,
-                                entry.type === type ? styles.themeOptionLabelActive : null,
+                                {
+                                  color:
+                                    entry.type === type ? activeTheme.title : activeTheme.subtitle,
+                                },
                               ]}
                             >
                               {RESISTANCE_LABELS[type]}
@@ -2217,21 +2651,21 @@ export function CharacterSheetScreen({
           {editingAll || editorSection === "skills" ? (
           <View style={styles.editorGroup}>
             <View style={styles.editorGroupHeader}>
-              <Text style={styles.editorGroupTitle}>Competences</Text>
-              <Pressable onPress={addDraftSkill} style={styles.editorAddButton}>
-                <Text style={styles.editorAddButtonLabel}>Ajouter</Text>
+              <Text style={editorSectionTitleStyle}>Competences</Text>
+              <Pressable onPress={addDraftSkill} style={editorAddButtonStyle}>
+                <Text style={editorAddButtonLabelStyle}>Ajouter</Text>
               </Pressable>
             </View>
             <View style={styles.editorList}>
               {draftCharacter.skills.map((skill, index) => (
-                <View key={skill.id} style={styles.editorCard}>
+                <View key={skill.id} style={editorCardStyle}>
                   <View style={styles.editorCardHeader}>
-                    <Text style={styles.editorCardTitle}>Competence</Text>
+                    <Text style={editorCardTitleStyle}>Competence</Text>
                     <Pressable
                       onPress={() => removeDraftSkill(index)}
-                      style={styles.editorRemoveButton}
+                      style={getEditorRemoveButtonStyle()}
                     >
-                      <Text style={styles.editorRemoveButtonLabel}>Supprimer</Text>
+                      <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
                     </Pressable>
                   </View>
                   <View style={styles.editorGrid}>
@@ -2260,21 +2694,21 @@ export function CharacterSheetScreen({
           {editingAll || editorSection === "spells" ? (
           <View style={styles.editorGroup}>
             <View style={styles.editorGroupHeader}>
-              <Text style={styles.editorGroupTitle}>Dons</Text>
-              <Pressable onPress={addDraftSpell} style={styles.editorAddButton}>
-                <Text style={styles.editorAddButtonLabel}>Ajouter</Text>
+              <Text style={editorSectionTitleStyle}>Dons</Text>
+              <Pressable onPress={addDraftSpell} style={editorAddButtonStyle}>
+                <Text style={editorAddButtonLabelStyle}>Ajouter</Text>
               </Pressable>
             </View>
             <View style={styles.editorList}>
               {draftCharacter.spells.map((spell, index) => (
-                <View key={spell.id} style={styles.editorCard}>
+                <View key={spell.id} style={editorCardStyle}>
                   <View style={styles.editorCardHeader}>
-                    <Text style={styles.editorCardTitle}>Don</Text>
+                    <Text style={editorCardTitleStyle}>Don</Text>
                     <Pressable
                       onPress={() => removeDraftSpell(index)}
-                      style={styles.editorRemoveButton}
+                      style={getEditorRemoveButtonStyle()}
                     >
-                      <Text style={styles.editorRemoveButtonLabel}>Supprimer</Text>
+                      <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
                     </Pressable>
                   </View>
                   <View style={styles.editorGrid}>
@@ -2311,43 +2745,37 @@ export function CharacterSheetScreen({
                     />
                     <Pressable
                       onPress={() => {
-                        void uploadDraftSpellImage(index);
+                        setImageLibraryTarget({ kind: "spell", index });
                       }}
-                      style={styles.editorUploadButton}
+                      style={editorUploadButtonStyle}
                     >
-                      <Text style={styles.editorUploadButtonLabel}>
+                      <Text style={editorUploadButtonLabelStyle}>
                         Choisir une image
                       </Text>
                     </Pressable>
                   </View>
                   <View style={styles.editorToggleRow}>
-                    <Text style={styles.editorInlineLabel}>Reducible en Focus</Text>
+                    <Text style={editorInlineLabelStyle}>Reducible en Focus</Text>
                     <Pressable
                       onPress={() =>
                         updateDraftSpell(index, { reducible: !spell.reducible })
                       }
-                      style={[
-                        styles.editorToggleButton,
-                        spell.reducible ? styles.editorToggleButtonActive : null,
-                      ]}
+                      style={getEditorToggleButtonStyle(spell.reducible)}
                     >
-                      <Text style={styles.editorToggleButtonLabel}>
+                      <Text style={getEditorToggleButtonLabelStyle(spell.reducible)}>
                         {spell.reducible ? "Oui" : "Non"}
                       </Text>
                     </Pressable>
                   </View>
                   <View style={styles.editorToggleRow}>
-                    <Text style={styles.editorInlineLabel}>Augmentable</Text>
+                    <Text style={editorInlineLabelStyle}>Augmentable</Text>
                     <Pressable
                       onPress={() =>
                         updateDraftSpell(index, { augmentable: !(spell.augmentable ?? false) })
                       }
-                      style={[
-                        styles.editorToggleButton,
-                        spell.augmentable ? styles.editorToggleButtonActive : null,
-                      ]}
+                      style={getEditorToggleButtonStyle(Boolean(spell.augmentable))}
                     >
-                      <Text style={styles.editorToggleButtonLabel}>
+                      <Text style={getEditorToggleButtonLabelStyle(Boolean(spell.augmentable))}>
                         {spell.augmentable ? "Oui" : "Non"}
                       </Text>
                     </Pressable>
@@ -2383,21 +2811,21 @@ export function CharacterSheetScreen({
           {editingAll || editorSection === "equipment" ? (
           <View style={styles.editorGroup}>
             <View style={styles.editorGroupHeader}>
-              <Text style={styles.editorGroupTitle}>Equipements</Text>
-              <Pressable onPress={addDraftEquipment} style={styles.editorAddButton}>
-                <Text style={styles.editorAddButtonLabel}>Ajouter</Text>
+              <Text style={editorSectionTitleStyle}>Equipements</Text>
+              <Pressable onPress={addDraftEquipment} style={editorAddButtonStyle}>
+                <Text style={editorAddButtonLabelStyle}>Ajouter</Text>
               </Pressable>
             </View>
             <View style={styles.editorList}>
               {draftCharacter.equipment.map((item, index) => (
-                <View key={item.id} style={styles.editorCard}>
+                <View key={item.id} style={editorCardStyle}>
                   <View style={styles.editorCardHeader}>
-                    <Text style={styles.editorCardTitle}>Equipement</Text>
+                    <Text style={editorCardTitleStyle}>Equipement</Text>
                     <Pressable
                       onPress={() => removeDraftEquipment(index)}
-                      style={styles.editorRemoveButton}
+                      style={getEditorRemoveButtonStyle()}
                     >
-                      <Text style={styles.editorRemoveButtonLabel}>Supprimer</Text>
+                      <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
                     </Pressable>
                   </View>
                   <View style={styles.editorGrid}>
@@ -2449,41 +2877,35 @@ export function CharacterSheetScreen({
                     />
                     <Pressable
                       onPress={() => {
-                        void uploadDraftEquipmentImage(index);
+                        setImageLibraryTarget({ kind: "equipment", index });
                       }}
-                      style={styles.editorUploadButton}
+                      style={editorUploadButtonStyle}
                     >
-                      <Text style={styles.editorUploadButtonLabel}>
+                      <Text style={editorUploadButtonLabelStyle}>
                         Choisir une image
                       </Text>
                     </Pressable>
                   </View>
                   <View style={styles.editorToggleRow}>
-                    <Text style={styles.editorInlineLabel}>Cout reductible en Focus</Text>
+                    <Text style={editorInlineLabelStyle}>Cout reductible en Focus</Text>
                     <Pressable
                       onPress={() =>
                         updateDraftEquipment(index, { reducible: !(item.reducible ?? false) })
                       }
-                      style={[
-                        styles.editorToggleButton,
-                        item.reducible ? styles.editorToggleButtonActive : null,
-                      ]}
+                      style={getEditorToggleButtonStyle(item.reducible ?? false)}
                     >
-                      <Text style={styles.editorToggleButtonLabel}>
+                      <Text style={getEditorToggleButtonLabelStyle(item.reducible ?? false)}>
                         {item.reducible ? "Oui" : "Non"}
                       </Text>
                     </Pressable>
                   </View>
                   <View style={styles.editorToggleRow}>
-                    <Text style={styles.editorInlineLabel}>Don associe</Text>
+                    <Text style={editorInlineLabelStyle}>Don associe</Text>
                     <Pressable
                       onPress={() => toggleDraftEquipmentGrantedSpell(index)}
-                      style={[
-                        styles.editorToggleButton,
-                        item.grantedSpell ? styles.editorToggleButtonActive : null,
-                      ]}
+                      style={getEditorToggleButtonStyle(Boolean(item.grantedSpell))}
                     >
-                      <Text style={styles.editorToggleButtonLabel}>
+                      <Text style={getEditorToggleButtonLabelStyle(Boolean(item.grantedSpell))}>
                         {item.grantedSpell ? "Oui" : "Non"}
                       </Text>
                     </Pressable>
@@ -2541,51 +2963,49 @@ export function CharacterSheetScreen({
                         />
                         <Pressable
                           onPress={() => {
-                            void uploadDraftEquipmentGrantedSpellImage(index);
+                            setImageLibraryTarget({ kind: "equipmentSpell", index });
                           }}
-                          style={styles.editorUploadButton}
+                          style={editorUploadButtonStyle}
                         >
-                          <Text style={styles.editorUploadButtonLabel}>
+                          <Text style={editorUploadButtonLabelStyle}>
                             Choisir une image
                           </Text>
                         </Pressable>
                       </View>
                       <View style={styles.editorToggleRow}>
-                        <Text style={styles.editorInlineLabel}>Reductible en Focus</Text>
+                        <Text style={editorInlineLabelStyle}>Reductible en Focus</Text>
                         <Pressable
                           onPress={() =>
                             updateDraftEquipmentGrantedSpell(index, {
                               reducible: !item.grantedSpell?.reducible,
                             })
                           }
-                          style={[
-                            styles.editorToggleButton,
-                            item.grantedSpell.reducible
-                              ? styles.editorToggleButtonActive
-                              : null,
-                          ]}
+                          style={getEditorToggleButtonStyle(Boolean(item.grantedSpell.reducible))}
                         >
-                          <Text style={styles.editorToggleButtonLabel}>
+                          <Text
+                            style={getEditorToggleButtonLabelStyle(
+                              Boolean(item.grantedSpell.reducible),
+                            )}
+                          >
                             {item.grantedSpell.reducible ? "Oui" : "Non"}
                           </Text>
                         </Pressable>
                       </View>
                       <View style={styles.editorToggleRow}>
-                        <Text style={styles.editorInlineLabel}>Augmentable</Text>
+                        <Text style={editorInlineLabelStyle}>Augmentable</Text>
                         <Pressable
                           onPress={() =>
                             updateDraftEquipmentGrantedSpell(index, {
                               augmentable: !(item.grantedSpell?.augmentable ?? false),
                             })
                           }
-                          style={[
-                            styles.editorToggleButton,
-                            item.grantedSpell.augmentable
-                              ? styles.editorToggleButtonActive
-                              : null,
-                          ]}
+                          style={getEditorToggleButtonStyle(Boolean(item.grantedSpell.augmentable))}
                         >
-                          <Text style={styles.editorToggleButtonLabel}>
+                          <Text
+                            style={getEditorToggleButtonLabelStyle(
+                              Boolean(item.grantedSpell.augmentable),
+                            )}
+                          >
                             {item.grantedSpell.augmentable ? "Oui" : "Non"}
                           </Text>
                         </Pressable>
@@ -2637,21 +3057,21 @@ export function CharacterSheetScreen({
           {editingAll || editorSection === "inventory" ? (
           <View style={styles.editorGroup}>
             <View style={styles.editorGroupHeader}>
-              <Text style={styles.editorGroupTitle}>Inventaire</Text>
-              <Pressable onPress={addDraftInventoryItem} style={styles.editorAddButton}>
-                <Text style={styles.editorAddButtonLabel}>Ajouter</Text>
+              <Text style={editorSectionTitleStyle}>Inventaire</Text>
+              <Pressable onPress={addDraftInventoryItem} style={editorAddButtonStyle}>
+                <Text style={editorAddButtonLabelStyle}>Ajouter</Text>
               </Pressable>
             </View>
             <View style={styles.editorList}>
               {draftCharacter.inventory.map((item, index) => (
-                <View key={item.id} style={styles.editorCard}>
+                <View key={item.id} style={editorCardStyle}>
                   <View style={styles.editorCardHeader}>
-                    <Text style={styles.editorCardTitle}>Item</Text>
+                    <Text style={editorCardTitleStyle}>Item</Text>
                     <Pressable
                       onPress={() => removeDraftInventoryItem(index)}
-                      style={styles.editorRemoveButton}
+                      style={getEditorRemoveButtonStyle()}
                     >
-                      <Text style={styles.editorRemoveButtonLabel}>Supprimer</Text>
+                      <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
                     </Pressable>
                   </View>
                   <View style={styles.editorGrid}>
@@ -2691,11 +3111,11 @@ export function CharacterSheetScreen({
                     />
                     <Pressable
                       onPress={() => {
-                        void uploadDraftInventoryImage(index);
+                        setImageLibraryTarget({ kind: "inventory", index });
                       }}
-                      style={styles.editorUploadButton}
+                      style={editorUploadButtonStyle}
                     >
-                      <Text style={styles.editorUploadButtonLabel}>
+                      <Text style={editorUploadButtonLabelStyle}>
                         Choisir une image
                       </Text>
                     </Pressable>
@@ -2724,6 +3144,105 @@ export function CharacterSheetScreen({
         </Section>
         </EditorFieldThemeProvider>
               </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+      ) : null}
+
+      {imageLibraryTarget ? (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          onRequestClose={() => setImageLibraryTarget(null)}
+        >
+          <View style={styles.overlayBackdrop}>
+            <View
+              style={[
+                styles.overlayCard,
+                styles.imageLibraryModal,
+                { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
+              ]}
+            >
+              <View style={styles.overlayHeader}>
+                <View style={styles.overlayHeaderText}>
+                  <Text style={[styles.overlayTitle, { color: activeTheme.title }]}>
+                    {getImageLibraryTitle(imageLibraryTarget)}
+                  </Text>
+                  <Text style={[styles.overlaySubtitle, { color: activeTheme.subtitle }]}>
+                    Choisis une image locale ou importe un visuel personnalise.
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => setImageLibraryTarget(null)}
+                  style={[styles.overlayCloseButton, { borderColor: activeTheme.border }]}
+                >
+                  <Text style={[styles.overlayCloseButtonLabel, { color: activeTheme.title }]}>
+                    Fermer
+                  </Text>
+                </Pressable>
+              </View>
+
+              <ScrollView
+                style={styles.overlayScroll}
+                contentContainerStyle={styles.overlayScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.imageLibraryGrid}>
+                  {imageLibraryOptions.map((option) => (
+                    <Pressable
+                      key={option.id}
+                      onPress={() => applyLocalImage(imageLibraryTarget, option)}
+                      style={[
+                        styles.imageLibraryCard,
+                        { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                      ]}
+                    >
+                      <AssetVisual
+                        label={option.label}
+                        imageModule={option.imageModule}
+                        character={getImageLibraryCategory(imageLibraryTarget) === "character"}
+                        small={getImageLibraryCategory(imageLibraryTarget) === "inventory"}
+                      />
+                      <Text style={[styles.imageLibraryCardLabel, { color: activeTheme.title }]}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
+
+              <View style={styles.overlayActions}>
+                <Pressable
+                  onPress={() => clearImageSelection(imageLibraryTarget)}
+                  style={[
+                    styles.overlaySecondaryButton,
+                    { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                  ]}
+                >
+                  <Text style={[styles.overlaySecondaryButtonLabel, { color: activeTheme.title }]}>
+                    Retirer l'image
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    void uploadCustomImage(imageLibraryTarget);
+                  }}
+                  style={[
+                    styles.overlayPrimaryButton,
+                    { backgroundColor: activeTheme.buttonBg },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.overlayPrimaryButtonLabel,
+                      { color: activeTheme.buttonText },
+                    ]}
+                  >
+                    Importer une image
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </Modal>
@@ -2762,6 +3281,12 @@ export function CharacterSheetScreen({
                 },
               ]}
             >
+              <ScrollView
+                style={styles.overlayScroll}
+                contentContainerStyle={styles.overlayScrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
               {damageDraft ? (
                 <>
                   <View style={styles.overlayHeader}>
@@ -2770,7 +3295,7 @@ export function CharacterSheetScreen({
                         Prendre des degats
                       </Text>
                       <Text style={[styles.overlaySubtitle, { color: activeTheme.subtitle }]}>
-                        Les degats sont absorbes par l'armure, puis le bouclier, puis les PV.
+                        Le bouclier absorbe d'abord, l'armure reduit ensuite les degats, puis les PV prennent le reste.
                       </Text>
                     </View>
                     <Pressable
@@ -3813,29 +4338,6 @@ export function CharacterSheetScreen({
                     </>
                   )}
                 </>
-              ) : activeOverlayMenu === "theme" ? (
-                <View style={styles.overlayOptionList}>
-                  {(Object.keys(THEME_LABELS) as CharacterTheme[]).map((themeKey) => (
-                    <Pressable
-                      key={themeKey}
-                      onPress={() => setCharacterTheme(selectedCharacter.id, themeKey)}
-                      style={[
-                        styles.overlayOptionCard,
-                        {
-                          backgroundColor: activeTheme.chipBg,
-                          borderColor:
-                            selectedCharacter.theme === themeKey
-                              ? activeTheme.accent
-                              : activeTheme.border,
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.overlayOptionTitle, { color: activeTheme.title }]}>
-                        {THEME_LABELS[themeKey]}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
               ) : activeOverlayMenu === "character" ? (
                 <View style={styles.overlayOptionList}>
                   <View
@@ -3956,6 +4458,37 @@ export function CharacterSheetScreen({
                     </Pressable>
                   ))}
                 </View>
+              ) : activeOverlayMenu === "editorTheme" && draftCharacter ? (
+                <View style={styles.overlayOptionList}>
+                  {(Object.keys(THEME_LABELS) as CharacterTheme[]).map((themeKey) => (
+                    <Pressable
+                      key={themeKey}
+                      onPress={() => {
+                        updateDraftField("theme", themeKey);
+                        setActiveOverlayMenu(null);
+                      }}
+                      style={[
+                        styles.overlayOptionCard,
+                        {
+                          backgroundColor: activeTheme.chipBg,
+                          borderColor:
+                            draftCharacter.theme === themeKey
+                              ? activeTheme.accent
+                              : activeTheme.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.overlayOptionTitle, { color: activeTheme.title }]}>
+                        {THEME_LABELS[themeKey]}
+                      </Text>
+                      <Text
+                        style={[styles.overlayOptionDescription, { color: activeTheme.subtitle }]}
+                      >
+                        {THEME_DESCRIPTIONS[themeKey]}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
               ) : activeOverlayMenu === "editorArchetype" && draftCharacter ? (
                 <View style={styles.overlayOptionList}>
                   {ARCHETYPE_OPTIONS.map((option) => (
@@ -4008,6 +4541,7 @@ export function CharacterSheetScreen({
                   ))}
                 </View>
               ) : null}
+              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -4066,47 +4600,7 @@ export function CharacterSheetScreen({
                   : styles.tabletSecondaryColumnTablet,
               ]}
             >
-              <View
-                style={[
-                  styles.quickActionsCard,
-                  { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
-                ]}
-              >
-                <Text style={[styles.quickActionsHint, { color: activeTheme.subtitle }]}>
-                  Actions rapides
-                </Text>
-                <View style={styles.quickActionsButtons}>
-                  <Pressable
-                    onPress={openDamageDialog}
-                    style={[styles.quickActionButton, { backgroundColor: activeTheme.buttonBg }]}
-                  >
-                    <Text
-                      style={[
-                        styles.quickActionButtonLabel,
-                        { color: activeTheme.buttonText },
-                      ]}
-                    >
-                      Prendre des degats
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={openQuickCastDialog}
-                    style={[styles.quickActionButton, { backgroundColor: activeTheme.chipBg }]}
-                  >
-                    <Text style={[styles.quickActionButtonLabel, { color: activeTheme.title }]}>
-                      Lancer un sort
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={openRecoveryDialog}
-                    style={[styles.quickActionButton, { backgroundColor: activeTheme.chipBg }]}
-                  >
-                    <Text style={[styles.quickActionButtonLabel, { color: activeTheme.title }]}>
-                      Soigner / bouclier
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
+              {renderQuickActions()}
               <StatsSkillsSection
                 character={selectedCharacter}
                 theme={activeTheme}
@@ -4149,47 +4643,7 @@ export function CharacterSheetScreen({
             onAdjustAttackBonus={(delta) => updateAttackBonus(selectedCharacter.id, delta)}
           />
 
-          <View
-            style={[
-              styles.quickActionsCard,
-              { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
-            ]}
-          >
-            <Text style={[styles.quickActionsHint, { color: activeTheme.subtitle }]}>
-              Actions rapides
-            </Text>
-            <View style={styles.quickActionsButtons}>
-              <Pressable
-                onPress={openDamageDialog}
-                style={[styles.quickActionButton, { backgroundColor: activeTheme.buttonBg }]}
-              >
-                <Text
-                  style={[
-                    styles.quickActionButtonLabel,
-                    { color: activeTheme.buttonText },
-                  ]}
-                >
-                  Prendre des degats
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={openQuickCastDialog}
-                style={[styles.quickActionButton, { backgroundColor: activeTheme.chipBg }]}
-              >
-                <Text style={[styles.quickActionButtonLabel, { color: activeTheme.title }]}>
-                  Lancer un sort
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={openRecoveryDialog}
-                style={[styles.quickActionButton, { backgroundColor: activeTheme.chipBg }]}
-              >
-                <Text style={[styles.quickActionButtonLabel, { color: activeTheme.title }]}>
-                  Soigner / bouclier
-                </Text>
-              </Pressable>
-            </View>
-          </View>
+          {renderQuickActions()}
 
           <StatsSkillsSection
             character={selectedCharacter}
@@ -4345,7 +4799,8 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   navRightGroupMobile: {
-    justifyContent: "space-between",
+    flexDirection: "column",
+    alignItems: "stretch",
   },
   navActionButton: {
     paddingHorizontal: 12,
@@ -4367,31 +4822,10 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     zIndex: 120,
   },
-  navThemeWrap: {
-    position: "relative",
-    minWidth: 150,
-    flexGrow: 1,
-    zIndex: 121,
-  },
-  navThemeButton: {
-    minHeight: 64,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  navThemeText: {
-    flex: 1,
-    gap: 2,
-  },
-  navThemeValue: {
-    fontSize: 15,
-    fontWeight: "800",
-    paddingRight: 18,
+  navMenuWrapMobile: {
+    minWidth: 0,
+    maxWidth: undefined,
+    width: "100%",
   },
   navCharacterButton: {
     flexDirection: "row",
@@ -4484,8 +4918,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   hero: {
+    position: "relative",
     gap: 18,
-    padding: 22,
+    padding: 20,
     borderRadius: 28,
     backgroundColor: "#0b1020",
     borderWidth: 1,
@@ -4500,6 +4935,30 @@ const styles = StyleSheet.create({
   heroMobile: {
     flexDirection: "column",
     alignItems: "stretch",
+  },
+  heroVisualCard: {
+    width: 172,
+    flexShrink: 0,
+    padding: 10,
+    borderRadius: 26,
+    borderWidth: 1,
+    gap: 10,
+    alignItems: "center",
+    alignSelf: "flex-start",
+  },
+  heroVisualCardPhone: {
+    width: "100%",
+    maxWidth: 180,
+  },
+  heroVisualBadge: {
+    alignSelf: "stretch",
+    alignItems: "center",
+  },
+  heroVisualBadgeLabel: {
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 0.9,
   },
   messageBanner: {
     paddingHorizontal: 14,
@@ -4530,6 +4989,16 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 16,
   },
+  imageLibraryModal: {
+    maxWidth: 1040,
+  },
+  overlayScroll: {
+    flexGrow: 0,
+  },
+  overlayScrollContent: {
+    gap: 16,
+    paddingBottom: 4,
+  },
   overlayHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -4559,6 +5028,24 @@ const styles = StyleSheet.create({
   },
   overlayOptionList: {
     gap: 12,
+  },
+  imageLibraryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  imageLibraryCard: {
+    width: 148,
+    gap: 10,
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  imageLibraryCardLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
   },
   characterOverlayActions: {
     padding: 12,
@@ -4667,6 +5154,9 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   editorModalWrap: {
+    width: "100%",
+    maxWidth: 920,
+    alignSelf: "center",
     maxHeight: "92%",
   },
   editorModalScroll: {
@@ -4676,8 +5166,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   sectionEditButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",
@@ -4689,7 +5179,15 @@ const styles = StyleSheet.create({
   },
   heroText: {
     flex: 1,
-    gap: 8,
+    minWidth: 0,
+    gap: 12,
+    alignSelf: "stretch",
+  },
+  heroTextHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
   },
   eyebrow: {
     color: "#fbbf24",
@@ -4703,76 +5201,65 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: "900",
   },
+  titlePhone: {
+    fontSize: 28,
+  },
   description: {
     color: "#b9c6da",
     fontSize: 15,
   },
+  heroDescription: {
+    lineHeight: 22,
+  },
+  heroChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  heroChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  heroChipLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
   heroBioButton: {
     alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 14,
+    borderWidth: 1,
     marginTop: 2,
   },
   heroBioButtonLabel: {
     fontWeight: "800",
   },
-  heroSide: {
-    width: "100%",
-    maxWidth: 280,
-    gap: 8,
-    zIndex: 25,
-  },
   heroEditIconButton: {
-    alignSelf: "flex-end",
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
+  },
+  heroEditIconButtonFloating: {
+    position: "absolute",
+    top: 18,
+    right: 18,
+    zIndex: 30,
   },
   heroEditIconLabel: {
     fontSize: 16,
     fontWeight: "800",
   },
-  heroSideLabel: {
-    color: "#8ea0bf",
-    fontSize: 12,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  stanceDropdownWrap: {
-    position: "relative",
-    zIndex: 40,
-  },
-  stanceCompactButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 16,
-    backgroundColor: "#131c33",
-    borderWidth: 1,
-    borderColor: "rgba(56, 189, 248, 0.18)",
-  },
-  stanceCompactValue: {
-    color: "#f8fafc",
-    fontWeight: "800",
-  },
-  stanceCompactChevron: {
-    color: "#f8fafc",
-  },
-  heroSideDescription: {
-    color: "#9caec8",
-    lineHeight: 20,
-    fontSize: 13,
-  },
   editorActions: {
     flexDirection: "row",
     gap: 10,
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
   },
   editorBioButton: {
     gap: 4,
@@ -4843,21 +5330,67 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "#11182d",
     borderWidth: 1,
-    borderColor: "rgba(148, 163, 184, 0.12)",
-  },
-  themeOptionActive: {
-    backgroundColor: "#1b2740",
-    borderColor: "rgba(251, 191, 36, 0.28)",
   },
   themeOptionLabel: {
-    color: "#cbd5e1",
     fontWeight: "700",
     fontSize: 12,
   },
-  themeOptionLabelActive: {
-    color: "#fbbf24",
+  themeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  themeCard: {
+    width: 196,
+    minHeight: 146,
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 12,
+  },
+  themeCardPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  themeCardSwatchPrimary: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  themeCardSwatchSecondary: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  themeCardSwatchAccent: {
+    width: 16,
+    height: 56,
+    borderRadius: 999,
+  },
+  themeCardBody: {
+    gap: 4,
+  },
+  themeCardTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  themeCardDescription: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  themeCardActivePill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  themeCardActivePillLabel: {
+    fontSize: 11,
+    fontWeight: "900",
   },
   editorFieldLabel: {
     color: "#9caec8",
@@ -5021,6 +5554,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+  editorDeletePanel: {
+    gap: 10,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  editorDeleteTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  editorDeleteHint: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  editorDeleteActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
   editorUploadButton: {
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -5088,10 +5640,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   quickActionsCard: {
-    gap: 10,
-    padding: 14,
-    borderRadius: 18,
+    gap: 14,
+    padding: 16,
+    borderRadius: 22,
     borderWidth: 1,
+  },
+  quickActionsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  quickActionsHeaderText: {
+    flex: 1,
+    gap: 4,
   },
   quickActionsHint: {
     fontSize: 12,
@@ -5099,18 +5661,71 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     fontWeight: "700",
   },
+  quickActionsTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  quickActionsMeta: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
   quickActionsButtons: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
   },
   quickActionButton: {
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 13,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  quickActionButtonSingle: {
+    width: "100%",
+  },
+  quickActionButtonDouble: {
+    flexBasis: "48%",
+    flexGrow: 1,
+  },
+  quickActionButtonTriple: {
+    flexBasis: "31%",
+    flexGrow: 1,
+  },
+  quickActionIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickActionIcon: {
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  quickActionBody: {
+    flex: 1,
+    gap: 4,
   },
   quickActionButtonLabel: {
+    fontSize: 14,
     fontWeight: "900",
+  },
+  quickActionDescription: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  quickActionValue: {
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
   quickModeRow: {
     flexDirection: "row",

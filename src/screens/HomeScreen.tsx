@@ -20,6 +20,7 @@ export function HomeScreen({
 }: HomeScreenProps) {
   const { width } = useWindowDimensions();
   const isPhone = width < 760;
+  const isNarrowPhone = width < 430;
 
   return (
     <ScrollView
@@ -28,11 +29,15 @@ export function HomeScreen({
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.hero}>
-        <View style={styles.brandRow}>
-          <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
+        <View style={[styles.brandRow, isPhone ? styles.brandRowPhone : null]}>
+          <Image
+            source={APP_LOGO}
+            style={[styles.logo, isPhone ? styles.logoPhone : null]}
+            resizeMode="contain"
+          />
           <View style={styles.brandText}>
             <Text style={styles.eyebrow}>Vade Retro</Text>
-            <Text style={styles.title}>Portail de campagne</Text>
+            <Text style={[styles.title, isPhone ? styles.titlePhone : null]}>Portail de campagne</Text>
             <Text style={styles.description}>
               Choisis une fiche personnage ou ouvre l&apos;histoire de l&apos;univers.
             </Text>
@@ -62,7 +67,11 @@ export function HomeScreen({
             <Pressable
               key={character.id}
               onPress={() => onOpenCharacter(character.id)}
-              style={[styles.characterCard, active ? styles.characterCardActive : null]}
+              style={[
+                styles.characterCard,
+                isPhone ? styles.characterCardPhone : null,
+                active ? styles.characterCardActive : null,
+              ]}
             >
               <AssetVisual
                 label={character.name}
@@ -73,7 +82,12 @@ export function HomeScreen({
               />
               <View style={styles.characterBody}>
                 <View style={styles.characterHeader}>
-                  <Text style={styles.characterName}>{character.name}</Text>
+                  <Text
+                    style={styles.characterName}
+                    numberOfLines={isNarrowPhone ? 2 : 1}
+                  >
+                    {character.name}
+                  </Text>
                   {active ? (
                     <View style={styles.activeBadge}>
                       <Text style={styles.activeBadgeLabel}>Actif</Text>
@@ -133,9 +147,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(148, 163, 184, 0.18)",
   },
+  brandRowPhone: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+  },
   logo: {
     width: 72,
     height: 72,
+  },
+  logoPhone: {
+    width: 56,
+    height: 56,
   },
   brandText: {
     flex: 1,
@@ -152,6 +174,9 @@ const styles = StyleSheet.create({
     color: "#f8fafc",
     fontSize: 30,
     fontWeight: "900",
+  },
+  titlePhone: {
+    fontSize: 24,
   },
   description: {
     color: "#cbd5e1",
@@ -211,6 +236,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(15, 23, 42, 0.88)",
     borderWidth: 1,
     borderColor: "rgba(148, 163, 184, 0.16)",
+  },
+  characterCardPhone: {
+    flexBasis: "100%",
+    width: "100%",
+    flexDirection: "column",
+    alignItems: "flex-start",
   },
   characterCardActive: {
     borderColor: "rgba(251, 191, 36, 0.42)",

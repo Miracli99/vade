@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
 import { getReducibleCost, getSpellCost } from "../../utils/game";
@@ -14,6 +14,9 @@ type EquipmentSectionProps = {
 };
 
 export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionProps) {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 720;
+
   return (
     <Section
       title="Equipement"
@@ -30,10 +33,11 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
         {character.equipment.map((item) => (
           <View
             key={item.id}
-            style={[
-              styles.card,
-              { backgroundColor: theme.chipBg, borderColor: theme.border },
-            ]}
+              style={[
+                styles.card,
+                isCompact ? styles.cardCompact : null,
+                { backgroundColor: theme.chipBg, borderColor: theme.border },
+              ]}
           >
             <AssetVisual
               label={item.name}
@@ -42,9 +46,11 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
               imageModule={item.imageModule}
             />
             <View style={styles.body}>
-              <View style={styles.header}>
-                <View style={styles.heading}>
-                  <Text style={[styles.title, { color: theme.title }]}>{item.name}</Text>
+                  <View style={styles.header}>
+                    <View style={styles.heading}>
+                      <Text style={[styles.title, { color: theme.title }]} numberOfLines={isCompact ? 2 : 1}>
+                        {item.name}
+                      </Text>
                   <Text style={[styles.meta, { color: theme.subtitle }]}>{item.category}</Text>
                 </View>
                 {item.usePsyCost ? (
@@ -166,6 +172,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 24,
     borderWidth: 1,
+  },
+  cardCompact: {
+    flexDirection: "column",
   },
   body: { flex: 1, gap: 8 },
   header: {

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
 import { Section } from "../Section";
@@ -13,6 +13,9 @@ type InventorySectionProps = {
 };
 
 export function InventorySection({ character, theme, onEdit }: InventorySectionProps) {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 720;
+
   return (
     <Section
       title="Inventaire"
@@ -29,10 +32,11 @@ export function InventorySection({ character, theme, onEdit }: InventorySectionP
         {character.inventory.map((item) => (
           <View
             key={item.id}
-            style={[
-              styles.item,
-              { backgroundColor: theme.chipBg, borderColor: theme.border },
-            ]}
+              style={[
+                styles.item,
+                isCompact ? styles.itemCompact : null,
+                { backgroundColor: theme.chipBg, borderColor: theme.border },
+              ]}
           >
             <AssetVisual
               label={item.name}
@@ -62,9 +66,11 @@ export function InventorySection({ character, theme, onEdit }: InventorySectionP
                 <Text style={[styles.notes, { color: theme.subtitle }]}>{item.notes}</Text>
               ) : null}
             </View>
-            <Text style={[styles.qty, { color: theme.accent }]}>x{item.quantity}</Text>
-          </View>
-        ))}
+              <Text style={[styles.qty, isCompact ? styles.qtyCompact : null, { color: theme.accent }]}>
+                x{item.quantity}
+              </Text>
+            </View>
+          ))}
       </View>
     </Section>
   );
@@ -80,10 +86,15 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
   },
+  itemCompact: {
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+  },
   body: { flex: 1, gap: 3 },
   name: { fontWeight: "700" },
   notes: { fontSize: 12 },
   qty: { fontWeight: "900" },
+  qtyCompact: { width: "100%" },
   assetTags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   assetTag: {
     paddingHorizontal: 10,

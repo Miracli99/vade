@@ -26,7 +26,7 @@
       "favicon": "./assets/vade-retro-logo.png"
     },
     "extra": {
-      "updateManifestUrl": ""
+      "updateManifestUrl": "https://miracli99.github.io/vade/app-update.json"
     }
   }
 }

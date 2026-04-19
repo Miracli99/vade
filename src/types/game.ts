@@ -1,5 +1,15 @@
 export type CombatStance = "focus" | "combat" | "defensif";
-export type CharacterTheme = "vide" | "ange" | "demon" | "foret" | "humain" | "nain";
+export type CharacterTheme =
+  | "vide"
+  | "ange"
+  | "demon"
+  | "foret"
+  | "humain"
+  | "nain"
+  | "occulte"
+  | "abyssal"
+  | "cendre"
+  | "glace";
 export type ArchetypeId =
   | "paladin"
   | "tireur"

@@ -1,9 +1,10 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { ResourcePool } from "../../types/game";
 
 type ThemeTokens = {
   chipBg: string;
+  panelBg?: string;
   border: string;
   title: string;
   subtitle: string;
@@ -18,7 +19,7 @@ type ResourceMeterProps = {
   accent: string;
   resource: ResourcePool;
   bonusLabel?: string;
-  glyphScale?: number;
+  overlayBonus?: boolean;
   theme: ThemeTokens;
   onAdjust: (delta: number) => void;
   onAdjustBonus?: (delta: number) => void;
@@ -30,51 +31,83 @@ export function ResourceMeter({
   accent,
   resource,
   bonusLabel = "Bonus",
-  glyphScale = 1,
+  overlayBonus = false,
   theme,
   onAdjust,
   onAdjustBonus,
 }: ResourceMeterProps) {
-  const fillRatio = resource.max === 0 ? 0 : resource.current / resource.max;
+  const { width } = useWindowDimensions();
+  const isPhone = width < 720;
+  const isNarrow = width < 420;
+  const effectiveMax = overlayBonus
+    ? Math.max(resource.max, resource.current + resource.bonus, 1)
+    : Math.max(resource.max, 1);
+  const fillRatio = resource.current / effectiveMax;
+  const clampedBaseRatio = Math.max(0, Math.min(fillRatio, 1));
+  const bonusRatio = overlayBonus ? resource.bonus / effectiveMax : 0;
+  const clampedBonusRatio = Math.max(0, Math.min(bonusRatio, 1 - clampedBaseRatio));
 
   return (
-    <View
-      style={[
-        styles.resourceCard,
-        { backgroundColor: theme.chipBg, borderColor: theme.border },
-      ]}
-    >
-      <Text style={[styles.resourceName, { color: theme.title }]}>{label}</Text>
-      <View style={styles.resourceGlyphFrame}>
-        <View style={[styles.resourceGlyphFillMask, { height: `${fillRatio * 100}%` }]}>
-          <Text
-            style={[
-              styles.resourceGlyphFill,
-              { color: accent, transform: [{ scale: glyphScale }] },
-            ]}
-          >
-            {glyph}
+    <View style={[styles.card, isPhone ? styles.cardPhone : null, { backgroundColor: theme.chipBg, borderColor: theme.border }]}>
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text style={[styles.label, isPhone ? styles.labelPhone : null, { color: theme.title }]}>
+            {label}
+          </Text>
+          <Text style={[styles.subtle, { color: theme.subtitle }]}>
+            {onAdjustBonus ? `${bonusLabel} +${resource.bonus}` : "Reserve active"}
+          </Text>
+        </View>
+        <View style={[styles.countPill, { borderColor: theme.border }]}>
+          <Text style={[styles.count, isPhone ? styles.countPhone : null, { color: theme.title }]}>
+            {resource.current}/{resource.max}
           </Text>
         </View>
       </View>
-      <Text style={[styles.resourceCount, { color: theme.title }]}>
-        {resource.current}/{resource.max}
-      </Text>
-      {onAdjustBonus ? (
-        <Text style={[styles.resourceBonus, { color: theme.subtitle }]}>
-          {bonusLabel} +{resource.bonus}
-        </Text>
-      ) : null}
-      <View style={styles.resourceButtons}>
-        <AdjustButton label="-1" onPress={() => onAdjust(-1)} theme={theme} />
-        <AdjustButton label="+1" onPress={() => onAdjust(1)} theme={theme} />
-      </View>
-      {onAdjustBonus ? (
-        <View style={styles.resourceButtons}>
-          <AdjustButton label="-B" onPress={() => onAdjustBonus(-1)} theme={theme} />
-          <AdjustButton label="+B" onPress={() => onAdjustBonus(1)} theme={theme} />
+
+      <View style={styles.visualRow}>
+        <View style={[styles.iconWrap, isPhone ? styles.iconWrapPhone : null, { backgroundColor: theme.panelBg ?? theme.chipBg, borderColor: theme.border }]}>
+          <Text style={[styles.icon, isPhone ? styles.iconPhone : null, { color: accent }]}>{glyph}</Text>
         </View>
-      ) : null}
+        <View style={styles.trackBlock}>
+          <View style={[styles.track, { backgroundColor: theme.border }]}>
+            <View
+              style={[
+                styles.fill,
+                { width: `${clampedBaseRatio * 100}%`, backgroundColor: accent },
+              ]}
+            />
+            {overlayBonus && resource.bonus > 0 ? (
+              <View
+                style={[
+                  styles.bonusFill,
+                  {
+                    left: `${clampedBaseRatio * 100}%`,
+                    width: `${clampedBonusRatio * 100}%`,
+                  },
+                ]}
+              />
+            ) : null}
+          </View>
+          <View style={styles.metaRow}>
+            <Text style={[styles.metaText, { color: theme.subtitle }]}>0</Text>
+            <Text style={[styles.metaText, { color: theme.subtitle }]}>
+              max {overlayBonus ? effectiveMax : resource.max}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={[styles.controlsRow, isNarrow ? styles.controlsRowTight : null]}>
+        <AdjustButton label="-1" onPress={() => onAdjust(-1)} theme={theme} compact={isPhone} />
+        <AdjustButton label="+1" onPress={() => onAdjust(1)} theme={theme} compact={isPhone} />
+        {onAdjustBonus ? (
+          <>
+            <AdjustButton label="-B" onPress={() => onAdjustBonus(-1)} theme={theme} compact={isPhone} />
+            <AdjustButton label="+B" onPress={() => onAdjustBonus(1)} theme={theme} compact={isPhone} />
+          </>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -86,24 +119,38 @@ type AttackBonusCardProps = {
 };
 
 export function AttackBonusCard({ value, theme, onAdjust }: AttackBonusCardProps) {
+  const { width } = useWindowDimensions();
+  const isPhone = width < 720;
+
   return (
-    <View
-      style={[
-        styles.resourceCard,
-        { backgroundColor: theme.chipBg, borderColor: theme.border },
-      ]}
-    >
-      <Text style={[styles.resourceName, { color: theme.title }]}>Attaque bonus</Text>
-      <View style={styles.resourceGlyphWrap}>
-        <Text style={[styles.attackGlyph, { color: theme.accent }]}>✦</Text>
+    <View style={[styles.card, isPhone ? styles.cardPhone : null, { backgroundColor: theme.chipBg, borderColor: theme.border }]}>
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text style={[styles.label, isPhone ? styles.labelPhone : null, { color: theme.title }]}>
+            Attaque bonus
+          </Text>
+          <Text style={[styles.subtle, { color: theme.subtitle }]}>Modificateur offensif</Text>
+        </View>
+        <View style={[styles.countPill, { borderColor: theme.border }]}>
+          <Text style={[styles.count, isPhone ? styles.countPhone : null, { color: theme.title }]}>+{value}</Text>
+        </View>
       </View>
-      <Text style={[styles.resourceCount, { color: theme.title }]}>+{value}</Text>
-      <Text style={[styles.resourceBonus, { color: theme.subtitle }]}>
-        Modificateur offensif
-      </Text>
-      <View style={styles.resourceButtons}>
-        <AdjustButton label="-1" onPress={() => onAdjust(-1)} theme={theme} />
-        <AdjustButton label="+1" onPress={() => onAdjust(1)} theme={theme} />
+
+      <View style={styles.visualRow}>
+        <View style={[styles.iconWrap, isPhone ? styles.iconWrapPhone : null, { backgroundColor: theme.panelBg ?? theme.chipBg, borderColor: theme.border }]}>
+          <Text style={[styles.icon, isPhone ? styles.iconPhone : null, { color: theme.accent }]}>✦</Text>
+        </View>
+        <View style={styles.attackSummary}>
+          <Text style={[styles.attackValue, isPhone ? styles.attackValuePhone : null, { color: theme.title }]}>
+            +{value}
+          </Text>
+          <Text style={[styles.subtle, { color: theme.subtitle }]}>Ajoute ce bonus aux actions offensives</Text>
+        </View>
+      </View>
+
+      <View style={styles.controlsRow}>
+        <AdjustButton label="-1" onPress={() => onAdjust(-1)} theme={theme} compact={isPhone} />
+        <AdjustButton label="+1" onPress={() => onAdjust(1)} theme={theme} compact={isPhone} />
       </View>
     </View>
   );
@@ -113,94 +160,171 @@ type AdjustButtonProps = {
   label: string;
   theme: Pick<ThemeTokens, "border" | "buttonBg" | "buttonText">;
   onPress: () => void;
+  compact?: boolean;
 };
 
-export function AdjustButton({ label, theme, onPress }: AdjustButtonProps) {
+export function AdjustButton({ label, theme, onPress, compact = false }: AdjustButtonProps) {
   return (
     <Pressable
       onPress={onPress}
       style={[
         styles.adjustButton,
+        compact ? styles.adjustButtonCompact : null,
         { backgroundColor: theme.buttonBg, borderColor: theme.border },
       ]}
     >
-      <Text style={[styles.adjustButtonLabel, { color: theme.buttonText }]}>{label}</Text>
+      <Text style={[styles.adjustButtonLabel, compact ? styles.adjustButtonLabelCompact : null, { color: theme.buttonText }]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  resourceCard: {
+  card: {
     flexGrow: 1,
-    flexBasis: 210,
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 18,
-    paddingHorizontal: 14,
-    borderRadius: 22,
-    backgroundColor: "#0d1426",
+    gap: 12,
+    padding: 14,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(148, 163, 184, 0.14)",
   },
-  resourceName: {
-    color: "#f8fafc",
-    fontWeight: "800",
+  cardPhone: {
+    gap: 10,
+    padding: 12,
+    borderRadius: 18,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  headerText: {
+    flex: 1,
+    gap: 3,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: "900",
     textTransform: "uppercase",
-    letterSpacing: 1.1,
+    letterSpacing: 0.9,
   },
-  resourceGlyphFrame: {
-    width: 96,
-    height: 96,
+  labelPhone: {
+    fontSize: 12,
+    letterSpacing: 0.7,
+  },
+  subtle: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  countPill: {
+    minWidth: 72,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
     alignItems: "center",
-    justifyContent: "flex-end",
-    overflow: "hidden",
   },
-  resourceGlyphWrap: {
-    width: 84,
-    height: 84,
+  count: {
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  countPhone: {
+    fontSize: 17,
+  },
+  visualRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  iconWrap: {
+    width: 54,
+    height: 54,
+    borderRadius: 16,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  resourceGlyphFillMask: {
-    width: 96,
+  iconWrapPhone: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+  },
+  icon: {
+    fontSize: 28,
+    lineHeight: 32,
+  },
+  iconPhone: {
+    fontSize: 24,
+    lineHeight: 28,
+  },
+  trackBlock: {
+    flex: 1,
+    gap: 6,
+  },
+  track: {
+    height: 10,
+    borderRadius: 999,
     overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "flex-end",
   },
-  resourceGlyphFill: {
-    fontSize: 76,
-    lineHeight: 82,
+  fill: {
+    height: "100%",
+    borderRadius: 999,
   },
-  resourceCount: {
-    color: "#f8fafc",
-    fontSize: 22,
-    fontWeight: "900",
+  bonusFill: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    borderRadius: 999,
+    backgroundColor: "#38bdf8",
   },
-  resourceBonus: {
-    color: "#fbbf24",
-    fontSize: 13,
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  metaText: {
+    fontSize: 11,
     fontWeight: "700",
   },
-  resourceButtons: {
-    flexDirection: "row",
-    gap: 10,
+  attackSummary: {
+    flex: 1,
+    gap: 4,
   },
-  attackGlyph: {
-    color: "#fbbf24",
-    fontSize: 76,
-    lineHeight: 82,
+  attackValue: {
+    fontSize: 24,
+    fontWeight: "900",
+  },
+  attackValuePhone: {
+    fontSize: 20,
+  },
+  controlsRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  controlsRowTight: {
+    gap: 6,
   },
   adjustButton: {
-    minWidth: 54,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderRadius: 12,
     alignItems: "center",
-    backgroundColor: "#1b2740",
+    justifyContent: "center",
     borderWidth: 1,
   },
+  adjustButtonCompact: {
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+  },
   adjustButtonLabel: {
-    color: "#f8fafc",
-    fontWeight: "800",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  adjustButtonLabelCompact: {
+    fontSize: 12,
   },
 });

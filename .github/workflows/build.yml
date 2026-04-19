@@ -11,6 +11,8 @@ on:
 permissions:
   contents: write
   packages: write
+  pages: write
+  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -86,6 +88,9 @@ jobs:
   android-apk:
     name: Android APK
     runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.release_meta.outputs.tag }}
+      release_name: ${{ steps.release_meta.outputs.name }}
 
     steps:
       - name: Checkout
@@ -154,3 +159,43 @@ jobs:
           name: ${{ steps.release_meta.outputs.name }}
           generate_release_notes: true
           files: android/app/build/outputs/apk/release/*.apk
+
+      - name: Generate update manifest
+        if: success() && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        shell: bash
+        run: |
+          mkdir -p pages
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          OWNER_LOWER="${GITHUB_REPOSITORY_OWNER,,}"
+          APP_VERSION="$(node -p "require('./app.json').expo.version")"
+          APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${{ steps.release_meta.outputs.tag }}/app-release.apk"
+          MANIFEST_URL="https://${OWNER_LOWER}.github.io/${REPO_NAME}/app-update.json"
+
+          cat > pages/app-update.json <<EOF
+          {
+            "version": "${APP_VERSION}",
+            "apkUrl": "${APK_URL}",
+            "notes": "Build automatique GitHub Actions pour ${GITHUB_SHA::7}.",
+            "manifestUrl": "${MANIFEST_URL}"
+          }
+          EOF
+
+      - name: Upload Pages artifact
+        if: success() && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: pages
+
+  deploy-update-manifest:
+    name: Deploy update manifest
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    needs: android-apk
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
 import { Section } from "../Section";
@@ -24,9 +24,12 @@ export function StatsSkillsSection({
   onEditStats,
   onEditSkills,
 }: StatsSkillsSectionProps) {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 720;
+
   return (
     <View style={styles.dualColumns}>
-      <View style={styles.dualColumn}>
+      <View style={[styles.dualColumn, isCompact ? styles.dualColumnCompact : null]}>
         <View style={styles.equalHeightCard}>
           <Section
             title="Stats"
@@ -63,7 +66,7 @@ export function StatsSkillsSection({
           </Section>
         </View>
       </View>
-      <View style={styles.dualColumn}>
+      <View style={[styles.dualColumn, isCompact ? styles.dualColumnCompact : null]}>
         <View style={styles.equalHeightCard}>
           <Section
             title="Competences"
@@ -77,23 +80,26 @@ export function StatsSkillsSection({
             rightSlot={<SectionEditButton theme={theme} onPress={onEditSkills} />}
           >
             <View style={styles.table}>
-              <View style={[styles.tableHeader, { backgroundColor: theme.chipBg }]}>
-                <Text
-                  style={[
-                    styles.tableHeaderText,
-                    styles.tableNameColumn,
-                    { color: theme.subtitle },
-                  ]}
-                >
-                  Competence
-                </Text>
-                <Text style={[styles.tableHeaderText, { color: theme.subtitle }]}>Bonus</Text>
-              </View>
+              {!isCompact ? (
+                <View style={[styles.tableHeader, { backgroundColor: theme.chipBg }]}>
+                  <Text
+                    style={[
+                      styles.tableHeaderText,
+                      styles.tableNameColumn,
+                      { color: theme.subtitle },
+                    ]}
+                  >
+                    Competence
+                  </Text>
+                  <Text style={[styles.tableHeaderText, { color: theme.subtitle }]}>Bonus</Text>
+                </View>
+              ) : null}
               {character.skills.map((skill) => (
                 <View
                   key={skill.id}
                   style={[
                     styles.tableRow,
+                    isCompact ? styles.tableRowCompact : null,
                     { backgroundColor: theme.chipBg, borderTopColor: theme.border },
                   ]}
                 >
@@ -101,12 +107,20 @@ export function StatsSkillsSection({
                     style={[
                       styles.tableCell,
                       styles.tableNameColumn,
+                      isCompact ? styles.tableCellCompact : null,
                       { color: theme.title },
                     ]}
+                    numberOfLines={isCompact ? 2 : 1}
                   >
                     {skill.name}
                   </Text>
-                  <Text style={[styles.tableBonus, { color: theme.accent }]}>
+                  <Text
+                    style={[
+                      styles.tableBonus,
+                      isCompact ? styles.tableBonusCompact : null,
+                      { color: theme.accent },
+                    ]}
+                  >
                     +{skill.value}%
                   </Text>
                 </View>
@@ -130,6 +144,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: 320,
     alignSelf: "stretch",
+  },
+  dualColumnCompact: {
+    flexBasis: "100%",
   },
   equalHeightCard: { flex: 1 },
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
@@ -173,7 +190,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
   },
+  tableRowCompact: {
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+    gap: 6,
+  },
   tableNameColumn: { flex: 1 },
   tableCell: { color: "#f8fafc" },
+  tableCellCompact: {
+    minWidth: "100%",
+  },
   tableBonus: { fontWeight: "900" },
+  tableBonusCompact: {
+    alignSelf: "flex-start",
+  },
 });
