@@ -8,6 +8,7 @@
     "android": "expo run:android",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "generate:image-library": "node scripts/generate-image-library.js",
     "export:web": "expo export -p web --output-dir dist",
     "docker:build": "docker build -t vade-retro-web .",
     "docker:run": "docker run --rm -p 8080:80 vade-retro-web",

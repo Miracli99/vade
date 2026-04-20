@@ -17,7 +17,12 @@ import { CharacterSheetScreen } from "./src/screens/CharacterSheetScreen";
 import { HistoryScreen } from "./src/screens/HistoryScreen";
 import { Character } from "./src/types/game";
 import { normalizeCharacter } from "./src/utils/characters";
-import { loadCharactersFromStorage, persistCharactersToStorage } from "./src/utils/persistence";
+import {
+  exportCharacters,
+  importCharacters,
+  loadCharactersFromStorage,
+  persistCharactersToStorage,
+} from "./src/utils/persistence";
 import { fetchUpdateManifest, isRemoteVersionNewer, UpdateManifest } from "./src/utils/updates";
 
 const APP_CONFIG = require("./app.json") as {
@@ -39,6 +44,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(sampleCharacters[0]?.id ?? "");
   const [storageReady, setStorageReady] = useState(false);
   const [availableUpdate, setAvailableUpdate] = useState<UpdateManifest | null>(null);
+  const [homeMessage, setHomeMessage] = useState<string | null>(null);
+  const [creationRequest, setCreationRequest] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -121,6 +128,35 @@ export default function App() {
     setRoute("character");
   }
 
+  function openCreationFromHome() {
+    setHomeMessage(null);
+    setRoute("character");
+    setCreationRequest((current) => current + 1);
+  }
+
+  async function handleImportFromHome() {
+    try {
+      const importedCharacters = await importCharacters();
+
+      if (!importedCharacters?.length) {
+        return;
+      }
+
+      const normalizedCharacters = importedCharacters.map(normalizeCharacter);
+      setCharacters(normalizedCharacters);
+      setSelectedId(normalizedCharacters[0]!.id);
+      setRoute("home");
+      setHomeMessage(`${normalizedCharacters.length} personnage(s) importe(s).`);
+    } catch {
+      setHomeMessage("Import impossible: JSON invalide.");
+    }
+  }
+
+  async function handleExportFromHome() {
+    await exportCharacters(characters);
+    setHomeMessage("Export JSON pret.");
+  }
+
   function closeUpdateModal() {
     setAvailableUpdate(null);
   }
@@ -144,6 +180,10 @@ export default function App() {
         <HomeScreen
           characters={characters}
           selectedId={selectedId}
+          message={homeMessage}
+          onCreateCharacter={openCreationFromHome}
+          onImportCharacters={() => void handleImportFromHome()}
+          onExportCharacters={() => void handleExportFromHome()}
           onOpenCharacter={openCharacter}
           onOpenHistory={() => setRoute("history")}
         />
@@ -154,6 +194,7 @@ export default function App() {
           setCharacters={setCharacters}
           selectedId={selectedId}
           setSelectedId={setSelectedId}
+          creationRequest={creationRequest}
           onOpenHome={() => setRoute("home")}
         />
       ) : null}

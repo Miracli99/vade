@@ -169,6 +169,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p pages
+          cp -R dist/. pages/
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           OWNER_LOWER="${GITHUB_REPOSITORY_OWNER,,}"
           APP_VERSION="$(node -p "require('./app.json').expo.version")"

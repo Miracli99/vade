@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   Image,
@@ -54,10 +54,6 @@ import {
   stanceLabels,
 } from "../utils/game";
 import { normalizeCharacter } from "../utils/characters";
-import {
-  exportCharacters,
-  importCharacters,
-} from "../utils/persistence";
 import {
   LOCAL_IMAGE_LIBRARY,
   ImageLibraryCategory,
@@ -644,6 +640,7 @@ type CharacterSheetScreenProps = {
   setCharacters: Dispatch<SetStateAction<Character[]>>;
   selectedId: string;
   setSelectedId: Dispatch<SetStateAction<string>>;
+  creationRequest?: number;
   onOpenHome?: () => void;
 };
 
@@ -652,6 +649,7 @@ export function CharacterSheetScreen({
   setCharacters,
   selectedId,
   setSelectedId,
+  creationRequest = 0,
   onOpenHome,
 }: CharacterSheetScreenProps) {
   const { width } = useWindowDimensions();
@@ -665,6 +663,7 @@ export function CharacterSheetScreen({
   const [rosterMessage, setRosterMessage] = useState<string | null>(null);
   const [deleteCharacterConfirm, setDeleteCharacterConfirm] = useState(false);
   const [imageLibraryTarget, setImageLibraryTarget] = useState<ImageLibraryTarget | null>(null);
+  const [imageLibraryQuery, setImageLibraryQuery] = useState("");
 
   const selectedCharacter =
     characters.find((character) => character.id === selectedId) ?? characters[0];
@@ -709,11 +708,34 @@ export function CharacterSheetScreen({
   const imageLibraryOptions = imageLibraryTarget
     ? LOCAL_IMAGE_LIBRARY[getImageLibraryCategory(imageLibraryTarget)]
     : [];
+  const imageLibraryQueryTokens = imageLibraryQuery
+    .toLowerCase()
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+  const filteredImageLibraryOptions = imageLibraryQueryTokens.length
+    ? imageLibraryOptions.filter((option) => {
+        const haystack = [option.id, option.label, ...option.tags].join(" ").toLowerCase();
+        return imageLibraryQueryTokens.every((token) => haystack.includes(token));
+      })
+    : imageLibraryOptions;
   const showOverlay =
     activeOverlayMenu !== null ||
     creationDraft !== null ||
     damageDraft !== null ||
     recoveryDraft !== null;
+
+  useEffect(() => {
+    if (creationRequest <= 0) {
+      return;
+    }
+
+    openCreationWizard();
+  }, [creationRequest]);
+
+  useEffect(() => {
+    setImageLibraryQuery("");
+  }, [imageLibraryTarget]);
   const editorSectionTitleStyle = [styles.editorGroupTitle, { color: activeTheme.title }];
   const editorHintStyle = [styles.editorHint, { color: activeTheme.subtitle }];
   const editorCardStyle = [
@@ -873,34 +895,6 @@ export function CharacterSheetScreen({
       current && current.id === characterId ? { ...current, theme } : current,
     );
     setActiveOverlayMenu(null);
-  }
-
-  async function handleExport() {
-    await exportCharacters(characters);
-    setRosterMessage("Export JSON pret.");
-  }
-
-  async function handleImport() {
-    try {
-      const importedCharacters = await importCharacters();
-
-      if (!importedCharacters?.length) {
-        return;
-      }
-
-      const normalizedCharacters = importedCharacters.map(normalizeCharacter);
-      setCharacters(normalizedCharacters);
-      setSelectedId(normalizedCharacters[0]!.id);
-      setDraftCharacter(null);
-      setCreationDraft(null);
-      setDamageDraft(null);
-      setRecoveryDraft(null);
-      setQuickCastDraft(null);
-      setActiveOverlayMenu(null);
-      setRosterMessage(`${normalizedCharacters.length} personnage(s) importe(s).`);
-    } catch {
-      setRosterMessage("Import impossible: JSON invalide.");
-    }
   }
 
   function openCreationWizard() {
@@ -1374,6 +1368,7 @@ export function CharacterSheetScreen({
     setDraftCharacter(null);
     setDeleteCharacterConfirm(false);
     setImageLibraryTarget(null);
+    setImageLibraryQuery("");
     setDamageDraft(null);
     setRecoveryDraft(null);
     setQuickCastDraft(null);
@@ -1394,6 +1389,7 @@ export function CharacterSheetScreen({
     setDraftCharacter(null);
     setDeleteCharacterConfirm(false);
     setImageLibraryTarget(null);
+    setImageLibraryQuery("");
     setQuickCastDraft(null);
   }
 
@@ -1416,6 +1412,7 @@ export function CharacterSheetScreen({
     setDraftCharacter(null);
     setDeleteCharacterConfirm(false);
     setImageLibraryTarget(null);
+    setImageLibraryQuery("");
     setActiveOverlayMenu(null);
     setEditorSection("all");
     setQuickCastDraft(null);
@@ -1481,6 +1478,7 @@ export function CharacterSheetScreen({
     }
 
     setImageLibraryTarget(null);
+    setImageLibraryQuery("");
   }
 
   function clearImageSelection(target: ImageLibraryTarget) {
@@ -1507,6 +1505,7 @@ export function CharacterSheetScreen({
     }
 
     setImageLibraryTarget(null);
+    setImageLibraryQuery("");
   }
 
   function updateDraftField<Key extends keyof Character>(
@@ -1964,6 +1963,7 @@ export function CharacterSheetScreen({
     }
 
     setImageLibraryTarget(null);
+    setImageLibraryQuery("");
   }
 
   function stepStatusDuration(characterId: string, statusId: string, delta: number) {
@@ -3154,7 +3154,10 @@ export function CharacterSheetScreen({
           visible
           transparent
           animationType="fade"
-          onRequestClose={() => setImageLibraryTarget(null)}
+          onRequestClose={() => {
+            setImageLibraryTarget(null);
+            setImageLibraryQuery("");
+          }}
         >
           <View style={styles.overlayBackdrop}>
             <View
@@ -3174,7 +3177,10 @@ export function CharacterSheetScreen({
                   </Text>
                 </View>
                 <Pressable
-                  onPress={() => setImageLibraryTarget(null)}
+                  onPress={() => {
+                    setImageLibraryTarget(null);
+                    setImageLibraryQuery("");
+                  }}
                   style={[styles.overlayCloseButton, { borderColor: activeTheme.border }]}
                 >
                   <Text style={[styles.overlayCloseButtonLabel, { color: activeTheme.title }]}>
@@ -3188,8 +3194,25 @@ export function CharacterSheetScreen({
                 contentContainerStyle={styles.overlayScrollContent}
                 showsVerticalScrollIndicator={false}
               >
+                <View
+                  style={[
+                    styles.imageLibrarySearchWrap,
+                    { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                  ]}
+                >
+                  <TextInput
+                    value={imageLibraryQuery}
+                    onChangeText={setImageLibraryQuery}
+                    placeholder="Rechercher par nom ou tag"
+                    placeholderTextColor={activeTheme.subtitle}
+                    style={[styles.imageLibrarySearchInput, { color: activeTheme.title }]}
+                  />
+                  <Text style={[styles.imageLibrarySearchHint, { color: activeTheme.subtitle }]}>
+                    Exemples: `bleu`, `kevlar`, `demoniste`, `spell`
+                  </Text>
+                </View>
                 <View style={styles.imageLibraryGrid}>
-                  {imageLibraryOptions.map((option) => (
+                  {filteredImageLibraryOptions.map((option) => (
                     <Pressable
                       key={option.id}
                       onPress={() => applyLocalImage(imageLibraryTarget, option)}
@@ -3207,9 +3230,27 @@ export function CharacterSheetScreen({
                       <Text style={[styles.imageLibraryCardLabel, { color: activeTheme.title }]}>
                         {option.label}
                       </Text>
+                      <Text
+                        style={[styles.imageLibraryCardTags, { color: activeTheme.subtitle }]}
+                        numberOfLines={3}
+                      >
+                        {option.tags.join(" · ")}
+                      </Text>
                     </Pressable>
                   ))}
                 </View>
+                {!filteredImageLibraryOptions.length ? (
+                  <View
+                    style={[
+                      styles.overlayOptionCard,
+                      { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+                    ]}
+                  >
+                    <Text style={[styles.emptyText, { color: activeTheme.subtitle }]}>
+                      Aucun visuel ne correspond a cette recherche.
+                    </Text>
+                  </View>
+                ) : null}
               </ScrollView>
 
               <View style={styles.overlayActions}>
@@ -4340,65 +4381,6 @@ export function CharacterSheetScreen({
                 </>
               ) : activeOverlayMenu === "character" ? (
                 <View style={styles.overlayOptionList}>
-                  <View
-                    style={[
-                      styles.characterOverlayActions,
-                      { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                    ]}
-                  >
-                    <Pressable
-                      onPress={openCreationWizard}
-                      style={[
-                        styles.characterOverlayActionButton,
-                        { backgroundColor: activeTheme.buttonBg },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.characterOverlayActionLabel,
-                          { color: activeTheme.buttonText },
-                        ]}
-                      >
-                        Nouveau
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => {
-                        void handleImport();
-                      }}
-                      style={[
-                        styles.characterOverlayActionButton,
-                        { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.characterOverlayActionLabel,
-                          { color: activeTheme.title },
-                        ]}
-                      >
-                        Importer
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => {
-                        void handleExport();
-                      }}
-                      style={[
-                        styles.characterOverlayActionButton,
-                        { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.characterOverlayActionLabel,
-                          { color: activeTheme.title },
-                        ]}
-                      >
-                        Exporter
-                      </Text>
-                    </Pressable>
-                  </View>
                   {characters.map((character) => {
                     const active = character.id === selectedCharacter.id;
 
@@ -5034,6 +5016,25 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 12,
   },
+  imageLibrarySearchWrap: {
+    gap: 8,
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  imageLibrarySearchInput: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#0d1426",
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.14)",
+  },
+  imageLibrarySearchHint: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
   imageLibraryCard: {
     width: 148,
     gap: 10,
@@ -5047,22 +5048,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
   },
-  characterOverlayActions: {
-    padding: 12,
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  characterOverlayActionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  characterOverlayActionLabel: {
-    fontWeight: "800",
+  imageLibraryCardTags: {
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
   },
   overlayOptionCard: {
     padding: 14,

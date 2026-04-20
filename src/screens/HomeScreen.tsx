@@ -8,6 +8,10 @@ const APP_LOGO = require("../../assets/vade-retro-logo.png");
 type HomeScreenProps = {
   characters: Character[];
   selectedId: string;
+  message?: string | null;
+  onCreateCharacter: () => void;
+  onImportCharacters: () => void;
+  onExportCharacters: () => void;
   onOpenCharacter: (characterId: string) => void;
   onOpenHistory: () => void;
 };
@@ -15,6 +19,10 @@ type HomeScreenProps = {
 export function HomeScreen({
   characters,
   selectedId,
+  message,
+  onCreateCharacter,
+  onImportCharacters,
+  onExportCharacters,
   onOpenCharacter,
   onOpenHistory,
 }: HomeScreenProps) {
@@ -55,9 +63,30 @@ export function HomeScreen({
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Personnages</Text>
-        <Text style={styles.sectionSubtitle}>Selection directe vers la fiche</Text>
+        <View style={styles.sectionHeaderTop}>
+          <View style={styles.sectionHeaderText}>
+            <Text style={styles.sectionTitle}>Personnages</Text>
+            <Text style={styles.sectionSubtitle}>Selection directe vers la fiche</Text>
+          </View>
+          <View style={styles.rosterActions}>
+            <Pressable onPress={onCreateCharacter} style={styles.primaryActionButton}>
+              <Text style={styles.primaryActionLabel}>Nouveau</Text>
+            </Pressable>
+            <Pressable onPress={onImportCharacters} style={styles.secondaryActionButton}>
+              <Text style={styles.secondaryActionLabel}>Importer</Text>
+            </Pressable>
+            <Pressable onPress={onExportCharacters} style={styles.secondaryActionButton}>
+              <Text style={styles.secondaryActionLabel}>Exporter</Text>
+            </Pressable>
+          </View>
+        </View>
       </View>
+
+      {message ? (
+        <View style={styles.messageBanner}>
+          <Text style={styles.messageBannerText}>{message}</Text>
+        </View>
+      ) : null}
 
       <View style={styles.rosterGrid}>
         {characters.map((character) => {
@@ -213,6 +242,16 @@ const styles = StyleSheet.create({
   sectionHeader: {
     gap: 4,
   },
+  sectionHeaderTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+    flexWrap: "wrap",
+  },
+  sectionHeaderText: {
+    gap: 4,
+  },
   sectionTitle: {
     color: "#f8fafc",
     fontSize: 22,
@@ -220,6 +259,45 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     color: "#94a3b8",
+  },
+  rosterActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  primaryActionButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: "#fbbf24",
+  },
+  primaryActionLabel: {
+    color: "#3f2200",
+    fontWeight: "900",
+  },
+  secondaryActionButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: "rgba(15, 23, 42, 0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.18)",
+  },
+  secondaryActionLabel: {
+    color: "#e2e8f0",
+    fontWeight: "800",
+  },
+  messageBanner: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 18,
+    backgroundColor: "rgba(16, 24, 40, 0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(251, 191, 36, 0.26)",
+  },
+  messageBannerText: {
+    color: "#f8fafc",
+    fontWeight: "700",
   },
   rosterGrid: {
     flexDirection: "row",
