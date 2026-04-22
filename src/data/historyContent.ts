@@ -12,35 +12,75 @@ export type HistoryContentBlock =
       imageModule?: number;
       imageUrl?: string;
       caption?: string;
+      compact?: boolean;
+    }
+  | {
+      type: "imageText";
+      imageModule?: number;
+      imageUrl?: string;
+      title?: string;
+      text: string;
+      caption?: string;
+    }
+  | {
+      type: "entry";
+      title: string;
+      subtitle?: string;
+      text: string;
+    }
+  | {
+      type: "classEntry";
+      title: string;
+      subtitle?: string;
+      text: string;
+      subclasses: Array<{
+        name: string;
+        accent: "gold" | "crimson" | "azure" | "emerald" | "violet";
+        text: string;
+      }>;
     };
 
 export type HistorySection = {
   id: string;
   title: string;
+  accent?: "gold" | "violet" | "azure" | "crimson" | "emerald";
   content: HistoryContentBlock[];
+};
+
+export type HistoryPage = {
+  id: "lore" | "characters" | "how-to-play";
+  eyebrow: string;
+  title: string;
+  description: string;
+  heroImageModule?: number;
+  sections: HistorySection[];
 };
 
 const HISTORY_COVER = require("../../assets/history/cover.png");
 const HISTORY_GARUDA = require("../../assets/history/garuda.png");
 const HISTORY_BOREE = require("../../assets/history/boree.png");
+const DOCX_FRACTURE = require("../../assets/history/fracture-docx.png");
+const DOCX_PARADIS = require("../../assets/history/paradis-docx.png");
+const DOCX_GUERRE_AUBE = require("../../assets/history/guerre-aube-docx.png");
+const DOCX_RACE_HUMAIN = require("../../assets/history/race-humain-docx.png");
+const DOCX_RACE_DEMI_ANGE = require("../../assets/history/race-demi-ange-docx.png");
+const DOCX_RACE_DEMI_DEMON = require("../../assets/history/race-demi-demon-docx.png");
+const DOCX_RACE_FORET = require("../../assets/history/race-enfant-foret-docx.png");
+const DOCX_RACE_AME_ANCREE = require("../../assets/history/race-ame-ancree-docx.png");
 
-export const historySections: HistorySection[] = [
+const loreSections: HistorySection[] = [
   {
     id: "genese",
+    accent: "gold",
     title: "Genese",
     content: [
       {
-        type: "image",
-        imageModule: HISTORY_COVER,
-        caption: "Frontispice extrait du manuel Vade Retro Angelis.",
+        type: "paragraph",
+        text: "L'histoire de Vade Retro ne commence pas par une verite pure, mais par un recit deja marque, transmis, arrange et conserve par ceux qui ont survecu aux premieres guerres. Les hommes ont appris l'origine du monde a travers la parole des anges, et cette parole n'a jamais ete innocente.",
       },
       {
         type: "paragraph",
-        text: "Afin de comprendre l'univers de Vade Retro, il faut accepter une genese incomplete, partiale et transmise par des vainqueurs. Les anges ont raconte la grande guerre de l'aube aux hommes, mais leur version n'est pas neutre.",
-      },
-      {
-        type: "paragraph",
-        text: "Le monde n'est donc pas presente comme une verite absolue. Il est deja charge d'interpretations, de biais, de silences et de conflits theologiques.",
+        text: "Derriere chaque mythe fondateur se cache deja une lutte d'interpretation. Le sacre, la faute, la legitimite des royaumes spirituels et meme la place des mortels sont l'objet de memoires contradictoires. C'est ce flou qui donne au cadre son gout de legende dangereuse plutot que de chronique parfaitement fiable.",
       },
       {
         type: "quote",
@@ -50,11 +90,12 @@ export const historySections: HistorySection[] = [
   },
   {
     id: "vide",
+    accent: "violet",
     title: "Le Vide",
     content: [
       {
         type: "paragraph",
-        text: "Le Vide n'est pas un simple neant sterile. C'est un lieu morne, affame et brutal, situe au-dela de l'espace et du temps, ou seule la loi du plus fort semble conserver un sens.",
+        text: "Le Vide n'est pas un neant paisible. C'est une faim sans horizon, un espace au-dela du monde ou rien n'est vraiment stable sauf la violence de survivre. Il ne cree pas, il use. Il n'ordonne pas, il devore.",
       },
       {
         type: "quote",
@@ -62,25 +103,32 @@ export const historySections: HistorySection[] = [
       },
       {
         type: "paragraph",
-        text: "Les etres qui l'habitent se dechirent pour survivre. Cet environnement de famine et de predation constitue l'un des terreaux fondamentaux de l'univers.",
+        text: "Les etres qui y demeurent sont formes par cette absence de pitie. Dans le Vide, tout ressemble a un manque: manque de chair, de chaleur, de sens, de repos. De cette famine permanente naissent des creatures, des pulsions et des cosmologies pour lesquelles la predation tient lieu de loi naturelle.",
       },
       {
         type: "paragraph",
-        text: "Les recits du manuel presentent le Vide comme un anti-berceau: pas un neant sterile, mais une matrice violente ou la faim, la force et la predation remplacent toute idee d'ordre juste ou de creation apaisee.",
+        text: "Le manuel le presente comme un anti-berceau. Pas l'absence de toute chose, mais une matrice hostile ou l'existence commence deja blessee. C'est un violet de cendre, de vertige et de corruption, une couleur qui ne dit pas seulement le mystere, mais le gouffre.",
       },
     ],
   },
   {
     id: "grande-fracture",
+    accent: "crimson",
     title: "La Grande Fracture",
     content: [
       {
-        type: "paragraph",
-        text: "Le cadre de Vade Retro repose sur une fracture originelle entre puissances celestes, infernales et forces premieres. Cette rupture n'est pas seulement mythique: elle continue de modeler la metaphysique, les serments, les sceaux et la maniere dont les differentes entites se comprennent entre elles.",
+        type: "image",
+        imageModule: DOCX_FRACTURE,
+        caption: "Vision extraite du docx, utilisee ici pour evoquer la fracture metaphysique et les grands sceaux.",
+        compact: true,
       },
       {
         type: "paragraph",
-        text: "A partir de cette separation, le monde cesse d'etre un tout stable. Chaque camp forge sa propre memoire, sa propre legitimite et sa propre lecture du salut, de la faute et du pouvoir.",
+        text: "La Grande Fracture est la blessure fondatrice du cadre. A partir d'elle, le cosmos cesse d'etre une totalite lisible et devient un ensemble de royaumes, de lois incompatibles et de fidelites qui ne se recouvrent plus.",
+      },
+      {
+        type: "paragraph",
+        text: "Cette rupture n'est pas seulement un evenement ancien. Elle continue d'organiser la maniere dont les anges pensent le salut, dont les demons pensent la souverainete, et dont les mortels comprennent la faute, les pactes et les miracles. Tout ce qui est jure, scelle ou brise dans Vade Retro porte encore la marque de cette separation primitive.",
       },
       {
         type: "quote",
@@ -90,124 +138,76 @@ export const historySections: HistorySection[] = [
   },
   {
     id: "enfer-paradis",
+    accent: "azure",
     title: "Enfer Et Paradis",
     content: [
       {
-        type: "paragraph",
-        text: "Le manuel oppose et relie a la fois Enfer et Paradis. Ces dimensions ne sont pas de simples decors moraux: elles sont des ordres complets, avec leurs hierarchies, leurs lois, leurs habitants, leurs guerres et leurs raisons d'agir.",
+        type: "image",
+        imageModule: DOCX_PARADIS,
+        caption: "Une vision du Paradis issue du docx, contrepoint lumineux a l'ordre infernal.",
+        compact: true,
       },
       {
         type: "paragraph",
-        text: "Le Paradis transmet aux hommes un recit de la victoire et du droit. L'Enfer, lui, concentre la chute, la faim, la rage, mais aussi des logiques de puissance, de royaumes et d'alliances qui depassent largement une vision simpliste du mal absolu.",
+        text: "Enfer et Paradis ne sont pas de simples allegories du bien et du mal. Ce sont deux ordres complets, deux architectures du monde avec leurs hierarchies, leurs langages, leurs territoires et leurs ambitions.",
       },
       {
         type: "paragraph",
-        text: "Dans Vade Retro, les dimensions spirituelles restent proches du monde des mortels: elles l'influencent, le traversent et laissent des traces concretes dans les rites, les lignages, les pactes et les monstres.",
+        text: "Le Paradis se pense comme mesure, loi, elevation et rayonnement. L'Enfer, lui, transforme la chute en pouvoir, l'appetit en dynastie et la violence en forme de gouvernement. Aucun des deux n'est passif: chacun cherche a imprimer sa logique au monde materiel.",
+      },
+      {
+        type: "paragraph",
+        text: "Les mortels vivent entre ces pressions. Les rites, les lignages, les possessions, les armes saintes, les pactes et les monstres ne sont que les traces visibles d'un conflit qui deborde sans cesse de ses royaumes d'origine.",
       },
     ],
   },
   {
     id: "guerre-aube",
+    accent: "gold",
     title: "La Guerre De L'Aube",
     content: [
       {
-        type: "paragraph",
-        text: "La Guerre de l'Aube est l'un des pivots du monde. Elle structure encore le present, parce qu'elle a fixe des ennemis, defini des fidelites, provoque des exils et laisse derriere elle des fragments de sacre et de damnation.",
+        type: "image",
+        imageModule: DOCX_GUERRE_AUBE,
+        caption: "Image du docx utilisee pour donner une presence a la guerre premiere.",
+        compact: true,
       },
       {
         type: "paragraph",
-        text: "Les anges, les demons et d'autres puissances y ont forge leurs reputations, leurs pertes et leurs legitimites. Ce n'est pas seulement une guerre ancienne: c'est le traumatisme fondateur auquel se rattachent encore les croyants, les cultistes, les exorcistes et les seigneurs infernaux.",
+        text: "La Guerre de l'Aube est le traumatisme originel dont le monde n'a jamais vraiment gueri. Elle a fige des haines, consacre des figures, declenche des exils et laisse partout des fragments de sacre ou de damnation qui continuent d'agir des siecles plus tard.",
       },
       {
         type: "paragraph",
-        text: "Les dons, les reliques, les pratiques rituelles et meme certaines ideologies contemporaines sont decrits comme des prolongements ou des residus de cette guerre premiere.",
-      },
-    ],
-  },
-  {
-    id: "humains-primordiaux",
-    title: "Les Humains Primordiaux",
-    content: [
-      {
-        type: "paragraph",
-        text: "Les mortels n'occupent pas simplement un role passif dans la cosmologie du jeu. Le manuel leur donne une place fragile mais decisive: ils vivent au milieu des restes du sacre, de la corruption et des ambitions infernales, sans jamais etre totalement insignifiants.",
+        text: "Anges, demons et puissances plus anciennes y ont gagne leur renommee, leurs cicatrices et parfois leur titre meme. Les fideles s'y referent encore, les cultistes en detournent les symboles, et les seigneurs infernaux gouvernent souvent comme si cette guerre n'etait jamais vraiment finie.",
       },
       {
         type: "paragraph",
-        text: "Les humains primordiaux portent deja cette ambiguite. Ils sont exposes aux influences superieures, instrumentalises par certaines puissances, proteges par d'autres, mais capables aussi de foi, de choix et de survivance au milieu de forces qui les depassent.",
-      },
-      {
-        type: "quote",
-        text: "Les humains ne dominent pas le monde: ils y persistent, coincés entre exorcisme, compromis et survie.",
-      },
-    ],
-  },
-  {
-    id: "guerre-zenith",
-    title: "La Guerre Du Zenith",
-    content: [
-      {
-        type: "paragraph",
-        text: "Apres les premiers grands affrontements, le monde ne retrouve pas la paix. La Guerre du Zenith prolonge les tensions et montre que les conflits metaphysiques ne s'eteignent pas avec une seule victoire legendaire.",
-      },
-      {
-        type: "paragraph",
-        text: "Cette guerre approfondit les lignes de fracture, use les puissances en place et prepare de nouvelles chutes. Elle contribue aussi a expliquer pourquoi tant d'entites, d'ordres et de seigneuries modernes vivent encore dans le sillage de vieux traumatismes et d'anciennes fidelites.",
-      },
-    ],
-  },
-  {
-    id: "sitiel",
-    title: "Sitiel",
-    content: [
-      {
-        type: "paragraph",
-        text: "Sitiel apparait dans le manuel comme une figure centrale des basculements du monde. Son nom est lie a des moments de rupture, a des changements d'equilibre et a des ramifications qui touchent autant les spheres celestes qu'infernales.",
-      },
-      {
-        type: "paragraph",
-        text: "Dans la page histoire de l'app, Sitiel peut etre lu comme un noeud narratif: une figure a laquelle rattacher une partie des ambiguïtés du cadre, entre devotion, violence, conflit de legitimite et recomposition des alliances.",
-      },
-    ],
-  },
-  {
-    id: "chute",
-    title: "La Chute",
-    content: [
-      {
-        type: "paragraph",
-        text: "La chute n'est pas seulement une punition symbolique. Dans Vade Retro, elle reconfigure des identites entieres. Des anges deviennent seigneurs demons, des royaumes changent de nature, des fidelites anciennes survivent sous forme de regrets, de rivalites ou de parodies de l'ordre perdu.",
-      },
-      {
-        type: "paragraph",
-        text: "Certains personnages du manuel, comme Gaziel, incarnent cette melancolie tres particuliere: ils ont accepte leur nouvel etat sans cesser de regarder en arriere. D'autres ont embrasse pleinement le pouvoir, le territoire ou l'adoration que leur nouvelle condition leur offre.",
-      },
-      {
-        type: "quote",
-        text: "Etre damne ne signifie pas cesser d'avoir une memoire, une nostalgie ou une idee de ce que l'on aurait voulu rester.",
+        text: "Les reliques, les doctrines, les dons et les formes modernes de ferveur ou de corruption en sont les debris vivants. La Guerre de l'Aube n'est pas un chapitre clos: c'est l'ombre portee sur tout le reste.",
       },
     ],
   },
   {
     id: "situation-actuelle",
+    accent: "emerald",
     title: "La Situation Actuelle",
     content: [
       {
         type: "paragraph",
-        text: "Le present du jeu n'est pas un monde stabilise. Les dimensions ont laisse des traces sur le territoire, des cultes persistent, des seigneuries se surveillent, et les mortels vivent au contact de forces qu'ils comprennent mal mais qu'ils ne peuvent pas ignorer.",
+        text: "Le present du jeu n'est pas une periode d'apres-guerre tranquille. Les dimensions ont laisse leurs marques sur les territoires, des cultes survivent dans l'ombre, des seigneuries infernales se surveillent, et les institutions religieuses tentent de contenir ce qui fuit de partout.",
       },
       {
         type: "paragraph",
-        text: "La theologie y est concrete. Les pactes produisent des effets reels, les sceaux ont un prix, les noms comptent, et la lutte entre sacre et corruption prend la forme de conflits politiques, spirituels et militaires.",
+        text: "La theologie est concrete. Les pactes changent reellement un destin, les sceaux ont un prix, les noms possedent un poids operant, et les decisions spirituelles prennent souvent la forme de guerres locales, d'enquetes, d'exorcismes ou de crimes rituels.",
       },
       {
         type: "paragraph",
-        text: "Le monde actuel est donc un monde de tensions permanentes: pas un decor post-mythique, mais une histoire toujours en train d'agir sur le present.",
+        text: "Le monde actuel vit donc dans une tension permanente. Pas comme un decor post-mythique, mais comme une histoire encore active, qui saigne dans le present a travers chaque miracle, chaque corruption et chaque frontiere fragilisee.",
       },
     ],
   },
   {
     id: "vallee-boreale",
+    accent: "azure",
     title: "La Vallee Boreale",
     content: [
       {
@@ -235,53 +235,326 @@ export const historySections: HistorySection[] = [
     ],
   },
   {
-    id: "ordre",
-    title: "L'Ordre",
-    content: [
-      {
-        type: "paragraph",
-        text: "L'Ordre represente la reponse organisee des mortels et des fideles face au chaos metaphysique du monde. Il structure l'exorcisme, la doctrine, la protection des faibles et l'encadrement des pratiques dangereuses.",
-      },
-      {
-        type: "paragraph",
-        text: "Mais, comme souvent dans Vade Retro, l'institution ne se resume pas a une pure force du bien. L'Ordre porte aussi ses rigidites, ses zones d'ombre, ses interpretations et ses propres tensions internes entre foi, pragmatisme et violence legitimee.",
-      },
-    ],
-  },
-  {
-    id: "debut-campagne",
-    title: "Debut De Campagne",
-    content: [
-      {
-        type: "paragraph",
-        text: "Le manuel presente ce cadre historique comme un point d'appui pour la campagne: les personnages evoluent dans un monde deja vieux, traverse par des guerres saintes, des chutes, des pactes et des rancunes qui les precedent de tres loin.",
-      },
-      {
-        type: "paragraph",
-        text: "Un debut de campagne efficace dans Vade Retro part donc souvent d'un desequilibre local: une possession, un culte discret, un artefact ancien, une seigneurie qui s'agite, un rituel qui attire l'attention ou un territoire ou la frontiere entre les mondes se fragilise.",
-      },
-      {
-        type: "quote",
-        text: "Les personnages n'arrivent pas dans un monde neuf: ils arrivent au milieu d'une histoire deja chargee, et chaque pouvoir qu'ils touchent a deja un passe.",
-      },
-    ],
-  },
-  {
     id: "tonalite",
+    accent: "violet",
     title: "Tonalite",
     content: [
       {
         type: "paragraph",
-        text: "Vade Retro est un univers de foi, d'exorcisme, de corruption, de guerre sainte et de survie mystique. Le ton n'est ni purement manicheen ni simplement horrorifique: il repose sur la tension entre sacre, damnation, nostalgie et pragmatisme.",
+        text: "Vade Retro est un univers de foi, d'exorcisme, de corruption, de guerre sainte et de survie mystique. Son ton n'est ni purement heroique, ni simplement horrifique. Il tient dans la friction entre le sublime religieux et la boue morale.",
       },
       {
         type: "paragraph",
-        text: "Les personnages avancent dans un monde ou l'histoire est vivante, ou la theologie est une force reelle, et ou chaque pouvoir peut avoir un prix.",
+        text: "Les personnages avancent dans un monde ou l'histoire est vivante, ou la theologie est une force reelle, et ou chaque pouvoir demande quelque chose en retour: culpabilite, dette, contamination, foi ou sacrifice.",
       },
       {
         type: "paragraph",
-        text: "Le jeu fonctionne mieux quand on garde ensemble plusieurs tensions: le religieux et le brutal, le sublime et le grotesque, l'heroisme et la compromission, la ferveur sincere et la manipulation rituelle.",
+        text: "Le jeu fonctionne mieux quand on garde ensemble plusieurs tensions: le religieux et le brutal, le majestueux et le grotesque, l'heroisme et la compromission. C'est pour cela que certaines sections peuvent se teinter d'or sacre, d'azur glacial ou de violet abyssal sans jamais devenir confortables.",
       },
     ],
+  },
+];
+
+const characterSections: HistorySection[] = [
+  {
+    id: "races",
+    title: "Races Jouables",
+    content: [
+      {
+        type: "imageText",
+        imageModule: DOCX_RACE_HUMAIN,
+        title: "Humain",
+        text: "Race majoritaire au sein de l'Ordre, l'humain represente la norme sociale et politique du monde. Cette position dominante lui donne de la marge, mais nourrit aussi un rapport souvent mefiant ou intolerant envers les heritages juges impurs ou trop proches du surnaturel.",
+        caption: "Portrait extrait du docx.",
+      },
+      {
+        type: "imageText",
+        imageModule: DOCX_RACE_DEMI_ANGE,
+        title: "Demi-ange",
+        text: "Un demi-ange est un ange dechu incarne dans un corps humain comme peine supreme. Il conserve une nostalgie du Paradis, une melancolie constante et un lien profond avec l'autorite celeste, meme quand il tente de s'en affranchir.",
+        caption: "Portrait extrait du docx.",
+      },
+      {
+        type: "imageText",
+        imageModule: DOCX_RACE_DEMI_DEMON,
+        title: "Demi-demon",
+        text: "Heritier d'un lignage infernal, le demi-demon porte en lui une proximite concrete avec l'Enfer et ses puissances. Il peut assumer cet heritage, le subir ou le combattre, mais il reste toujours percu comme quelqu'un que l'on surveille de pres.",
+        caption: "Portrait extrait du docx.",
+      },
+      {
+        type: "imageText",
+        imageModule: DOCX_RACE_FORET,
+        title: "Enfant de la foret",
+        text: "Lie aux recits feeriques et aux mondes oniriques, l'enfant de la foret evoque un etre plus intuitif, plus ancien et plus sensible aux presences spirituelles. Sa force vient moins de la domination que de la perception, du lien au vivant et d'un sentiment de danger presque instinctif.",
+        caption: "Portrait extrait du docx.",
+      },
+      {
+        type: "imageText",
+        imageModule: DOCX_RACE_AME_ANCREE,
+        title: "Ame ancree",
+        text: "Une ame ancree est une ame damnee rattachee a un support materiel par necromancie. C'est une existence taboue, fragile et fascinante, a la frontiere entre survie, malediction et seconde chance, toujours marquee par l'idee d'un arrachement au cycle naturel.",
+        caption: "Portrait extrait du docx.",
+      },
+      {
+        type: "paragraph",
+        text: "Le systeme presente plusieurs races jouables qui determinent autant l'esthetique que la place du personnage dans le monde: humain, demi-ange, demi-demon, enfant de la foret et ame ancree.",
+      },
+      {
+        type: "paragraph",
+        text: "Chaque origine sert surtout a orienter les tensions de jeu: foi contre corruption, humanite contre heritage surnaturel, adaptation contre stigmates metaphysiques.",
+      },
+      {
+        type: "quote",
+        text: "Une race dans Vade Retro n'est pas qu'un bonus. C'est une maniere d'etre regarde, craint, desire ou traque.",
+      },
+    ],
+  },
+  {
+    id: "archetypes",
+    title: "Archetypes De Classe",
+    content: [
+      {
+        type: "paragraph",
+        text: "Les grandes familles de classe organisees dans le manuel sont le Paladin, le Tireur, le Dresseur, le Lecteur de versets, le Guerisseur et le Receptacle. Chacune definit un role de groupe clair, puis se precise avec deux sous-classes.",
+      },
+      {
+        type: "classEntry",
+        title: "Paladin",
+        subtitle: "Role: tenir la ligne, proteger et imposer une presence martiale consacree.",
+        text: "Le Paladin est l'ancre du front. Il protege, sanctifie l'engagement et transforme sa simple presence en point d'appui pour le groupe.",
+        subclasses: [
+          {
+            name: "Collectionneur d'ames",
+            accent: "violet",
+            text: "Sous-classe centree sur la capture, la sanction spirituelle et une lecture plus mystique du combat.",
+          },
+          {
+            name: "Chevalier",
+            accent: "gold",
+            text: "Sous-classe plus frontale, construite pour encaisser, verrouiller la melee et maintenir le front ouvert pour le groupe.",
+          },
+        ],
+      },
+      {
+        type: "classEntry",
+        title: "Tireur",
+        subtitle: "Role: ouvrir la scene a distance et punir les erreurs adverses.",
+        text: "Le Tireur cree les angles, impose la distance juste et punit les ouvertures avec un tempo que les autres classes n'ont pas.",
+        subclasses: [
+          {
+            name: "Ritualiste",
+            accent: "azure",
+            text: "Sous-classe de preparation, de zones et de sceaux qui controle le terrain avant l'impact.",
+          },
+          {
+            name: "Pistolero",
+            accent: "crimson",
+            text: "Sous-classe de rythme, de precision et de pression mobile, plus agressive et plus nerveuse dans sa facon d'engager.",
+          },
+        ],
+      },
+      {
+        type: "classEntry",
+        title: "Dresseur",
+        subtitle: "Role: construire sa force par le lien avec une creature ou une puissance auxiliaire.",
+        text: "Le Dresseur ne combat jamais vraiment seul. Sa force passe par un lien vivant, invoque ou pactise, qui modifie toute sa presence en scene.",
+        subclasses: [
+          {
+            name: "Demoniste",
+            accent: "crimson",
+            text: "Sous-classe de pacte, d'invocation et de compromission infernale, avec une identite plus dangereuse et plus corruptrice.",
+          },
+          {
+            name: "Maitre des betes",
+            accent: "emerald",
+            text: "Sous-classe plus instinctive et organique, tournee vers l'alliance avec les creatures, la chasse et le controle de presence.",
+          },
+        ],
+      },
+      {
+        type: "classEntry",
+        title: "Lecteur de versets",
+        subtitle: "Role: canaliser la parole, les rites et l'autorite symbolique.",
+        text: "Le Lecteur de versets agit par la parole juste, le rite et l'autorite du symbole. Il fait plier la scene par ce qui est prononce ou incarne.",
+        subclasses: [
+          {
+            name: "Aria",
+            accent: "gold",
+            text: "Sous-classe fondee sur la voix, le souffle et la projection du sacre par le chant ou la diction.",
+          },
+          {
+            name: "Moine",
+            accent: "azure",
+            text: "Sous-classe plus sobre et interieure, centree sur la discipline, la maitrise de soi et l'incarnation physique des versets.",
+          },
+        ],
+      },
+      {
+        type: "classEntry",
+        title: "Guerisseur",
+        subtitle: "Role: stabiliser le groupe, soigner et retirer les effets dangereux.",
+        text: "Le Guerisseur decide qui tient, qui tombe et combien de temps le groupe peut continuer avant de payer le vrai prix de la scene.",
+        subclasses: [
+          {
+            name: "Pretre",
+            accent: "gold",
+            text: "Sous-classe de benediction, de soutien direct et de protection devote.",
+          },
+          {
+            name: "Alchimiste",
+            accent: "emerald",
+            text: "Sous-classe de preparation, de mixtures et de solutions techniques, souvent moins pures mais extremement adaptables.",
+          },
+        ],
+      },
+      {
+        type: "classEntry",
+        title: "Receptacle",
+        subtitle: "Role: heberger, contenir ou manipuler une puissance qui depasse l'humain.",
+        text: "Le Receptacle accepte de devenir un seuil vivant. Il absorbe, contient ou libere une puissance que d'autres n'oseraient meme pas approcher.",
+        subclasses: [
+          {
+            name: "Pandemoniste",
+            accent: "violet",
+            text: "Sous-classe de debordement, de contamination et de pouvoir assume au bord de la rupture.",
+          },
+          {
+            name: "Gardien",
+            accent: "azure",
+            text: "Sous-classe plus controlee, centree sur la contention, la protection et l'absorption du risque pour epargner les autres.",
+          },
+        ],
+      },
+      {
+        type: "quote",
+        text: "La sous-classe ne sert pas seulement a varier les pouvoirs. Elle dit comment ton personnage entre dans le conflit et ce qu'il accepte de devenir pour gagner.",
+      },
+    ],
+  },
+  {
+    id: "creer-un-personnage",
+    title: "Composer Un Personnage",
+    content: [
+      {
+        type: "image",
+        imageModule: DOCX_RACE_DEMI_ANGE,
+        caption: "Le choix d'une origine et d'une posture donne deja une identite forte.",
+        compact: true,
+      },
+      {
+        type: "paragraph",
+        text: "Pour creer un personnage lisible dans l'app, pars d'abord d'une tension simple: exorciste zealote, chasseur pragmatique, survivant marque par le Vide, heritier demoniaque, mystique forestier ou receptacle au bord de la rupture.",
+      },
+      {
+        type: "paragraph",
+        text: "Ensuite, choisis une race, un archetype, puis une specialisation qui renforcent cette promesse. Le trio doit raconter quelque chose de clair avant meme la premiere scene.",
+      },
+      {
+        type: "paragraph",
+        text: "Enfin, donne-lui une posture de jeu: tenir la ligne, proteger, enqueter, poser des rites, survivre a la corruption ou exploiter une force dangereuse.",
+      },
+    ],
+  },
+];
+
+const howToPlaySections: HistorySection[] = [
+  {
+    id: "boucle",
+    title: "Boucle De Jeu",
+    content: [
+      {
+        type: "paragraph",
+        text: "Vade Retro se joue comme une alternance entre fiction tendue, resolution d'actions, gestion de ressources et impact narratif. On lit une situation, on choisit une approche, on engage ses moyens, puis on assume les consequences.",
+      },
+      {
+        type: "paragraph",
+        text: "Les affrontements ne sont qu'une partie du jeu. L'enquete, les rites, les pactes, les concessions morales et la pression spirituelle sont aussi importantes que les coups portes.",
+      },
+      {
+        type: "quote",
+        text: "On ne joue pas seulement pour vaincre. On joue pour savoir ce qu'il faudra sacrifier pour tenir.",
+      },
+    ],
+  },
+  {
+    id: "stats-ressources",
+    title: "Stats Et Ressources",
+    content: [
+      {
+        type: "paragraph",
+        text: "Dans l'app, les piliers immediats sont les stats, les competences et trois jauges principales: PV pour l'endurance physique, PSY pour le cout mental et spirituel, ARMURE pour l'absorption defensive.",
+      },
+      {
+        type: "paragraph",
+        text: "Les bonus, effets actifs, resistances et faiblesses viennent ensuite nuancer la lecture d'une action. Ils ne remplacent pas la fiction: ils la cadrent.",
+      },
+      {
+        type: "paragraph",
+        text: "Un bon tour de jeu consiste souvent a choisir quelle ressource tu acceptes d'entamer. Encaisser, depenser du PSY, rompre ta posture ou exposer ton equipe n'ont pas le meme prix.",
+      },
+    ],
+  },
+  {
+    id: "sorts-equipement",
+    title: "Sorts, Equipements Et Effets",
+    content: [
+      {
+        type: "paragraph",
+        text: "Les sorts ont un cout de PSY, parfois reductible ou augmentable. Les equipements peuvent offrir des usages actifs, des passifs permanents ou meme des sorts accordes par l'objet.",
+      },
+      {
+        type: "paragraph",
+        text: "L'app est donc concue pour rendre visibles les options de scene: quoi activer, quoi garder, quelle protection maintenir, quel outil sortir et quand accepter une depense lourde.",
+      },
+      {
+        type: "paragraph",
+        text: "En pratique, essaie de lire chaque pouvoir comme une decision tactique. Pas comme un bouton automatique.",
+      },
+    ],
+  },
+  {
+    id: "demarrer-partie",
+    title: "Demarrer Une Partie",
+    content: [
+      {
+        type: "paragraph",
+        text: "Pour lancer une session, le plus simple est de partir d'un desequilibre local: possession, relique, culte, seigneurie en mouvement, quartier marque par une corruption ou frontiere fragilisee entre les mondes.",
+      },
+      {
+        type: "paragraph",
+        text: "Le groupe gagne vite en lisibilite si chaque personnage arrive avec une raison d'etre la: foi, dette, mission, curiosite interdite, chasse, protection ou quete de savoir.",
+      },
+      {
+        type: "paragraph",
+        text: "Ensuite, fais monter la pression. Plus le probleme dure, plus il coute quelque chose: blessures, fatigue mentale, reputation, corruption, perte d'innocents ou concessions rituelles.",
+      },
+    ],
+  },
+];
+
+export const historyPages: HistoryPage[] = [
+  {
+    id: "lore",
+    eyebrow: "Univers",
+    title: "Chroniques de Vade Retro",
+    description: "Le cadre general du monde, sa genese, ses fractures metaphysiques et la tonalite de campagne.",
+    heroImageModule: HISTORY_COVER,
+    sections: loreSections,
+  },
+  {
+    id: "characters",
+    eyebrow: "Reference",
+    title: "Personnages et classes",
+    description: "Une lecture compacte des races, archetypes et promesses de gameplay pour construire un personnage solide.",
+    heroImageModule: HISTORY_GARUDA,
+    sections: characterSections,
+  },
+  {
+    id: "how-to-play",
+    eyebrow: "Guide",
+    title: "Comment jouer",
+    description: "Les reperes de prise en main: boucle de jeu, ressources, sorts, equipement et mise en route d'une session.",
+    heroImageModule: HISTORY_BOREE,
+    sections: howToPlaySections,
   },
 ];

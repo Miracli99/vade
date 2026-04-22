@@ -4,6 +4,8 @@ const ANGE_ASSET = require("../../assets/themes/ange.png");
 const HUMAIN_ASSET = require("../../assets/themes/humain.png");
 const NAIN_ASSET = require("../../assets/themes/nain.png");
 const VIDE_ASSET = require("../../assets/themes/vide.png");
+const SOEUR_AGNES_PORTRAIT = require("../../assets/characters/humaine_occultiste.png");
+const MARCO_VALE_PORTRAIT = require("../../assets/characters/humain_occultiste.png");
 
 export const sampleCharacters: Character[] = [
   {
@@ -13,7 +15,7 @@ export const sampleCharacters: Character[] = [
     archetype: "Lecteur de versets",
     specialization: "Aria",
     bio: "Exorciste de terrain, Agnes impose ses versets dans le chaos et tient la ligne quand tout vacille.",
-    imageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=320&q=80",
+    imageModule: SOEUR_AGNES_PORTRAIT,
     theme: "ange",
     level: 4,
     pv: { current: 18, max: 24, bonus: 2 },
@@ -152,7 +154,7 @@ export const sampleCharacters: Character[] = [
     archetype: "Tireur",
     specialization: "Ritualiste",
     bio: "Chasseur pragmatique, Marco prepare ses zones, ouvre les combats a distance et couvre les replis.",
-    imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=320&q=80",
+    imageModule: MARCO_VALE_PORTRAIT,
     theme: "humain",
     level: 3,
     pv: { current: 22, max: 22, bonus: 0 },
