@@ -18,11 +18,53 @@ export type LocalImageOption = {
 export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[]> = {
   character: [
     {
+      id: "char-ame-ancree-lanterne-f",
+      label: "Ame Ancree Lanterne F",
+      category: "character",
+      tags: ["ame","ancree","character","f","lanterne"],
+      imageModule: require("../../assets/characters/ame_ancree_lanterne_f.png"),
+    },
+    {
+      id: "char-ame-ancree-lanterne",
+      label: "Ame Ancree Lanterne",
+      category: "character",
+      tags: ["ame","ancree","character","lanterne"],
+      imageModule: require("../../assets/characters/ame_ancree_lanterne.png"),
+    },
+    {
       id: "char-cleric-hunter",
       label: "Cleric Hunter",
       category: "character",
       tags: ["character","cleric","hunter"],
       imageModule: require("../../assets/characters/cleric_hunter.png"),
+    },
+    {
+      id: "char-demi-ange-melancolique-f",
+      label: "Demi Ange Melancolique F",
+      category: "character",
+      tags: ["ange","character","demi","f","melancolique"],
+      imageModule: require("../../assets/characters/demi_ange_melancolique_f.png"),
+    },
+    {
+      id: "char-demi-ange-melancolique",
+      label: "Demi Ange Melancolique",
+      category: "character",
+      tags: ["ange","character","demi","melancolique"],
+      imageModule: require("../../assets/characters/demi_ange_melancolique.png"),
+    },
+    {
+      id: "char-demi-demon-heritier",
+      label: "Demi Demon Heritier",
+      category: "character",
+      tags: ["character","demi","demon","heritier"],
+      imageModule: require("../../assets/characters/demi_demon_heritier.png"),
+    },
+    {
+      id: "char-demi-demone-heritiere",
+      label: "Demi Demone Heritiere",
+      category: "character",
+      tags: ["character","demi","demone","heritiere"],
+      imageModule: require("../../assets/characters/demi_demone_heritiere.png"),
     },
     {
       id: "char-demoniste",
@@ -32,11 +74,39 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       imageModule: require("../../assets/characters/demoniste.png"),
     },
     {
+      id: "char-enfant-foret-ancien",
+      label: "Enfant Foret Ancien",
+      category: "character",
+      tags: ["ancien","character","enfant","foret"],
+      imageModule: require("../../assets/characters/enfant_foret_ancien.png"),
+    },
+    {
+      id: "char-enfant-foret-ancienne-f",
+      label: "Enfant Foret Ancienne F",
+      category: "character",
+      tags: ["ancienne","character","enfant","f","foret"],
+      imageModule: require("../../assets/characters/enfant_foret_ancienne_f.png"),
+    },
+    {
       id: "char-guerisseur-foret",
       label: "Guerisseur Foret",
       category: "character",
       tags: ["character","foret","guerisseur"],
       imageModule: require("../../assets/characters/guerisseur_foret.png"),
+    },
+    {
+      id: "char-humain-occultiste",
+      label: "Humain Occultiste",
+      category: "character",
+      tags: ["character","humain","occultiste"],
+      imageModule: require("../../assets/characters/humain_occultiste.png"),
+    },
+    {
+      id: "char-humaine-occultiste",
+      label: "Humaine Occultiste",
+      category: "character",
+      tags: ["character","humaine","occultiste"],
+      imageModule: require("../../assets/characters/humaine_occultiste.png"),
     },
     {
       id: "char-paladin-ange",
@@ -638,6 +708,13 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       imageModule: require("../../assets/equipment/bague_occulte.png"),
     },
     {
+      id: "equip-bague-runique",
+      label: "Bague Runique",
+      category: "equipment",
+      tags: ["bague","equipment","runique"],
+      imageModule: require("../../assets/equipment/bague_runique.png"),
+    },
+    {
       id: "equip-bague-sacre",
       label: "Bague Sacre",
       category: "equipment",
@@ -1018,6 +1095,27 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       imageModule: require("../../assets/inventory/bougie_maudite.png"),
     },
     {
+      id: "item-carquois-ange",
+      label: "Carquois Ange",
+      category: "inventory",
+      tags: ["ange","carquois","inventory"],
+      imageModule: require("../../assets/inventory/carquois_ange.png"),
+    },
+    {
+      id: "item-carquois-demon",
+      label: "Carquois Demon",
+      category: "inventory",
+      tags: ["carquois","demon","inventory"],
+      imageModule: require("../../assets/inventory/carquois_demon.png"),
+    },
+    {
+      id: "item-carquois-humain",
+      label: "Carquois Humain",
+      category: "inventory",
+      tags: ["carquois","humain","inventory"],
+      imageModule: require("../../assets/inventory/carquois_humain.png"),
+    },
+    {
       id: "item-cle-ancienne",
       label: "Cle Ancienne",
       category: "inventory",
@@ -1051,6 +1149,13 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["dague","inventory","rituelle"],
       imageModule: require("../../assets/inventory/dague_rituelle.png"),
+    },
+    {
+      id: "item-desinfectant",
+      label: "Desinfectant",
+      category: "inventory",
+      tags: ["desinfectant","inventory"],
+      imageModule: require("../../assets/inventory/desinfectant.png"),
     },
     {
       id: "item-eclat-dame",
@@ -1137,6 +1242,13 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       imageModule: require("../../assets/inventory/outils_blanc_rouleau.png"),
     },
     {
+      id: "item-pansement",
+      label: "Pansement",
+      category: "inventory",
+      tags: ["inventory","pansement"],
+      imageModule: require("../../assets/inventory/pansement.png"),
+    },
+    {
       id: "item-parchemin-maudit",
       label: "Parchemin Maudit",
       category: "inventory",
@@ -1156,6 +1268,13 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["cuir","inventory","sac","voyage"],
       imageModule: require("../../assets/inventory/sac_voyage_cuir.png"),
+    },
+    {
+      id: "item-trousse-secours",
+      label: "Trousse Secours",
+      category: "inventory",
+      tags: ["inventory","secours","trousse"],
+      imageModule: require("../../assets/inventory/trousse_secours.png"),
     }
   ],
 };
