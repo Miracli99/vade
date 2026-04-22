@@ -1,6 +1,9 @@
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import {
+  ActivityIndicator,
   Linking,
   Modal,
   Platform,
@@ -35,6 +38,7 @@ const APP_CONFIG = require("./app.json") as {
 };
 const APP_VERSION = APP_CONFIG.expo?.version ?? "0.0.0";
 const UPDATE_MANIFEST_URL = APP_CONFIG.expo?.extra?.updateManifestUrl ?? "";
+const APK_MIME_TYPE = "application/vnd.android.package-archive";
 
 type AppRoute = "home" | "character" | "history";
 
@@ -46,6 +50,8 @@ export default function App() {
   const [availableUpdate, setAvailableUpdate] = useState<UpdateManifest | null>(null);
   const [homeMessage, setHomeMessage] = useState<string | null>(null);
   const [creationRequest, setCreationRequest] = useState(0);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -109,6 +115,7 @@ export default function App() {
         }
 
         if (isRemoteVersionNewer(APP_VERSION, manifest.version)) {
+          setUpdateError(null);
           setAvailableUpdate(manifest);
         }
       } catch {
@@ -158,6 +165,11 @@ export default function App() {
   }
 
   function closeUpdateModal() {
+    if (installingUpdate) {
+      return;
+    }
+
+    setUpdateError(null);
     setAvailableUpdate(null);
   }
 
@@ -170,6 +182,57 @@ export default function App() {
       await Linking.openURL(availableUpdate.apkUrl);
     } finally {
       setAvailableUpdate(null);
+    }
+  }
+
+  async function installDownloadedUpdate() {
+    if (!availableUpdate?.apkUrl || installingUpdate) {
+      return;
+    }
+
+    setInstallingUpdate(true);
+    setUpdateError(null);
+
+    const updateDirectory = `${FileSystem.cacheDirectory}updates/`;
+    const safeVersion = availableUpdate.version.replace(/[^\w.-]+/g, "-");
+    const apkUri = `${updateDirectory}vade-compagnions-${safeVersion}.apk`;
+
+    try {
+      await FileSystem.makeDirectoryAsync(updateDirectory, { intermediates: true });
+
+      const existingFile = await FileSystem.getInfoAsync(apkUri);
+      if (existingFile.exists) {
+        await FileSystem.deleteAsync(apkUri, { idempotent: true });
+      }
+
+      const downloadResult = await FileSystem.downloadAsync(availableUpdate.apkUrl, apkUri, {
+        headers: {
+          Accept: APK_MIME_TYPE,
+        },
+      });
+
+      const contentUri = await FileSystem.getContentUriAsync(downloadResult.uri);
+      await Linking.openURL(contentUri);
+      setAvailableUpdate(null);
+    } catch {
+      try {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(apkUri, {
+            mimeType: APK_MIME_TYPE,
+            dialogTitle: "Installer la mise a jour",
+          });
+          setAvailableUpdate(null);
+          return;
+        }
+      } catch {
+        // Fall through to the user-facing error below.
+      }
+
+      setUpdateError(
+        "Installation automatique impossible sur cet appareil. Utilisez Telecharger pour ouvrir l'APK."
+      );
+    } finally {
+      setInstallingUpdate(false);
     }
   }
 
@@ -219,14 +282,43 @@ export default function App() {
                 <Text style={styles.updateNotesText}>{availableUpdate.notes}</Text>
               </View>
             ) : null}
+            {updateError ? <Text style={styles.updateErrorText}>{updateError}</Text> : null}
             <View style={styles.updateActions}>
-              <Pressable onPress={closeUpdateModal} style={styles.updateSecondaryButton}>
+              <Pressable
+                onPress={closeUpdateModal}
+                style={[styles.updateSecondaryButton, installingUpdate && styles.updateButtonDisabled]}
+                disabled={installingUpdate}
+              >
                 <Text style={styles.updateSecondaryButtonLabel}>Plus tard</Text>
               </Pressable>
-              <Pressable onPress={() => void openUpdateDownload()} style={styles.updatePrimaryButton}>
-                <Text style={styles.updatePrimaryButtonLabel}>Telecharger</Text>
+              <Pressable
+                onPress={() => void openUpdateDownload()}
+                style={[styles.updateSecondaryButton, installingUpdate && styles.updateButtonDisabled]}
+                disabled={installingUpdate}
+              >
+                <Text style={styles.updateSecondaryButtonLabel}>Telecharger</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => void installDownloadedUpdate()}
+                style={[styles.updatePrimaryButton, installingUpdate && styles.updateButtonDisabled]}
+                disabled={installingUpdate}
+              >
+                {installingUpdate ? (
+                  <View style={styles.updateBusyContent}>
+                    <ActivityIndicator color="#3f2200" size="small" />
+                    <Text style={styles.updatePrimaryButtonLabel}>Installation...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.updatePrimaryButtonLabel}>Installer</Text>
+                )}
               </Pressable>
             </View>
+            {!installingUpdate ? null : (
+              <Text style={styles.updateHintText}>
+                Le telechargement de l&apos;APK est en cours avant ouverture de l&apos;installateur Android.
+              </Text>
+            )}
+            {!installingUpdate ? null : null}
           </View>
         </View>
       </Modal>
@@ -290,6 +382,8 @@ const styles = StyleSheet.create({
   updateActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    alignItems: "center",
+    flexWrap: "wrap",
     gap: 10,
     marginTop: 8,
   },
@@ -312,5 +406,23 @@ const styles = StyleSheet.create({
   updatePrimaryButtonLabel: {
     color: "#3f2200",
     fontWeight: "900",
+  },
+  updateButtonDisabled: {
+    opacity: 0.7,
+  },
+  updateBusyContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  updateHintText: {
+    color: "#94a3b8",
+    lineHeight: 20,
+    marginTop: 6,
+  },
+  updateErrorText: {
+    color: "#fca5a5",
+    lineHeight: 20,
+    marginTop: 4,
   },
 });
