@@ -29,7 +29,7 @@ export async function persistCharactersToStorage(
   ]);
 }
 
-export async function exportCharacters(characters: Character[]) {
+export async function exportCharacters(characters: Character[], fileName = "vade-retro-characters.json") {
   const payload = JSON.stringify(
     {
       version: 1,
@@ -45,13 +45,13 @@ export async function exportCharacters(characters: Character[]) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "vade-retro-characters.json";
+    link.download = fileName;
     link.click();
     URL.revokeObjectURL(url);
     return;
   }
 
-  const fileUri = `${FileSystem.cacheDirectory}vade-retro-characters.json`;
+  const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
   await FileSystem.writeAsStringAsync(fileUri, payload, {
     encoding: FileSystem.EncodingType.UTF8,
   });

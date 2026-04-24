@@ -1,10 +1,11 @@
-import { StatusBar } from "expo-status-bar";
+import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import {
   ActivityIndicator,
   Linking,
+  StatusBar as NativeStatusBar,
   Modal,
   Platform,
   Pressable,
@@ -43,9 +44,11 @@ const APK_MIME_TYPE = "application/vnd.android.package-archive";
 type AppRoute = "home" | "character" | "history";
 
 export default function App() {
+  const androidTopInset = Platform.OS === "android" ? NativeStatusBar.currentHeight ?? 0 : 0;
   const [route, setRoute] = useState<AppRoute>("home");
   const [characters, setCharacters] = useState<Character[]>(sampleCharacters.map(normalizeCharacter));
   const [selectedId, setSelectedId] = useState(sampleCharacters[0]?.id ?? "");
+  const [exportCharacterId, setExportCharacterId] = useState(sampleCharacters[0]?.id ?? "");
   const [storageReady, setStorageReady] = useState(false);
   const [availableUpdate, setAvailableUpdate] = useState<UpdateManifest | null>(null);
   const [homeMessage, setHomeMessage] = useState<string | null>(null);
@@ -67,7 +70,9 @@ export default function App() {
         if (stored.characters?.length) {
           const normalizedCharacters = stored.characters.map(normalizeCharacter);
           setCharacters(normalizedCharacters);
-          setSelectedId(stored.selectedId ?? normalizedCharacters[0]!.id);
+          const initialCharacterId = stored.selectedId ?? normalizedCharacters[0]!.id;
+          setSelectedId(initialCharacterId);
+          setExportCharacterId(initialCharacterId);
         }
       } finally {
         if (active) {
@@ -98,6 +103,18 @@ export default function App() {
 
     void persistCharactersToStorage(characters, safeSelectedId);
   }, [characters, selectedId, storageReady]);
+
+  useEffect(() => {
+    if (!characters.length) {
+      return;
+    }
+
+    const hasExportCharacter = characters.some((character) => character.id === exportCharacterId);
+
+    if (!hasExportCharacter) {
+      setExportCharacterId(characters[0]!.id);
+    }
+  }, [characters, exportCharacterId]);
 
   useEffect(() => {
     let active = true;
@@ -152,6 +169,7 @@ export default function App() {
       const normalizedCharacters = importedCharacters.map(normalizeCharacter);
       setCharacters(normalizedCharacters);
       setSelectedId(normalizedCharacters[0]!.id);
+      setExportCharacterId(normalizedCharacters[0]!.id);
       setRoute("home");
       setHomeMessage(`${normalizedCharacters.length} personnage(s) importe(s).`);
     } catch {
@@ -160,8 +178,25 @@ export default function App() {
   }
 
   async function handleExportFromHome() {
+    const selectedCharacter = characters.find((character) => character.id === exportCharacterId);
+
+    if (!selectedCharacter) {
+      setHomeMessage("Aucun personnage selectionne pour l'export.");
+      return;
+    }
+
+    const safeName = selectedCharacter.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    await exportCharacters([selectedCharacter], `vade-retro-${safeName || "personnage"}.json`);
+    setHomeMessage(`Export JSON pret pour ${selectedCharacter.name}.`);
+  }
+
+  async function handleExportAllFromHome() {
     await exportCharacters(characters);
-    setHomeMessage("Export JSON pret.");
+    setHomeMessage(`Export JSON pret pour ${characters.length} personnage(s).`);
   }
 
   function closeUpdateModal() {
@@ -237,16 +272,18 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.app}>
-      <StatusBar style="light" />
+    <SafeAreaView style={[styles.app, androidTopInset > 0 ? { paddingTop: androidTopInset } : null]}>
+      <ExpoStatusBar style="light" />
       {route === "home" ? (
         <HomeScreen
           characters={characters}
-          selectedId={selectedId}
+          exportCharacterId={exportCharacterId}
           message={homeMessage}
           onCreateCharacter={openCreationFromHome}
           onImportCharacters={() => void handleImportFromHome()}
+          onChangeExportCharacter={setExportCharacterId}
           onExportCharacters={() => void handleExportFromHome()}
+          onExportAllCharacters={() => void handleExportAllFromHome()}
           onOpenCharacter={openCharacter}
           onOpenHistory={() => setRoute("history")}
         />

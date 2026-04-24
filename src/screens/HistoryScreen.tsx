@@ -185,7 +185,7 @@ function HistoryBlock({ block, isPhone }: { block: HistoryContentBlock; isPhone:
         <Image
           source={block.imageModule ? block.imageModule : { uri: block.imageUrl }}
           style={[styles.imageTextImage, isPhone ? styles.imageTextImagePhone : null]}
-          resizeMode="cover"
+          resizeMode="contain"
         />
         <View style={styles.imageTextBody}>
           {block.title ? <Text style={styles.imageTextTitle}>{block.title}</Text> : null}
@@ -210,7 +210,7 @@ function HistoryBlock({ block, isPhone }: { block: HistoryContentBlock; isPhone:
           isPhone ? styles.imagePhone : null,
           isPhone && block.compact ? styles.imageCompactPhone : null,
         ]}
-        resizeMode="cover"
+        resizeMode="contain"
       />
       {block.caption ? <Text style={styles.imageCaption}>{block.caption}</Text> : null}
     </View>
@@ -538,14 +538,14 @@ const styles = StyleSheet.create({
     flexDirection: "column",
   },
   imageTextImage: {
-    width: 180,
-    height: 240,
+    width: 240,
+    height: 300,
     borderRadius: 16,
     backgroundColor: "rgba(15, 23, 42, 0.8)",
   },
   imageTextImagePhone: {
-    width: 160,
-    height: 210,
+    width: "100%",
+    height: 260,
   },
   imageTextBody: {
     flex: 1,

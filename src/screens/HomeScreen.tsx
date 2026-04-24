@@ -1,4 +1,5 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useMemo, useState } from "react";
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { AssetVisual } from "../components/character-sheet/AssetVisual";
 import { Character } from "../types/game";
@@ -7,28 +8,37 @@ const APP_LOGO = require("../../assets/vade-retro-logo.png");
 
 type HomeScreenProps = {
   characters: Character[];
-  selectedId: string;
+  exportCharacterId: string;
   message?: string | null;
   onCreateCharacter: () => void;
   onImportCharacters: () => void;
+  onChangeExportCharacter: (characterId: string) => void;
   onExportCharacters: () => void;
+  onExportAllCharacters: () => void;
   onOpenCharacter: (characterId: string) => void;
   onOpenHistory: () => void;
 };
 
 export function HomeScreen({
   characters,
-  selectedId,
+  exportCharacterId,
   message,
   onCreateCharacter,
   onImportCharacters,
+  onChangeExportCharacter,
   onExportCharacters,
+  onExportAllCharacters,
   onOpenCharacter,
   onOpenHistory,
 }: HomeScreenProps) {
   const { width } = useWindowDimensions();
   const isPhone = width < 760;
   const isNarrowPhone = width < 430;
+  const [exportPickerOpen, setExportPickerOpen] = useState(false);
+  const exportCharacter = useMemo(
+    () => characters.find((character) => character.id === exportCharacterId) ?? characters[0] ?? null,
+    [characters, exportCharacterId],
+  );
 
   return (
     <ScrollView
@@ -66,7 +76,7 @@ export function HomeScreen({
         <View style={styles.sectionHeaderTop}>
           <View style={styles.sectionHeaderText}>
             <Text style={styles.sectionTitle}>Personnages</Text>
-            <Text style={styles.sectionSubtitle}>Selection directe vers la fiche</Text>
+            <Text style={styles.sectionSubtitle}>Ouverture directe des fiches et export via un personnage choisi</Text>
           </View>
           <View style={styles.rosterActions}>
             <Pressable onPress={onCreateCharacter} style={styles.primaryActionButton}>
@@ -78,7 +88,21 @@ export function HomeScreen({
             <Pressable onPress={onExportCharacters} style={styles.secondaryActionButton}>
               <Text style={styles.secondaryActionLabel}>Exporter</Text>
             </Pressable>
+            <Pressable onPress={onExportAllCharacters} style={styles.secondaryActionButton}>
+              <Text style={styles.secondaryActionLabel}>Tout exporter</Text>
+            </Pressable>
           </View>
+        </View>
+        <View style={styles.exportPanel}>
+          <View style={styles.exportPanelText}>
+            <Text style={styles.exportPanelLabel}>Personnage a exporter</Text>
+            <Text style={styles.exportPanelValue} numberOfLines={1}>
+              {exportCharacter?.name ?? "Aucun personnage"}
+            </Text>
+          </View>
+          <Pressable onPress={() => setExportPickerOpen(true)} style={styles.exportPickerButton}>
+            <Text style={styles.exportPickerButtonLabel}>Choisir</Text>
+          </Pressable>
         </View>
       </View>
 
@@ -90,17 +114,11 @@ export function HomeScreen({
 
       <View style={styles.rosterGrid}>
         {characters.map((character) => {
-          const active = character.id === selectedId;
-
           return (
             <Pressable
               key={character.id}
               onPress={() => onOpenCharacter(character.id)}
-              style={[
-                styles.characterCard,
-                isPhone ? styles.characterCardPhone : null,
-                active ? styles.characterCardActive : null,
-              ]}
+              style={[styles.characterCard, isPhone ? styles.characterCardPhone : null]}
             >
               <AssetVisual
                 label={character.name}
@@ -111,17 +129,9 @@ export function HomeScreen({
               />
               <View style={styles.characterBody}>
                 <View style={styles.characterHeader}>
-                  <Text
-                    style={styles.characterName}
-                    numberOfLines={isNarrowPhone ? 2 : 1}
-                  >
+                  <Text style={styles.characterName} numberOfLines={isNarrowPhone ? 2 : 1}>
                     {character.name}
                   </Text>
-                  {active ? (
-                    <View style={styles.activeBadge}>
-                      <Text style={styles.activeBadgeLabel}>Actif</Text>
-                    </View>
-                  ) : null}
                 </View>
                 <Text style={styles.characterMeta}>
                   {character.archetype}
@@ -140,6 +150,48 @@ export function HomeScreen({
           );
         })}
       </View>
+
+      <Modal
+        visible={exportPickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setExportPickerOpen(false)}
+      >
+        <View style={styles.exportPickerBackdrop}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setExportPickerOpen(false)} />
+          <View style={styles.exportPickerCard}>
+            <Text style={styles.exportPickerTitle}>Choisir le personnage a exporter</Text>
+            <View style={styles.exportPickerList}>
+              {characters.map((character) => {
+                const isSelected = character.id === exportCharacter?.id;
+
+                return (
+                  <Pressable
+                    key={character.id}
+                    onPress={() => {
+                      onChangeExportCharacter(character.id);
+                      setExportPickerOpen(false);
+                    }}
+                    style={[styles.exportOption, isSelected ? styles.exportOptionSelected : null]}
+                  >
+                    <View style={styles.exportOptionBody}>
+                      <Text style={styles.exportOptionName}>{character.name}</Text>
+                      <Text style={styles.exportOptionMeta}>
+                        {character.archetype}
+                        {character.specialization ? ` · ${character.specialization}` : ""}
+                      </Text>
+                    </View>
+                    {isSelected ? <Text style={styles.exportOptionCheck}>Choisi</Text> : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable onPress={() => setExportPickerOpen(false)} style={styles.exportPickerCloseButton}>
+              <Text style={styles.exportPickerCloseButtonLabel}>Fermer</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -240,7 +292,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   sectionHeader: {
-    gap: 4,
+    gap: 12,
   },
   sectionHeaderTop: {
     flexDirection: "row",
@@ -259,6 +311,45 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     color: "#94a3b8",
+  },
+  exportPanel: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: "rgba(15, 23, 42, 0.92)",
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.18)",
+  },
+  exportPanelText: {
+    flex: 1,
+    gap: 4,
+  },
+  exportPanelLabel: {
+    color: "#94a3b8",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  exportPanelValue: {
+    color: "#f8fafc",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  exportPickerButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: "rgba(15, 23, 42, 0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(251, 191, 36, 0.28)",
+  },
+  exportPickerButtonLabel: {
+    color: "#fde68a",
+    fontWeight: "800",
   },
   rosterActions: {
     flexDirection: "row",
@@ -321,10 +412,6 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "flex-start",
   },
-  characterCardActive: {
-    borderColor: "rgba(251, 191, 36, 0.42)",
-    backgroundColor: "rgba(27, 39, 64, 0.92)",
-  },
   characterBody: {
     flex: 1,
     gap: 6,
@@ -339,17 +426,6 @@ const styles = StyleSheet.create({
     flex: 1,
     color: "#f8fafc",
     fontSize: 18,
-    fontWeight: "900",
-  },
-  activeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "#fbbf24",
-  },
-  activeBadgeLabel: {
-    color: "#3f2200",
-    fontSize: 12,
     fontWeight: "900",
   },
   characterMeta: {
@@ -367,5 +443,75 @@ const styles = StyleSheet.create({
     color: "#e2e8f0",
     fontWeight: "800",
     marginTop: 4,
+  },
+  exportPickerBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(2, 6, 23, 0.76)",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  exportPickerCard: {
+    maxWidth: 560,
+    width: "100%",
+    alignSelf: "center",
+    gap: 14,
+    padding: 20,
+    borderRadius: 24,
+    backgroundColor: "#101827",
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.24)",
+  },
+  exportPickerTitle: {
+    color: "#f8fafc",
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  exportPickerList: {
+    gap: 10,
+  },
+  exportOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: "#172033",
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.14)",
+  },
+  exportOptionSelected: {
+    borderColor: "rgba(251, 191, 36, 0.42)",
+    backgroundColor: "rgba(68, 39, 7, 0.9)",
+  },
+  exportOptionBody: {
+    flex: 1,
+    gap: 4,
+  },
+  exportOptionName: {
+    color: "#f8fafc",
+    fontWeight: "800",
+  },
+  exportOptionMeta: {
+    color: "#94a3b8",
+    lineHeight: 18,
+  },
+  exportOptionCheck: {
+    color: "#fde68a",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  exportPickerCloseButton: {
+    alignSelf: "flex-end",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#172033",
+  },
+  exportPickerCloseButtonLabel: {
+    color: "#cbd5e1",
+    fontWeight: "800",
   },
 });
