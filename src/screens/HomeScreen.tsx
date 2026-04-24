@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { AssetVisual } from "../components/character-sheet/AssetVisual";
 import { Character } from "../types/game";
@@ -10,11 +10,17 @@ type HomeScreenProps = {
   characters: Character[];
   exportCharacterId: string;
   message?: string | null;
+  syncEnabled: boolean;
+  syncBusy: boolean;
+  refreshBusy: boolean;
   onCreateCharacter: () => void;
   onImportCharacters: () => void;
   onChangeExportCharacter: (characterId: string) => void;
   onExportCharacters: () => void;
   onExportAllCharacters: () => void;
+  onEnableSync: () => void;
+  onDisableSync: () => void;
+  onRefreshSync: () => void;
   onOpenCharacter: (characterId: string) => void;
   onOpenHistory: () => void;
 };
@@ -23,17 +29,24 @@ export function HomeScreen({
   characters,
   exportCharacterId,
   message,
+  syncEnabled,
+  syncBusy,
+  refreshBusy,
   onCreateCharacter,
   onImportCharacters,
   onChangeExportCharacter,
   onExportCharacters,
   onExportAllCharacters,
+  onEnableSync,
+  onDisableSync,
+  onRefreshSync,
   onOpenCharacter,
   onOpenHistory,
 }: HomeScreenProps) {
   const { width } = useWindowDimensions();
   const isPhone = width < 760;
   const isNarrowPhone = width < 430;
+  const isAndroid = Platform.OS === "android";
   const [exportPickerOpen, setExportPickerOpen] = useState(false);
   const exportCharacter = useMemo(
     () => characters.find((character) => character.id === exportCharacterId) ?? characters[0] ?? null,
@@ -104,6 +117,42 @@ export function HomeScreen({
             <Text style={styles.exportPickerButtonLabel}>Choisir</Text>
           </Pressable>
         </View>
+        {isAndroid ? (
+          <View style={styles.syncPanel}>
+            <View style={styles.syncPanelText}>
+              <Text style={styles.syncPanelLabel}>Sync Android</Text>
+              <Text style={styles.syncPanelValue}>
+                {syncEnabled ? "Active: 1 JSON par personnage, maj auto a chaque modification." : "Inactive"}
+              </Text>
+            </View>
+            <View style={styles.syncPanelActions}>
+              <Pressable
+                onPress={onEnableSync}
+                style={[styles.secondaryActionButton, syncEnabled ? styles.syncActionButtonActive : null]}
+              >
+                <Text style={styles.secondaryActionLabel}>
+                  {syncBusy ? "Sync..." : syncEnabled ? "Changer dossier" : "Activer"}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={onRefreshSync}
+                style={styles.secondaryActionButton}
+                disabled={!syncEnabled || refreshBusy}
+              >
+                <Text
+                  style={[styles.secondaryActionLabel, !syncEnabled || refreshBusy ? styles.actionLabelMuted : null]}
+                >
+                  {refreshBusy ? "Refresh..." : "Refresh"}
+                </Text>
+              </Pressable>
+              {syncEnabled ? (
+                <Pressable onPress={onDisableSync} style={styles.secondaryActionButton}>
+                  <Text style={styles.secondaryActionLabel}>Desactiver</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
       </View>
 
       {message ? (
@@ -351,6 +400,36 @@ const styles = StyleSheet.create({
     color: "#fde68a",
     fontWeight: "800",
   },
+  syncPanel: {
+    gap: 12,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: "rgba(16, 24, 40, 0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.18)",
+  },
+  syncPanelText: {
+    gap: 4,
+  },
+  syncPanelLabel: {
+    color: "#86efac",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  syncPanelValue: {
+    color: "#e2e8f0",
+    lineHeight: 20,
+  },
+  syncPanelActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  syncActionButtonActive: {
+    borderColor: "rgba(34, 197, 94, 0.28)",
+  },
   rosterActions: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -377,6 +456,9 @@ const styles = StyleSheet.create({
   secondaryActionLabel: {
     color: "#e2e8f0",
     fontWeight: "800",
+  },
+  actionLabelMuted: {
+    opacity: 0.55,
   },
   messageBanner: {
     paddingHorizontal: 16,

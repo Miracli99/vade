@@ -8,6 +8,16 @@ import { Character } from "../types/game";
 
 const STORAGE_KEY = "vade-retro.characters.v1";
 const SELECTION_KEY = "vade-retro.selected-character.v1";
+const SYNC_DIRECTORY_URI_KEY = "vade-retro.sync-directory-uri.v1";
+const CHARACTER_SYNC_PREFIX = "character-";
+const CHARACTER_SYNC_SUFFIX = ".json";
+const JSON_MIME_TYPE = "application/json";
+
+type SyncCharacterFile = {
+  version: 1;
+  exportedAt: string;
+  character: Character;
+};
 
 export async function loadCharactersFromStorage() {
   const rawCharacters = await AsyncStorage.getItem(STORAGE_KEY);
@@ -27,6 +37,120 @@ export async function persistCharactersToStorage(
     [STORAGE_KEY, JSON.stringify(characters)],
     [SELECTION_KEY, selectedId],
   ]);
+}
+
+export async function loadSyncDirectoryUri() {
+  return AsyncStorage.getItem(SYNC_DIRECTORY_URI_KEY);
+}
+
+export async function persistSyncDirectoryUri(directoryUri: string | null) {
+  if (!directoryUri) {
+    await AsyncStorage.removeItem(SYNC_DIRECTORY_URI_KEY);
+    return;
+  }
+
+  await AsyncStorage.setItem(SYNC_DIRECTORY_URI_KEY, directoryUri);
+}
+
+export async function pickSyncDirectory(): Promise<string | null> {
+  if (Platform.OS !== "android") {
+    return null;
+  }
+
+  const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+
+  if (!permissions.granted || !permissions.directoryUri) {
+    return null;
+  }
+
+  return permissions.directoryUri;
+}
+
+export async function syncCharactersToDirectory(characters: Character[], directoryUri: string) {
+  if (Platform.OS !== "android") {
+    throw new Error("La sync par dossier est disponible uniquement sur Android.");
+  }
+
+  const existingEntries = await FileSystem.StorageAccessFramework.readDirectoryAsync(directoryUri);
+  const expectedUris = new Set<string>();
+
+  for (const character of characters) {
+    const fileName = getCharacterSyncFileName(character.id);
+    let fileUri = findExistingCharacterFileUri(existingEntries, fileName);
+
+    if (!fileUri) {
+      fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+        directoryUri,
+        fileName,
+        JSON_MIME_TYPE,
+      );
+    }
+
+    const payload: SyncCharacterFile = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      character,
+    };
+
+    await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(payload, null, 2), {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+
+    expectedUris.add(fileUri);
+  }
+
+  for (const entryUri of existingEntries) {
+    if (!isCharacterSyncEntry(entryUri) || expectedUris.has(entryUri)) {
+      continue;
+    }
+
+    await FileSystem.deleteAsync(entryUri, { idempotent: true });
+  }
+}
+
+export async function importCharactersFromDirectory(directoryUri: string): Promise<Character[]> {
+  if (Platform.OS !== "android") {
+    throw new Error("Le rechargement par dossier est disponible uniquement sur Android.");
+  }
+
+  const entryUris = await FileSystem.StorageAccessFramework.readDirectoryAsync(directoryUri);
+  const characterUris = entryUris.filter(isCharacterSyncEntry);
+  const importedCharacters: Character[] = [];
+
+  for (const entryUri of characterUris) {
+    const text = await FileSystem.readAsStringAsync(entryUri, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+
+    const parsed = JSON.parse(text) as
+      | Character[]
+      | Character
+      | SyncCharacterFile
+      | { characters?: Character[] };
+
+    if (isSyncCharacterFile(parsed)) {
+      importedCharacters.push(parsed.character);
+      continue;
+    }
+
+    if (Array.isArray(parsed)) {
+      importedCharacters.push(...parsed);
+      continue;
+    }
+
+    if (Array.isArray(parsed.characters)) {
+      importedCharacters.push(...parsed.characters);
+      continue;
+    }
+
+    importedCharacters.push(parsed as Character);
+  }
+
+  if (!importedCharacters.length) {
+    throw new Error("Aucun fichier personnage trouve dans le dossier.");
+  }
+
+  return importedCharacters;
 }
 
 export async function exportCharacters(characters: Character[], fileName = "vade-retro-characters.json") {
@@ -114,4 +238,31 @@ function pickWebFile() {
     input.onchange = () => resolve(input.files?.[0] ?? null);
     input.click();
   });
+}
+
+function getCharacterSyncFileName(characterId: string) {
+  return `${CHARACTER_SYNC_PREFIX}${characterId}${CHARACTER_SYNC_SUFFIX}`;
+}
+
+function findExistingCharacterFileUri(entryUris: string[], fileName: string) {
+  return entryUris.find((entryUri) => getUriFileName(entryUri) === fileName) ?? null;
+}
+
+function isCharacterSyncEntry(entryUri: string) {
+  const fileName = getUriFileName(entryUri);
+  return fileName.startsWith(CHARACTER_SYNC_PREFIX) && fileName.endsWith(CHARACTER_SYNC_SUFFIX);
+}
+
+function getUriFileName(entryUri: string) {
+  const decodedUri = decodeURIComponent(entryUri);
+  return decodedUri.slice(decodedUri.lastIndexOf("/") + 1);
+}
+
+function isSyncCharacterFile(value: unknown): value is SyncCharacterFile {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "character" in value &&
+      (value as SyncCharacterFile).version === 1,
+  );
 }

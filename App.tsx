@@ -24,8 +24,13 @@ import { normalizeCharacter } from "./src/utils/characters";
 import {
   exportCharacters,
   importCharacters,
+  importCharactersFromDirectory,
+  loadSyncDirectoryUri,
+  persistSyncDirectoryUri,
+  pickSyncDirectory,
   loadCharactersFromStorage,
   persistCharactersToStorage,
+  syncCharactersToDirectory,
 } from "./src/utils/persistence";
 import { fetchUpdateManifest, isRemoteVersionNewer, UpdateManifest } from "./src/utils/updates";
 
@@ -49,12 +54,15 @@ export default function App() {
   const [characters, setCharacters] = useState<Character[]>(sampleCharacters.map(normalizeCharacter));
   const [selectedId, setSelectedId] = useState(sampleCharacters[0]?.id ?? "");
   const [exportCharacterId, setExportCharacterId] = useState(sampleCharacters[0]?.id ?? "");
+  const [syncDirectoryUri, setSyncDirectoryUri] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
   const [availableUpdate, setAvailableUpdate] = useState<UpdateManifest | null>(null);
   const [homeMessage, setHomeMessage] = useState<string | null>(null);
   const [creationRequest, setCreationRequest] = useState(0);
   const [installingUpdate, setInstallingUpdate] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [refreshBusy, setRefreshBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -62,10 +70,13 @@ export default function App() {
     async function hydrate() {
       try {
         const stored = await loadCharactersFromStorage();
+        const storedSyncDirectoryUri = await loadSyncDirectoryUri();
 
         if (!active) {
           return;
         }
+
+        setSyncDirectoryUri(storedSyncDirectoryUri);
 
         if (stored.characters?.length) {
           const normalizedCharacters = stored.characters.map(normalizeCharacter);
@@ -103,6 +114,36 @@ export default function App() {
 
     void persistCharactersToStorage(characters, safeSelectedId);
   }, [characters, selectedId, storageReady]);
+
+  useEffect(() => {
+    if (!storageReady || !syncDirectoryUri || Platform.OS !== "android") {
+      return;
+    }
+
+    let active = true;
+
+    async function pushCharactersToSyncDirectory() {
+      setSyncBusy(true);
+
+      try {
+        await syncCharactersToDirectory(characters, syncDirectoryUri);
+      } catch {
+        if (active) {
+          setHomeMessage("Sync Android impossible. Rechoisissez le dossier si besoin.");
+        }
+      } finally {
+        if (active) {
+          setSyncBusy(false);
+        }
+      }
+    }
+
+    void pushCharactersToSyncDirectory();
+
+    return () => {
+      active = false;
+    };
+  }, [characters, storageReady, syncDirectoryUri]);
 
   useEffect(() => {
     if (!characters.length) {
@@ -199,6 +240,55 @@ export default function App() {
     setHomeMessage(`Export JSON pret pour ${characters.length} personnage(s).`);
   }
 
+  async function handlePickSyncDirectory() {
+    const directoryUri = await pickSyncDirectory();
+
+    if (!directoryUri) {
+      setHomeMessage("Selection du dossier annulee.");
+      return;
+    }
+
+    try {
+      setSyncBusy(true);
+      await persistSyncDirectoryUri(directoryUri);
+      await syncCharactersToDirectory(characters, directoryUri);
+      setSyncDirectoryUri(directoryUri);
+      setHomeMessage("Sync Android active. Les personnages seront ecrits en JSON dans ce dossier.");
+    } catch {
+      setHomeMessage("Impossible d'activer la sync Android sur ce dossier.");
+    } finally {
+      setSyncBusy(false);
+    }
+  }
+
+  async function handleDisableSync() {
+    await persistSyncDirectoryUri(null);
+    setSyncDirectoryUri(null);
+    setHomeMessage("Sync Android desactivee.");
+  }
+
+  async function handleRefreshFromSyncDirectory() {
+    if (!syncDirectoryUri) {
+      setHomeMessage("Aucun dossier de sync configure.");
+      return;
+    }
+
+    try {
+      setRefreshBusy(true);
+      const importedCharacters = await importCharactersFromDirectory(syncDirectoryUri);
+      const normalizedCharacters = importedCharacters.map(normalizeCharacter);
+      setCharacters(normalizedCharacters);
+      setSelectedId(normalizedCharacters[0]!.id);
+      setExportCharacterId(normalizedCharacters[0]!.id);
+      setRoute("home");
+      setHomeMessage(`${normalizedCharacters.length} personnage(s) recharge(s) depuis le dossier Android.`);
+    } catch {
+      setHomeMessage("Refresh impossible. Verifiez que le dossier contient bien des fichiers character-*.json.");
+    } finally {
+      setRefreshBusy(false);
+    }
+  }
+
   function closeUpdateModal() {
     if (installingUpdate) {
       return;
@@ -284,6 +374,12 @@ export default function App() {
           onChangeExportCharacter={setExportCharacterId}
           onExportCharacters={() => void handleExportFromHome()}
           onExportAllCharacters={() => void handleExportAllFromHome()}
+          syncEnabled={Boolean(syncDirectoryUri)}
+          syncBusy={syncBusy}
+          refreshBusy={refreshBusy}
+          onEnableSync={() => void handlePickSyncDirectory()}
+          onDisableSync={() => void handleDisableSync()}
+          onRefreshSync={() => void handleRefreshFromSyncDirectory()}
           onOpenCharacter={openCharacter}
           onOpenHistory={() => setRoute("history")}
         />
