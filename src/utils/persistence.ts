@@ -138,7 +138,7 @@ export async function importCharactersFromDirectory(directoryUri: string): Promi
       continue;
     }
 
-    if (Array.isArray(parsed.characters)) {
+    if (hasCharactersArray(parsed)) {
       importedCharacters.push(...parsed.characters);
       continue;
     }
@@ -264,5 +264,14 @@ function isSyncCharacterFile(value: unknown): value is SyncCharacterFile {
       typeof value === "object" &&
       "character" in value &&
       (value as SyncCharacterFile).version === 1,
+  );
+}
+
+function hasCharactersArray(value: unknown): value is { characters: Character[] } {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "characters" in value &&
+      Array.isArray((value as { characters?: Character[] }).characters),
   );
 }

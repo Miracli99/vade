@@ -120,13 +120,14 @@ export default function App() {
       return;
     }
 
+    const safeSyncDirectoryUri = syncDirectoryUri;
     let active = true;
 
     async function pushCharactersToSyncDirectory() {
       setSyncBusy(true);
 
       try {
-        await syncCharactersToDirectory(characters, syncDirectoryUri);
+        await syncCharactersToDirectory(characters, safeSyncDirectoryUri);
       } catch {
         if (active) {
           setHomeMessage("Sync Android impossible. Rechoisissez le dossier si besoin.");
