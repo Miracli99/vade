@@ -115,39 +115,50 @@ export async function importCharactersFromDirectory(directoryUri: string): Promi
 
   const entryUris = await FileSystem.StorageAccessFramework.readDirectoryAsync(directoryUri);
   const characterUris = entryUris.filter(isCharacterSyncEntry);
+  const jsonUris = entryUris.filter(isJsonEntry);
+  const importUris = characterUris.length ? characterUris : jsonUris;
   const importedCharacters: Character[] = [];
+  const parseErrors: string[] = [];
 
-  for (const entryUri of characterUris) {
-    const text = await FileSystem.readAsStringAsync(entryUri, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+  for (const entryUri of importUris) {
+    try {
+      const text = await FileSystem.readAsStringAsync(entryUri, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
 
-    const parsed = JSON.parse(text) as
-      | Character[]
-      | Character
-      | SyncCharacterFile
-      | { characters?: Character[] };
+      const parsed = JSON.parse(text) as
+        | Character[]
+        | Character
+        | SyncCharacterFile
+        | { characters?: Character[] };
 
-    if (isSyncCharacterFile(parsed)) {
-      importedCharacters.push(parsed.character);
-      continue;
+      if (isSyncCharacterFile(parsed)) {
+        importedCharacters.push(parsed.character);
+        continue;
+      }
+
+      if (Array.isArray(parsed)) {
+        importedCharacters.push(...parsed);
+        continue;
+      }
+
+      if (hasCharactersArray(parsed)) {
+        importedCharacters.push(...parsed.characters);
+        continue;
+      }
+
+      importedCharacters.push(parsed as Character);
+    } catch {
+      parseErrors.push(getUriFileName(entryUri));
     }
-
-    if (Array.isArray(parsed)) {
-      importedCharacters.push(...parsed);
-      continue;
-    }
-
-    if (hasCharactersArray(parsed)) {
-      importedCharacters.push(...parsed.characters);
-      continue;
-    }
-
-    importedCharacters.push(parsed as Character);
   }
 
   if (!importedCharacters.length) {
-    throw new Error("Aucun fichier personnage trouve dans le dossier.");
+    if (parseErrors.length) {
+      throw new Error("Aucun JSON lisible dans le dossier.");
+    }
+
+    throw new Error("Aucun fichier JSON trouve dans le dossier.");
   }
 
   return importedCharacters;
@@ -241,6 +252,7 @@ function pickWebFile() {
 }
 
 function getCharacterSyncFileName(characterId: string) {
+  // Keep the sync file name tied to the stable id so renaming a character does not create duplicates.
   return `${CHARACTER_SYNC_PREFIX}${characterId}${CHARACTER_SYNC_SUFFIX}`;
 }
 
@@ -250,12 +262,17 @@ function findExistingCharacterFileUri(entryUris: string[], fileName: string) {
 
 function isCharacterSyncEntry(entryUri: string) {
   const fileName = getUriFileName(entryUri);
-  return fileName.startsWith(CHARACTER_SYNC_PREFIX) && fileName.endsWith(CHARACTER_SYNC_SUFFIX);
+  return fileName.startsWith(CHARACTER_SYNC_PREFIX) && fileName.includes(CHARACTER_SYNC_SUFFIX);
+}
+
+function isJsonEntry(entryUri: string) {
+  return getUriFileName(entryUri).includes(CHARACTER_SYNC_SUFFIX);
 }
 
 function getUriFileName(entryUri: string) {
-  const decodedUri = decodeURIComponent(entryUri);
-  return decodedUri.slice(decodedUri.lastIndexOf("/") + 1);
+  const decodedUri = decodeURIComponent(entryUri).split("?")[0] ?? entryUri;
+  const normalizedUri = decodedUri.replace(/\\/g, "/");
+  return normalizedUri.slice(normalizedUri.lastIndexOf("/") + 1);
 }
 
 function isSyncCharacterFile(value: unknown): value is SyncCharacterFile {

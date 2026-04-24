@@ -736,6 +736,16 @@ export function CharacterSheetScreen({
   useEffect(() => {
     setImageLibraryQuery("");
   }, [imageLibraryTarget]);
+
+  useEffect(() => {
+    if (!rosterMessage) {
+      return;
+    }
+
+    const timeout = setTimeout(() => setRosterMessage(null), 2000);
+
+    return () => clearTimeout(timeout);
+  }, [rosterMessage]);
   const editorSectionTitleStyle = [styles.editorGroupTitle, { color: activeTheme.title }];
   const editorHintStyle = [styles.editorHint, { color: activeTheme.subtitle }];
   const editorCardStyle = [
@@ -1994,6 +2004,7 @@ export function CharacterSheetScreen({
   }
 
   return (
+    <View style={[styles.root, { backgroundColor: activeTheme.pageBg }]}>
     <ScrollView
       style={[styles.scroll, { backgroundColor: activeTheme.pageBg }]}
       contentContainerStyle={[
@@ -2086,19 +2097,6 @@ export function CharacterSheetScreen({
           </View>
         </View>
       </View>
-
-      {rosterMessage ? (
-        <View
-          style={[
-            styles.messageBanner,
-            { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
-          ]}
-        >
-          <Text style={[styles.messageBannerText, { color: activeTheme.title }]}>
-            {rosterMessage}
-          </Text>
-        </View>
-      ) : null}
 
       <View
         style={[
@@ -4661,10 +4659,25 @@ export function CharacterSheetScreen({
         </>
       )}
     </ScrollView>
+    {rosterMessage ? (
+      <View
+        pointerEvents="none"
+        style={[
+          styles.toast,
+          { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
+        ]}
+      >
+        <Text style={[styles.toastText, { color: activeTheme.title }]}>{rosterMessage}</Text>
+      </View>
+    ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   scroll: {
     flex: 1,
     backgroundColor: "#070b16",
@@ -4942,17 +4955,21 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.9,
   },
-  messageBanner: {
+  toast: {
+    position: "absolute",
+    top: 14,
+    left: 16,
+    right: 16,
+    alignSelf: "center",
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 16,
-    backgroundColor: "#10182d",
     borderWidth: 1,
-    borderColor: "rgba(56, 189, 248, 0.2)",
+    zIndex: 200,
   },
-  messageBannerText: {
-    color: "#dbe4f0",
-    fontWeight: "700",
+  toastText: {
+    fontWeight: "800",
+    textAlign: "center",
   },
   overlayBackdrop: {
     flex: 1,

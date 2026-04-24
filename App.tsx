@@ -1,5 +1,5 @@
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import {
@@ -63,6 +63,47 @@ export default function App() {
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
   const [refreshBusy, setRefreshBusy] = useState(false);
+  const latestSyncCharactersRef = useRef(characters);
+  const latestSyncDirectoryUriRef = useRef<string | null>(syncDirectoryUri);
+  const syncInFlightRef = useRef(false);
+  const syncQueuedRef = useRef(false);
+
+  async function flushSyncDirectory() {
+    if (syncInFlightRef.current) {
+      syncQueuedRef.current = true;
+      return false;
+    }
+
+    syncInFlightRef.current = true;
+    setSyncBusy(true);
+
+    try {
+      do {
+        syncQueuedRef.current = false;
+
+        const directoryUri = latestSyncDirectoryUriRef.current;
+
+        if (!storageReady || !directoryUri || Platform.OS !== "android") {
+          return false;
+        }
+
+        await syncCharactersToDirectory(latestSyncCharactersRef.current, directoryUri);
+      } while (syncQueuedRef.current);
+
+      return true;
+    } catch (error) {
+      const reason = error instanceof Error ? ` ${error.message}` : "";
+      setHomeMessage(`Sync Android impossible.${reason}`);
+      return false;
+    } finally {
+      syncInFlightRef.current = false;
+      setSyncBusy(false);
+
+      if (syncQueuedRef.current) {
+        void flushSyncDirectory();
+      }
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -116,34 +157,14 @@ export default function App() {
   }, [characters, selectedId, storageReady]);
 
   useEffect(() => {
+    latestSyncCharactersRef.current = characters;
+    latestSyncDirectoryUriRef.current = syncDirectoryUri;
+
     if (!storageReady || !syncDirectoryUri || Platform.OS !== "android") {
       return;
     }
 
-    const safeSyncDirectoryUri = syncDirectoryUri;
-    let active = true;
-
-    async function pushCharactersToSyncDirectory() {
-      setSyncBusy(true);
-
-      try {
-        await syncCharactersToDirectory(characters, safeSyncDirectoryUri);
-      } catch {
-        if (active) {
-          setHomeMessage("Sync Android impossible. Rechoisissez le dossier si besoin.");
-        }
-      } finally {
-        if (active) {
-          setSyncBusy(false);
-        }
-      }
-    }
-
-    void pushCharactersToSyncDirectory();
-
-    return () => {
-      active = false;
-    };
+    void flushSyncDirectory();
   }, [characters, storageReady, syncDirectoryUri]);
 
   useEffect(() => {
@@ -157,6 +178,16 @@ export default function App() {
       setExportCharacterId(characters[0]!.id);
     }
   }, [characters, exportCharacterId]);
+
+  useEffect(() => {
+    if (!homeMessage) {
+      return;
+    }
+
+    const timeout = setTimeout(() => setHomeMessage(null), 2000);
+
+    return () => clearTimeout(timeout);
+  }, [homeMessage]);
 
   useEffect(() => {
     let active = true;
@@ -219,13 +250,15 @@ export default function App() {
     }
   }
 
-  async function handleExportFromHome() {
-    const selectedCharacter = characters.find((character) => character.id === exportCharacterId);
+  async function handleExportFromHome(characterId: string) {
+    const selectedCharacter = characters.find((character) => character.id === characterId);
 
     if (!selectedCharacter) {
       setHomeMessage("Aucun personnage selectionne pour l'export.");
       return;
     }
+
+    setExportCharacterId(selectedCharacter.id);
 
     const safeName = selectedCharacter.name
       .toLowerCase()
@@ -234,11 +267,6 @@ export default function App() {
 
     await exportCharacters([selectedCharacter], `vade-retro-${safeName || "personnage"}.json`);
     setHomeMessage(`Export JSON pret pour ${selectedCharacter.name}.`);
-  }
-
-  async function handleExportAllFromHome() {
-    await exportCharacters(characters);
-    setHomeMessage(`Export JSON pret pour ${characters.length} personnage(s).`);
   }
 
   async function handlePickSyncDirectory() {
@@ -252,9 +280,14 @@ export default function App() {
     try {
       setSyncBusy(true);
       await persistSyncDirectoryUri(directoryUri);
-      await syncCharactersToDirectory(characters, directoryUri);
+      latestSyncCharactersRef.current = characters;
+      latestSyncDirectoryUriRef.current = directoryUri;
       setSyncDirectoryUri(directoryUri);
-      setHomeMessage("Sync Android active. Les personnages seront ecrits en JSON dans ce dossier.");
+      const synced = await flushSyncDirectory();
+
+      if (synced) {
+        setHomeMessage("Sync Android active.");
+      }
     } catch {
       setHomeMessage("Impossible d'activer la sync Android sur ce dossier.");
     } finally {
@@ -264,6 +297,8 @@ export default function App() {
 
   async function handleDisableSync() {
     await persistSyncDirectoryUri(null);
+    latestSyncDirectoryUriRef.current = null;
+    syncQueuedRef.current = false;
     setSyncDirectoryUri(null);
     setHomeMessage("Sync Android desactivee.");
   }
@@ -271,6 +306,11 @@ export default function App() {
   async function handleRefreshFromSyncDirectory() {
     if (!syncDirectoryUri) {
       setHomeMessage("Aucun dossier de sync configure.");
+      return;
+    }
+
+    if (syncBusy || syncInFlightRef.current) {
+      setHomeMessage("Sync en cours.");
       return;
     }
 
@@ -283,8 +323,8 @@ export default function App() {
       setExportCharacterId(normalizedCharacters[0]!.id);
       setRoute("home");
       setHomeMessage(`${normalizedCharacters.length} personnage(s) recharge(s) depuis le dossier Android.`);
-    } catch {
-      setHomeMessage("Refresh impossible. Verifiez que le dossier contient bien des fichiers character-*.json.");
+    } catch (error) {
+      setHomeMessage(error instanceof Error ? `Refresh impossible. ${error.message}` : "Refresh impossible.");
     } finally {
       setRefreshBusy(false);
     }
@@ -372,9 +412,7 @@ export default function App() {
           message={homeMessage}
           onCreateCharacter={openCreationFromHome}
           onImportCharacters={() => void handleImportFromHome()}
-          onChangeExportCharacter={setExportCharacterId}
-          onExportCharacters={() => void handleExportFromHome()}
-          onExportAllCharacters={() => void handleExportAllFromHome()}
+          onExportCharacter={(characterId) => void handleExportFromHome(characterId)}
           syncEnabled={Boolean(syncDirectoryUri)}
           syncBusy={syncBusy}
           refreshBusy={refreshBusy}

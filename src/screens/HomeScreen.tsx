@@ -15,9 +15,7 @@ type HomeScreenProps = {
   refreshBusy: boolean;
   onCreateCharacter: () => void;
   onImportCharacters: () => void;
-  onChangeExportCharacter: (characterId: string) => void;
-  onExportCharacters: () => void;
-  onExportAllCharacters: () => void;
+  onExportCharacter: (characterId: string) => void;
   onEnableSync: () => void;
   onDisableSync: () => void;
   onRefreshSync: () => void;
@@ -34,9 +32,7 @@ export function HomeScreen({
   refreshBusy,
   onCreateCharacter,
   onImportCharacters,
-  onChangeExportCharacter,
-  onExportCharacters,
-  onExportAllCharacters,
+  onExportCharacter,
   onEnableSync,
   onDisableSync,
   onRefreshSync,
@@ -48,12 +44,14 @@ export function HomeScreen({
   const isNarrowPhone = width < 430;
   const isAndroid = Platform.OS === "android";
   const [exportPickerOpen, setExportPickerOpen] = useState(false);
+  const [syncSettingsOpen, setSyncSettingsOpen] = useState(false);
   const exportCharacter = useMemo(
     () => characters.find((character) => character.id === exportCharacterId) ?? characters[0] ?? null,
     [characters, exportCharacterId],
   );
 
   return (
+    <View style={styles.root}>
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={[styles.content, isPhone ? styles.contentPhone : styles.contentWide]}
@@ -98,68 +96,22 @@ export function HomeScreen({
             <Pressable onPress={onImportCharacters} style={styles.secondaryActionButton}>
               <Text style={styles.secondaryActionLabel}>Importer</Text>
             </Pressable>
-            <Pressable onPress={onExportCharacters} style={styles.secondaryActionButton}>
+            <Pressable onPress={() => setExportPickerOpen(true)} style={styles.secondaryActionButton}>
               <Text style={styles.secondaryActionLabel}>Exporter</Text>
             </Pressable>
-            <Pressable onPress={onExportAllCharacters} style={styles.secondaryActionButton}>
-              <Text style={styles.secondaryActionLabel}>Tout exporter</Text>
-            </Pressable>
+            {isAndroid ? (
+              <Pressable
+                onPress={() => setSyncSettingsOpen(true)}
+                style={styles.iconActionButton}
+                accessibilityRole="button"
+                accessibilityLabel="Parametres de sync Android"
+              >
+                <Text style={styles.iconActionLabel}>⚙</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
-        <View style={styles.exportPanel}>
-          <View style={styles.exportPanelText}>
-            <Text style={styles.exportPanelLabel}>Personnage a exporter</Text>
-            <Text style={styles.exportPanelValue} numberOfLines={1}>
-              {exportCharacter?.name ?? "Aucun personnage"}
-            </Text>
-          </View>
-          <Pressable onPress={() => setExportPickerOpen(true)} style={styles.exportPickerButton}>
-            <Text style={styles.exportPickerButtonLabel}>Choisir</Text>
-          </Pressable>
-        </View>
-        {isAndroid ? (
-          <View style={styles.syncPanel}>
-            <View style={styles.syncPanelText}>
-              <Text style={styles.syncPanelLabel}>Sync Android</Text>
-              <Text style={styles.syncPanelValue}>
-                {syncEnabled ? "Active: 1 JSON par personnage, maj auto a chaque modification." : "Inactive"}
-              </Text>
-            </View>
-            <View style={styles.syncPanelActions}>
-              <Pressable
-                onPress={onEnableSync}
-                style={[styles.secondaryActionButton, syncEnabled ? styles.syncActionButtonActive : null]}
-              >
-                <Text style={styles.secondaryActionLabel}>
-                  {syncBusy ? "Sync..." : syncEnabled ? "Changer dossier" : "Activer"}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={onRefreshSync}
-                style={styles.secondaryActionButton}
-                disabled={!syncEnabled || refreshBusy}
-              >
-                <Text
-                  style={[styles.secondaryActionLabel, !syncEnabled || refreshBusy ? styles.actionLabelMuted : null]}
-                >
-                  {refreshBusy ? "Refresh..." : "Refresh"}
-                </Text>
-              </Pressable>
-              {syncEnabled ? (
-                <Pressable onPress={onDisableSync} style={styles.secondaryActionButton}>
-                  <Text style={styles.secondaryActionLabel}>Desactiver</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          </View>
-        ) : null}
       </View>
-
-      {message ? (
-        <View style={styles.messageBanner}>
-          <Text style={styles.messageBannerText}>{message}</Text>
-        </View>
-      ) : null}
 
       <View style={styles.rosterGrid}>
         {characters.map((character) => {
@@ -209,7 +161,7 @@ export function HomeScreen({
         <View style={styles.exportPickerBackdrop}>
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setExportPickerOpen(false)} />
           <View style={styles.exportPickerCard}>
-            <Text style={styles.exportPickerTitle}>Choisir le personnage a exporter</Text>
+            <Text style={styles.exportPickerTitle}>Exporter un personnage</Text>
             <View style={styles.exportPickerList}>
               {characters.map((character) => {
                 const isSelected = character.id === exportCharacter?.id;
@@ -218,7 +170,7 @@ export function HomeScreen({
                   <Pressable
                     key={character.id}
                     onPress={() => {
-                      onChangeExportCharacter(character.id);
+                      onExportCharacter(character.id);
                       setExportPickerOpen(false);
                     }}
                     style={[styles.exportOption, isSelected ? styles.exportOptionSelected : null]}
@@ -241,11 +193,66 @@ export function HomeScreen({
           </View>
         </View>
       </Modal>
+      <Modal
+        visible={syncSettingsOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSyncSettingsOpen(false)}
+      >
+        <View style={styles.exportPickerBackdrop}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setSyncSettingsOpen(false)} />
+          <View style={styles.syncDialogCard}>
+            <View style={styles.syncDialogHeader}>
+              <Text style={styles.exportPickerTitle}>Sync Android</Text>
+              <Text style={[styles.syncStatus, syncEnabled ? styles.syncStatusActive : null]}>
+                {syncEnabled ? "Active" : "Inactive"}
+              </Text>
+            </View>
+            <View style={styles.syncPanelActions}>
+              <Pressable
+                onPress={onEnableSync}
+                style={[styles.secondaryActionButton, syncEnabled ? styles.syncActionButtonActive : null]}
+              >
+                <Text style={styles.secondaryActionLabel}>
+                  {syncBusy ? "Sync..." : syncEnabled ? "Changer dossier" : "Activer"}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={onRefreshSync}
+                style={styles.secondaryActionButton}
+                disabled={!syncEnabled || refreshBusy || syncBusy}
+              >
+                <Text style={[styles.secondaryActionLabel, !syncEnabled || refreshBusy || syncBusy ? styles.actionLabelMuted : null]}>
+                  {refreshBusy ? "Refresh..." : "Refresh"}
+                </Text>
+              </Pressable>
+              {syncEnabled ? (
+                <Pressable onPress={onDisableSync} style={styles.secondaryActionButton}>
+                  <Text style={styles.secondaryActionLabel}>Desactiver</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            <Pressable onPress={() => setSyncSettingsOpen(false)} style={styles.exportPickerCloseButton}>
+              <Text style={styles.exportPickerCloseButtonLabel}>Fermer</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
+    {message ? (
+      <View pointerEvents="none" style={styles.toast}>
+        <Text style={styles.toastText}>{message}</Text>
+      </View>
+    ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#090d16",
+  },
   scroll: {
     flex: 1,
     backgroundColor: "#090d16",
@@ -361,67 +368,6 @@ const styles = StyleSheet.create({
   sectionSubtitle: {
     color: "#94a3b8",
   },
-  exportPanel: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    padding: 16,
-    borderRadius: 20,
-    backgroundColor: "rgba(15, 23, 42, 0.92)",
-    borderWidth: 1,
-    borderColor: "rgba(148, 163, 184, 0.18)",
-  },
-  exportPanelText: {
-    flex: 1,
-    gap: 4,
-  },
-  exportPanelLabel: {
-    color: "#94a3b8",
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  exportPanelValue: {
-    color: "#f8fafc",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  exportPickerButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: "rgba(15, 23, 42, 0.88)",
-    borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.28)",
-  },
-  exportPickerButtonLabel: {
-    color: "#fde68a",
-    fontWeight: "800",
-  },
-  syncPanel: {
-    gap: 12,
-    padding: 16,
-    borderRadius: 20,
-    backgroundColor: "rgba(16, 24, 40, 0.9)",
-    borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.18)",
-  },
-  syncPanelText: {
-    gap: 4,
-  },
-  syncPanelLabel: {
-    color: "#86efac",
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  syncPanelValue: {
-    color: "#e2e8f0",
-    lineHeight: 20,
-  },
   syncPanelActions: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -457,20 +403,23 @@ const styles = StyleSheet.create({
     color: "#e2e8f0",
     fontWeight: "800",
   },
+  iconActionButton: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 14,
+    backgroundColor: "rgba(15, 23, 42, 0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.18)",
+  },
+  iconActionLabel: {
+    color: "#e2e8f0",
+    fontSize: 20,
+    fontWeight: "900",
+  },
   actionLabelMuted: {
     opacity: 0.55,
-  },
-  messageBanner: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 18,
-    backgroundColor: "rgba(16, 24, 40, 0.9)",
-    borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.26)",
-  },
-  messageBannerText: {
-    color: "#f8fafc",
-    fontWeight: "700",
   },
   rosterGrid: {
     flexDirection: "row",
@@ -595,5 +544,48 @@ const styles = StyleSheet.create({
   exportPickerCloseButtonLabel: {
     color: "#cbd5e1",
     fontWeight: "800",
+  },
+  syncDialogCard: {
+    maxWidth: 460,
+    width: "100%",
+    alignSelf: "center",
+    gap: 16,
+    padding: 20,
+    borderRadius: 24,
+    backgroundColor: "#101827",
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.24)",
+  },
+  syncDialogHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  syncStatus: {
+    color: "#cbd5e1",
+    fontWeight: "900",
+  },
+  syncStatusActive: {
+    color: "#86efac",
+  },
+  toast: {
+    position: "absolute",
+    top: 14,
+    left: 16,
+    right: 16,
+    alignSelf: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: "rgba(16, 24, 40, 0.96)",
+    borderWidth: 1,
+    borderColor: "rgba(251, 191, 36, 0.32)",
+    zIndex: 20,
+  },
+  toastText: {
+    color: "#f8fafc",
+    fontWeight: "800",
+    textAlign: "center",
   },
 });
