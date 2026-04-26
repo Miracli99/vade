@@ -9,7 +9,11 @@ export type CharacterTheme =
   | "occulte"
   | "abyssal"
   | "cendre"
-  | "glace";
+  | "glace"
+  | "inquisition"
+  | "sang"
+  | "ronce"
+  | "miroir";
 export type ArchetypeId =
   | "paladin"
   | "tireur"

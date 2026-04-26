@@ -32,6 +32,13 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       imageModule: require("../../assets/characters/ame_ancree_lanterne.png"),
     },
     {
+      id: "char-ame-ancree-veilleuse",
+      label: "Ame Ancree Veilleuse",
+      category: "character",
+      tags: ["ame","ancree","character","veilleuse"],
+      imageModule: require("../../assets/characters/ame_ancree_veilleuse.png"),
+    },
+    {
       id: "char-cleric-hunter",
       label: "Cleric Hunter",
       category: "character",
@@ -53,11 +60,25 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       imageModule: require("../../assets/characters/demi_ange_melancolique.png"),
     },
     {
+      id: "char-demi-ange-solaire",
+      label: "Demi Ange Solaire",
+      category: "character",
+      tags: ["ange","character","demi","solaire"],
+      imageModule: require("../../assets/characters/demi_ange_solaire.png"),
+    },
+    {
       id: "char-demi-demon-heritier",
       label: "Demi Demon Heritier",
       category: "character",
       tags: ["character","demi","demon","heritier"],
       imageModule: require("../../assets/characters/demi_demon_heritier.png"),
+    },
+    {
+      id: "char-demi-demone-braise-noble",
+      label: "Demi Demone Braise Noble",
+      category: "character",
+      tags: ["braise","character","demi","demone","noble"],
+      imageModule: require("../../assets/characters/demi_demone_braise_noble.png"),
     },
     {
       id: "char-demi-demone-heritiere",
@@ -88,6 +109,13 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       imageModule: require("../../assets/characters/enfant_foret_ancienne_f.png"),
     },
     {
+      id: "char-enfant-foret-florale",
+      label: "Enfant Foret Florale",
+      category: "character",
+      tags: ["character","enfant","florale","foret"],
+      imageModule: require("../../assets/characters/enfant_foret_florale.png"),
+    },
+    {
       id: "char-guerisseur-foret",
       label: "Guerisseur Foret",
       category: "character",
@@ -100,6 +128,13 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["character","humain","occultiste"],
       imageModule: require("../../assets/characters/humain_occultiste.png"),
+    },
+    {
+      id: "char-humain-veilleur-sacre",
+      label: "Humain Veilleur Sacre",
+      category: "character",
+      tags: ["character","humain","sacre","veilleur"],
+      imageModule: require("../../assets/characters/humain_veilleur_sacre.png"),
     },
     {
       id: "char-humaine-occultiste",
