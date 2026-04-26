@@ -316,13 +316,34 @@ export default function App() {
 
     try {
       setRefreshBusy(true);
-      const importedCharacters = await importCharactersFromDirectory(syncDirectoryUri);
-      const normalizedCharacters = importedCharacters.map(normalizeCharacter);
+      const importResult = await importCharactersFromDirectory(syncDirectoryUri);
+      const normalizedImportedCharacters = importResult.characters.map(normalizeCharacter);
+      const importedIds = new Set(normalizedImportedCharacters.map((character) => character.id));
+      const skippedCharacterIds = new Set(
+        importResult.skippedFiles
+          .map((file) => file.characterId)
+          .filter((characterId): characterId is string => Boolean(characterId)),
+      );
+      const preservedCharacters = characters.filter(
+        (character) => skippedCharacterIds.has(character.id) && !importedIds.has(character.id),
+      );
+      const normalizedCharacters = [...normalizedImportedCharacters, ...preservedCharacters];
+      const nextSelectedId =
+        normalizedCharacters.find((character) => character.id === selectedId)?.id ??
+        normalizedCharacters[0]!.id;
+
       setCharacters(normalizedCharacters);
-      setSelectedId(normalizedCharacters[0]!.id);
-      setExportCharacterId(normalizedCharacters[0]!.id);
+      setSelectedId(nextSelectedId);
+      setExportCharacterId(nextSelectedId);
       setRoute("home");
-      setHomeMessage(`${normalizedCharacters.length} personnage(s) recharge(s) depuis le dossier Android.`);
+      setHomeMessage(
+        importResult.skippedFiles.length
+          ? `${normalizedImportedCharacters.length} recharge(s), ${importResult.skippedFiles.length} ignore(s): ${importResult.skippedFiles
+              .slice(0, 3)
+              .map((file) => file.fileName)
+              .join(", ")}${importResult.skippedFiles.length > 3 ? "..." : ""}.`
+          : `${normalizedCharacters.length} personnage(s) recharge(s) depuis le dossier Android.`,
+      );
     } catch (error) {
       setHomeMessage(error instanceof Error ? `Refresh impossible. ${error.message}` : "Refresh impossible.");
     } finally {
@@ -430,6 +451,7 @@ export default function App() {
           selectedId={selectedId}
           setSelectedId={setSelectedId}
           creationRequest={creationRequest}
+          onCreationRequestHandled={() => setCreationRequest(0)}
           onOpenHome={() => setRoute("home")}
         />
       ) : null}

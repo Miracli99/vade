@@ -19,6 +19,14 @@ type SyncCharacterFile = {
   character: Character;
 };
 
+export type DirectoryImportResult = {
+  characters: Character[];
+  skippedFiles: Array<{
+    fileName: string;
+    characterId: string | null;
+  }>;
+};
+
 export async function loadCharactersFromStorage() {
   const rawCharacters = await AsyncStorage.getItem(STORAGE_KEY);
   const rawSelectedId = await AsyncStorage.getItem(SELECTION_KEY);
@@ -108,7 +116,9 @@ export async function syncCharactersToDirectory(characters: Character[], directo
   }
 }
 
-export async function importCharactersFromDirectory(directoryUri: string): Promise<Character[]> {
+export async function importCharactersFromDirectory(
+  directoryUri: string,
+): Promise<DirectoryImportResult> {
   if (Platform.OS !== "android") {
     throw new Error("Le rechargement par dossier est disponible uniquement sur Android.");
   }
@@ -118,7 +128,7 @@ export async function importCharactersFromDirectory(directoryUri: string): Promi
   const jsonUris = entryUris.filter(isJsonEntry);
   const importUris = characterUris.length ? characterUris : jsonUris;
   const importedCharacters: Character[] = [];
-  const parseErrors: string[] = [];
+  const skippedFiles: DirectoryImportResult["skippedFiles"] = [];
 
   for (const entryUri of importUris) {
     try {
@@ -149,19 +159,30 @@ export async function importCharactersFromDirectory(directoryUri: string): Promi
 
       importedCharacters.push(parsed as Character);
     } catch {
-      parseErrors.push(getUriFileName(entryUri));
+      const fileName = getUriFileName(entryUri);
+      skippedFiles.push({
+        fileName,
+        characterId: getCharacterIdFromSyncFileName(fileName),
+      });
     }
   }
 
   if (!importedCharacters.length) {
-    if (parseErrors.length) {
-      throw new Error("Aucun JSON lisible dans le dossier.");
+    if (skippedFiles.length) {
+      throw new Error(
+        `Aucun JSON lisible dans le dossier. Fichier(s) ignore(s): ${formatFileList(
+          skippedFiles.map((file) => file.fileName),
+        )}.`,
+      );
     }
 
     throw new Error("Aucun fichier JSON trouve dans le dossier.");
   }
 
-  return importedCharacters;
+  return {
+    characters: importedCharacters,
+    skippedFiles,
+  };
 }
 
 export async function exportCharacters(characters: Character[], fileName = "vade-retro-characters.json") {
@@ -256,17 +277,28 @@ function getCharacterSyncFileName(characterId: string) {
   return `${CHARACTER_SYNC_PREFIX}${characterId}${CHARACTER_SYNC_SUFFIX}`;
 }
 
+function getCharacterIdFromSyncFileName(fileName: string) {
+  if (!fileName.startsWith(CHARACTER_SYNC_PREFIX) || !fileName.endsWith(CHARACTER_SYNC_SUFFIX)) {
+    return null;
+  }
+
+  return fileName.slice(
+    CHARACTER_SYNC_PREFIX.length,
+    fileName.length - CHARACTER_SYNC_SUFFIX.length,
+  );
+}
+
 function findExistingCharacterFileUri(entryUris: string[], fileName: string) {
   return entryUris.find((entryUri) => getUriFileName(entryUri) === fileName) ?? null;
 }
 
 function isCharacterSyncEntry(entryUri: string) {
   const fileName = getUriFileName(entryUri);
-  return fileName.startsWith(CHARACTER_SYNC_PREFIX) && fileName.includes(CHARACTER_SYNC_SUFFIX);
+  return fileName.startsWith(CHARACTER_SYNC_PREFIX) && fileName.endsWith(CHARACTER_SYNC_SUFFIX);
 }
 
 function isJsonEntry(entryUri: string) {
-  return getUriFileName(entryUri).includes(CHARACTER_SYNC_SUFFIX);
+  return getUriFileName(entryUri).endsWith(CHARACTER_SYNC_SUFFIX);
 }
 
 function getUriFileName(entryUri: string) {
@@ -291,4 +323,8 @@ function hasCharactersArray(value: unknown): value is { characters: Character[] 
       "characters" in value &&
       Array.isArray((value as { characters?: Character[] }).characters),
   );
+}
+
+function formatFileList(fileNames: string[]) {
+  return fileNames.slice(0, 3).join(", ") + (fileNames.length > 3 ? ` +${fileNames.length - 3}` : "");
 }

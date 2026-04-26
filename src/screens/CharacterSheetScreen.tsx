@@ -641,6 +641,7 @@ type CharacterSheetScreenProps = {
   selectedId: string;
   setSelectedId: Dispatch<SetStateAction<string>>;
   creationRequest?: number;
+  onCreationRequestHandled?: () => void;
   onOpenHome?: () => void;
 };
 
@@ -650,6 +651,7 @@ export function CharacterSheetScreen({
   selectedId,
   setSelectedId,
   creationRequest = 0,
+  onCreationRequestHandled,
   onOpenHome,
 }: CharacterSheetScreenProps) {
   const { width } = useWindowDimensions();
@@ -731,7 +733,8 @@ export function CharacterSheetScreen({
     }
 
     openCreationWizard();
-  }, [creationRequest]);
+    onCreationRequestHandled?.();
+  }, [creationRequest, onCreationRequestHandled]);
 
   useEffect(() => {
     setImageLibraryQuery("");
@@ -1608,18 +1611,20 @@ export function CharacterSheetScreen({
 
     setDraftCharacter((current) =>
       current
-        ? {
-            ...current,
-            ...cloneTemplate(archetypeOption.template),
-            name: current.name,
-            imageUrl: current.imageUrl,
-            imageModule: current.imageModule,
-            level: current.level,
-            attackBonus: current.attackBonus,
-            activeSpellIds: [],
-            inventory: current.inventory,
-            stance: current.stance,
-          }
+        ? (() => {
+            const specialization = archetypeOption.specializations.includes(
+              current.specialization ?? "",
+            )
+              ? current.specialization
+              : archetypeOption.specializations[0] ?? "";
+
+            return {
+              ...current,
+              archetypeId: archetypeOption.id,
+              archetype: archetypeOption.label,
+              specialization,
+            };
+          })()
         : current,
     );
     setActiveOverlayMenu(null);
@@ -1649,7 +1654,6 @@ export function CharacterSheetScreen({
         ? {
             ...current,
             spells: [
-              ...current.spells,
               {
                 id: makeId("spell"),
                 name: "Nouveau don",
@@ -1662,6 +1666,7 @@ export function CharacterSheetScreen({
                 activeEffects: [],
                 passiveEffects: [],
               },
+              ...current.spells,
             ],
           }
         : current,
@@ -1787,7 +1792,6 @@ export function CharacterSheetScreen({
         ? {
             ...current,
             inventory: [
-              ...current.inventory,
               {
                 id: makeId("item"),
                 name: "Nouvel item",
@@ -1796,6 +1800,7 @@ export function CharacterSheetScreen({
                 notes: "",
                 tags: [],
               },
+              ...current.inventory,
             ],
           }
         : current,
@@ -1892,7 +1897,6 @@ export function CharacterSheetScreen({
         ? {
             ...current,
             equipment: [
-              ...current.equipment,
               {
                 id: makeId("equipment"),
                 name: "Nouvel equipement",
@@ -1904,6 +1908,7 @@ export function CharacterSheetScreen({
                 passiveEffects: [],
                 grantedSpell: undefined,
               },
+              ...current.equipment,
             ],
           }
         : current,
@@ -2299,17 +2304,6 @@ export function CharacterSheetScreen({
               keyboardType="numeric"
               onChangeText={(value) =>
                 updateDraftField("level", Number.parseInt(value || "0", 10) || 0)
-              }
-            />
-            <EditorField
-              label="Attaque bonus"
-              value={String(draftCharacter.attackBonus)}
-              keyboardType="numeric"
-              onChangeText={(value) =>
-                updateDraftField(
-                  "attackBonus",
-                  Math.max(0, Number.parseInt(value || "0", 10) || 0),
-                )
               }
             />
           </View>
