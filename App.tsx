@@ -1,7 +1,5 @@
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
-import * as FileSystem from "expo-file-system";
-import * as Sharing from "expo-sharing";
 import {
   ActivityIndicator,
   Linking,
@@ -44,21 +42,29 @@ const APP_CONFIG = require("./app.json") as {
 };
 const APP_VERSION = APP_CONFIG.expo?.version ?? "0.0.0";
 const UPDATE_MANIFEST_URL = APP_CONFIG.expo?.extra?.updateManifestUrl ?? "";
-const APK_MIME_TYPE = "application/vnd.android.package-archive";
 
 type AppRoute = "home" | "character" | "history";
+
+type PendingImport = {
+  characters: Character[];
+  conflicts: Array<{
+    id: string;
+    currentName: string;
+    importedName: string;
+  }>;
+};
 
 export default function App() {
   const androidTopInset = Platform.OS === "android" ? NativeStatusBar.currentHeight ?? 0 : 0;
   const [route, setRoute] = useState<AppRoute>("home");
   const [characters, setCharacters] = useState<Character[]>(sampleCharacters.map(normalizeCharacter));
   const [selectedId, setSelectedId] = useState(sampleCharacters[0]?.id ?? "");
-  const [exportCharacterId, setExportCharacterId] = useState(sampleCharacters[0]?.id ?? "");
   const [syncDirectoryUri, setSyncDirectoryUri] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
   const [availableUpdate, setAvailableUpdate] = useState<UpdateManifest | null>(null);
   const [homeMessage, setHomeMessage] = useState<string | null>(null);
   const [creationRequest, setCreationRequest] = useState(0);
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null);
   const [installingUpdate, setInstallingUpdate] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
@@ -124,7 +130,6 @@ export default function App() {
           setCharacters(normalizedCharacters);
           const initialCharacterId = stored.selectedId ?? normalizedCharacters[0]!.id;
           setSelectedId(initialCharacterId);
-          setExportCharacterId(initialCharacterId);
         }
       } finally {
         if (active) {
@@ -166,18 +171,6 @@ export default function App() {
 
     void flushSyncDirectory();
   }, [characters, storageReady, syncDirectoryUri]);
-
-  useEffect(() => {
-    if (!characters.length) {
-      return;
-    }
-
-    const hasExportCharacter = characters.some((character) => character.id === exportCharacterId);
-
-    if (!hasExportCharacter) {
-      setExportCharacterId(characters[0]!.id);
-    }
-  }, [characters, exportCharacterId]);
 
   useEffect(() => {
     if (!homeMessage) {
@@ -231,6 +224,48 @@ export default function App() {
     setCreationRequest((current) => current + 1);
   }
 
+  function mergeImportedCharacters(
+    currentCharacters: Character[],
+    importedCharacters: Character[],
+    overwriteExisting: boolean,
+  ) {
+    const importedById = new Map(importedCharacters.map((character) => [character.id, character]));
+    const existingIds = new Set(currentCharacters.map((character) => character.id));
+    const mergedCharacters = currentCharacters.map(
+      (character) => (overwriteExisting ? importedById.get(character.id) ?? character : character),
+    );
+    const addedCharacters = importedCharacters.filter((character) => !existingIds.has(character.id));
+
+    return {
+      characters: [...mergedCharacters, ...addedCharacters],
+      addedCount: addedCharacters.length,
+      updatedCount: importedCharacters.length - addedCharacters.length,
+    };
+  }
+
+  function applyImportedCharacters(importedCharacters: Character[], overwriteExisting: boolean) {
+    const mergeResult = mergeImportedCharacters(characters, importedCharacters, overwriteExisting);
+    const importedIds = new Set(importedCharacters.map((character) => character.id));
+    const firstSelectableCharacter =
+      mergeResult.characters.find((character) => importedIds.has(character.id)) ??
+      mergeResult.characters.find((character) => character.id === selectedId) ??
+      mergeResult.characters[0];
+
+    setCharacters(mergeResult.characters);
+
+    if (firstSelectableCharacter) {
+      setSelectedId(firstSelectableCharacter.id);
+    }
+
+    setRoute("home");
+    setPendingImport(null);
+    setHomeMessage(
+      overwriteExisting
+        ? `${importedCharacters.length} importe(s): ${mergeResult.addedCount} ajoute(s), ${mergeResult.updatedCount} mis a jour.`
+        : `${mergeResult.addedCount} ajoute(s), ${mergeResult.updatedCount} doublon(s) ignore(s).`,
+    );
+  }
+
   async function handleImportFromHome() {
     try {
       const importedCharacters = await importCharacters();
@@ -239,12 +274,31 @@ export default function App() {
         return;
       }
 
-      const normalizedCharacters = importedCharacters.map(normalizeCharacter);
-      setCharacters(normalizedCharacters);
-      setSelectedId(normalizedCharacters[0]!.id);
-      setExportCharacterId(normalizedCharacters[0]!.id);
-      setRoute("home");
-      setHomeMessage(`${normalizedCharacters.length} personnage(s) importe(s).`);
+      const normalizedImportedCharacters = importedCharacters.map(normalizeCharacter);
+      const currentById = new Map(characters.map((character) => [character.id, character]));
+      const conflicts = normalizedImportedCharacters.flatMap((character) => {
+        const currentCharacter = currentById.get(character.id);
+
+        return currentCharacter
+          ? [
+              {
+                id: character.id,
+                currentName: currentCharacter.name,
+                importedName: character.name,
+              },
+            ]
+          : [];
+      });
+
+      if (conflicts.length) {
+        setPendingImport({
+          characters: normalizedImportedCharacters,
+          conflicts,
+        });
+        return;
+      }
+
+      applyImportedCharacters(normalizedImportedCharacters, true);
     } catch {
       setHomeMessage("Import impossible: JSON invalide.");
     }
@@ -257,8 +311,6 @@ export default function App() {
       setHomeMessage("Aucun personnage selectionne pour l'export.");
       return;
     }
-
-    setExportCharacterId(selectedCharacter.id);
 
     const safeName = selectedCharacter.name
       .toLowerCase()
@@ -334,7 +386,6 @@ export default function App() {
 
       setCharacters(normalizedCharacters);
       setSelectedId(nextSelectedId);
-      setExportCharacterId(nextSelectedId);
       setRoute("home");
       setHomeMessage(
         importResult.skippedFiles.length
@@ -366,9 +417,13 @@ export default function App() {
     }
 
     try {
+      setUpdateError(null);
       await Linking.openURL(availableUpdate.apkUrl);
-    } finally {
       setAvailableUpdate(null);
+    } catch {
+      setUpdateError(
+        "Impossible d'ouvrir le telechargement Android. Verifiez le lien APK ou essayez depuis un navigateur.",
+      );
     }
   }
 
@@ -380,43 +435,12 @@ export default function App() {
     setInstallingUpdate(true);
     setUpdateError(null);
 
-    const updateDirectory = `${FileSystem.cacheDirectory}updates/`;
-    const safeVersion = availableUpdate.version.replace(/[^\w.-]+/g, "-");
-    const apkUri = `${updateDirectory}vade-compagnions-${safeVersion}.apk`;
-
     try {
-      await FileSystem.makeDirectoryAsync(updateDirectory, { intermediates: true });
-
-      const existingFile = await FileSystem.getInfoAsync(apkUri);
-      if (existingFile.exists) {
-        await FileSystem.deleteAsync(apkUri, { idempotent: true });
-      }
-
-      const downloadResult = await FileSystem.downloadAsync(availableUpdate.apkUrl, apkUri, {
-        headers: {
-          Accept: APK_MIME_TYPE,
-        },
-      });
-
-      const contentUri = await FileSystem.getContentUriAsync(downloadResult.uri);
-      await Linking.openURL(contentUri);
+      await Linking.openURL(availableUpdate.apkUrl);
       setAvailableUpdate(null);
     } catch {
-      try {
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(apkUri, {
-            mimeType: APK_MIME_TYPE,
-            dialogTitle: "Installer la mise a jour",
-          });
-          setAvailableUpdate(null);
-          return;
-        }
-      } catch {
-        // Fall through to the user-facing error below.
-      }
-
       setUpdateError(
-        "Installation automatique impossible sur cet appareil. Utilisez Telecharger pour ouvrir l'APK."
+        "Impossible d'ouvrir le telechargement Android. Verifiez le lien APK ou essayez depuis un navigateur.",
       );
     } finally {
       setInstallingUpdate(false);
@@ -429,7 +453,6 @@ export default function App() {
       {route === "home" ? (
         <HomeScreen
           characters={characters}
-          exportCharacterId={exportCharacterId}
           message={homeMessage}
           onCreateCharacter={openCreationFromHome}
           onImportCharacters={() => void handleImportFromHome()}
@@ -456,6 +479,66 @@ export default function App() {
         />
       ) : null}
       {route === "history" ? <HistoryScreen onOpenHome={() => setRoute("home")} /> : null}
+      <Modal
+        visible={Boolean(pendingImport)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPendingImport(null)}
+      >
+        <View style={styles.updateBackdrop}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setPendingImport(null)} />
+          <View style={styles.updateCard}>
+            <Text style={styles.updateEyebrow}>Conflit d'import</Text>
+            <Text style={styles.updateTitle}>Personnage deja existant</Text>
+            <Text style={styles.updateText}>
+              Ces personnages existent deja dans l'application. Choisissez si le fichier importe doit
+              les ecraser.
+            </Text>
+            <View style={styles.importConflictList}>
+              {pendingImport?.conflicts.slice(0, 5).map((conflict) => (
+                <View key={conflict.id} style={styles.importConflictRow}>
+                  <Text style={styles.importConflictName}>{conflict.currentName}</Text>
+                  {conflict.importedName !== conflict.currentName ? (
+                    <Text style={styles.importConflictMeta}>
+                      Import: {conflict.importedName}
+                    </Text>
+                  ) : null}
+                </View>
+              ))}
+              {pendingImport && pendingImport.conflicts.length > 5 ? (
+                <Text style={styles.importConflictMore}>
+                  +{pendingImport.conflicts.length - 5} autre(s)
+                </Text>
+              ) : null}
+            </View>
+            <View style={styles.updateActions}>
+              <Pressable onPress={() => setPendingImport(null)} style={styles.updateSecondaryButton}>
+                <Text style={styles.updateSecondaryButtonLabel}>Annuler</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (pendingImport) {
+                    applyImportedCharacters(pendingImport.characters, false);
+                  }
+                }}
+                style={styles.updateSecondaryButton}
+              >
+                <Text style={styles.updateSecondaryButtonLabel}>Ne pas ecraser</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (pendingImport) {
+                    applyImportedCharacters(pendingImport.characters, true);
+                  }
+                }}
+                style={styles.updatePrimaryButton}
+              >
+                <Text style={styles.updatePrimaryButtonLabel}>Ecraser</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <Modal
         visible={Boolean(availableUpdate)}
         transparent
@@ -500,16 +583,16 @@ export default function App() {
                 {installingUpdate ? (
                   <View style={styles.updateBusyContent}>
                     <ActivityIndicator color="#3f2200" size="small" />
-                    <Text style={styles.updatePrimaryButtonLabel}>Installation...</Text>
+                    <Text style={styles.updatePrimaryButtonLabel}>Ouverture...</Text>
                   </View>
                 ) : (
-                  <Text style={styles.updatePrimaryButtonLabel}>Installer</Text>
+                  <Text style={styles.updatePrimaryButtonLabel}>Ouvrir Android</Text>
                 )}
               </Pressable>
             </View>
             {!installingUpdate ? null : (
               <Text style={styles.updateHintText}>
-                Le telechargement de l&apos;APK est en cours avant ouverture de l&apos;installateur Android.
+                Android va gerer le telechargement de l&apos;APK et proposer l&apos;installation.
               </Text>
             )}
             {!installingUpdate ? null : null}
@@ -618,5 +701,29 @@ const styles = StyleSheet.create({
     color: "#fca5a5",
     lineHeight: 20,
     marginTop: 4,
+  },
+  importConflictList: {
+    gap: 8,
+    marginTop: 4,
+  },
+  importConflictRow: {
+    gap: 3,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: "#172033",
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.18)",
+  },
+  importConflictName: {
+    color: "#f8fafc",
+    fontWeight: "900",
+  },
+  importConflictMeta: {
+    color: "#94a3b8",
+    lineHeight: 18,
+  },
+  importConflictMore: {
+    color: "#cbd5e1",
+    fontWeight: "800",
   },
 });

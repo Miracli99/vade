@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { AssetVisual } from "../components/character-sheet/AssetVisual";
@@ -8,7 +8,6 @@ const APP_LOGO = require("../../assets/vade-retro-logo.png");
 
 type HomeScreenProps = {
   characters: Character[];
-  exportCharacterId: string;
   message?: string | null;
   syncEnabled: boolean;
   syncBusy: boolean;
@@ -25,7 +24,6 @@ type HomeScreenProps = {
 
 export function HomeScreen({
   characters,
-  exportCharacterId,
   message,
   syncEnabled,
   syncBusy,
@@ -45,10 +43,6 @@ export function HomeScreen({
   const isAndroid = Platform.OS === "android";
   const [exportPickerOpen, setExportPickerOpen] = useState(false);
   const [syncSettingsOpen, setSyncSettingsOpen] = useState(false);
-  const exportCharacter = useMemo(
-    () => characters.find((character) => character.id === exportCharacterId) ?? characters[0] ?? null,
-    [characters, exportCharacterId],
-  );
 
   return (
     <View style={styles.root}>
@@ -68,7 +62,7 @@ export function HomeScreen({
             <Text style={styles.eyebrow}>Vade Retro</Text>
             <Text style={[styles.title, isPhone ? styles.titlePhone : null]}>Portail de campagne</Text>
             <Text style={styles.description}>
-              Choisis une fiche personnage ou ouvre l&apos;histoire de l&apos;univers.
+              Ouvre une fiche personnage ou l&apos;histoire de l&apos;univers.
             </Text>
           </View>
         </View>
@@ -87,7 +81,7 @@ export function HomeScreen({
         <View style={styles.sectionHeaderTop}>
           <View style={styles.sectionHeaderText}>
             <Text style={styles.sectionTitle}>Personnages</Text>
-            <Text style={styles.sectionSubtitle}>Ouverture directe des fiches et export via un personnage choisi</Text>
+            <Text style={styles.sectionSubtitle}>Ouverture directe des fiches et export manuel d&apos;un personnage</Text>
           </View>
           <View style={styles.rosterActions}>
             <Pressable onPress={onCreateCharacter} style={styles.primaryActionButton}>
@@ -164,8 +158,6 @@ export function HomeScreen({
             <Text style={styles.exportPickerTitle}>Exporter un personnage</Text>
             <View style={styles.exportPickerList}>
               {characters.map((character) => {
-                const isSelected = character.id === exportCharacter?.id;
-
                 return (
                   <Pressable
                     key={character.id}
@@ -173,7 +165,7 @@ export function HomeScreen({
                       onExportCharacter(character.id);
                       setExportPickerOpen(false);
                     }}
-                    style={[styles.exportOption, isSelected ? styles.exportOptionSelected : null]}
+                    style={styles.exportOption}
                   >
                     <View style={styles.exportOptionBody}>
                       <Text style={styles.exportOptionName}>{character.name}</Text>
@@ -182,7 +174,6 @@ export function HomeScreen({
                         {character.specialization ? ` · ${character.specialization}` : ""}
                       </Text>
                     </View>
-                    {isSelected ? <Text style={styles.exportOptionCheck}>Choisi</Text> : null}
                   </Pressable>
                 );
               })}
@@ -511,10 +502,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(148, 163, 184, 0.14)",
   },
-  exportOptionSelected: {
-    borderColor: "rgba(251, 191, 36, 0.42)",
-    backgroundColor: "rgba(68, 39, 7, 0.9)",
-  },
   exportOptionBody: {
     flex: 1,
     gap: 4,
@@ -526,13 +513,6 @@ const styles = StyleSheet.create({
   exportOptionMeta: {
     color: "#94a3b8",
     lineHeight: 18,
-  },
-  exportOptionCheck: {
-    color: "#fde68a",
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
   },
   exportPickerCloseButton: {
     alignSelf: "flex-end",
