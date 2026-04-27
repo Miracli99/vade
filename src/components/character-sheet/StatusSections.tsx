@@ -31,6 +31,7 @@ export function StatusSections({
         sectionBorder: theme.border,
         title: theme.title,
         subtitle: theme.subtitle,
+        cardBackgroundImage: theme.cardBackgroundImage,
       }}
       rightSlot={<SectionEditButton theme={theme} onPress={onEditResistances} />}
     >

@@ -30,7 +30,7 @@ export function AssetVisual({
     : small
       ? styles.assetVisualSmall
       : styles.assetVisual;
-  const imageResizeMode = "contain";
+  const imageResizeMode = character ? "cover" : "contain";
   const content = imageUrl || imageModule ? (
     <View style={[sizeStyle, styles.imageFrame]}>
       <Image
@@ -70,8 +70,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   characterVisualLarge: {
-    width: 144,
-    height: 188,
+    width: "100%",
+    aspectRatio: 0.76,
     borderRadius: 28,
   },
   assetVisualButton: {

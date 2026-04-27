@@ -1,5 +1,5 @@
 import { PropsWithChildren, ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ImageBackground, ImageSourcePropType, StyleSheet, Text, View } from "react-native";
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -10,19 +10,15 @@ type SectionProps = PropsWithChildren<{
     sectionBorder: string;
     title: string;
     subtitle: string;
+    cardBackgroundImage?: ImageSourcePropType;
   };
 }>;
 
 export function Section({ title, subtitle, rightSlot, children, theme }: SectionProps) {
-  return (
-    <View
-      style={[
-        styles.section,
-        theme
-          ? { backgroundColor: theme.sectionBg, borderColor: theme.sectionBorder }
-          : null,
-      ]}
-    >
+  const hasCardBackground = Boolean(theme?.cardBackgroundImage);
+  const content = (
+    <>
+      {hasCardBackground ? <View style={styles.textureOverlay} /> : null}
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={[styles.title, theme ? { color: theme.title } : null]}>{title}</Text>
@@ -35,12 +31,33 @@ export function Section({ title, subtitle, rightSlot, children, theme }: Section
         {rightSlot}
       </View>
       <View style={styles.content}>{children}</View>
-    </View>
+    </>
   );
+
+  const sectionStyle = [
+    styles.section,
+    theme ? { backgroundColor: theme.sectionBg, borderColor: theme.sectionBorder } : null,
+  ];
+
+  if (theme?.cardBackgroundImage) {
+    return (
+      <ImageBackground
+        source={theme.cardBackgroundImage}
+        style={sectionStyle}
+        imageStyle={styles.cardBackground}
+        resizeMode="repeat"
+      >
+        {content}
+      </ImageBackground>
+    );
+  }
+
+  return <View style={sectionStyle}>{content}</View>;
 }
 
 const styles = StyleSheet.create({
   section: {
+    position: "relative",
     gap: 12,
     paddingVertical: 18,
     paddingHorizontal: 16,
@@ -48,8 +65,22 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(10, 14, 28, 0.74)",
     borderWidth: 1,
     borderColor: "rgba(245, 158, 11, 0.14)",
+    overflow: "hidden",
+  },
+  cardBackground: {
+    borderRadius: 24,
+  },
+  textureOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.18)",
   },
   header: {
+    position: "relative",
+    zIndex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
@@ -70,6 +101,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   content: {
+    position: "relative",
+    zIndex: 1,
     gap: 12,
   },
 });

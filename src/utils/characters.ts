@@ -54,6 +54,7 @@ export function normalizeCharacter(character: Character): Character {
     specialization: character.specialization ?? "",
     bio: character.bio ?? "",
     theme: character.theme ?? "humain",
+    cardBackgroundsEnabled: character.cardBackgroundsEnabled ?? true,
     level: character.level,
     pv: normalizeResource(character.pv ?? DEFAULT_RESOURCE),
     psy: normalizeResource(character.psy ?? DEFAULT_RESOURCE, 0),

@@ -1,6 +1,7 @@
 export type CharacterSheetTheme = {
   pageBg: string;
   backgroundImage: number;
+  cardBackgroundImage?: number;
   panelBg: string;
   border: string;
   accent: string;

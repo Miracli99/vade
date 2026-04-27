@@ -25,6 +25,7 @@ export function InventorySection({ character, theme, onEdit }: InventorySectionP
         sectionBorder: theme.border,
         title: theme.title,
         subtitle: theme.subtitle,
+        cardBackgroundImage: theme.cardBackgroundImage,
       }}
       rightSlot={<SectionEditButton theme={theme} onPress={onEdit} />}
     >

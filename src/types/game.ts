@@ -119,6 +119,7 @@ export type Character = {
   imageUrl?: string;
   imageModule?: number;
   theme: CharacterTheme;
+  cardBackgroundsEnabled?: boolean;
   level?: number;
   pv: ResourcePool;
   psy: ResourcePool;

@@ -77,6 +77,22 @@ const THEME_BACKGROUNDS: Record<CharacterTheme, number> = {
   ronce: require("../../assets/themes/ronce.png"),
   miroir: require("../../assets/themes/miroir.png"),
 };
+const THEME_CARD_BACKGROUNDS: Record<CharacterTheme, number> = {
+  vide: require("../../assets/themes/card/vide.png"),
+  ange: require("../../assets/themes/card/ange.png"),
+  demon: require("../../assets/themes/card/demon.png"),
+  foret: require("../../assets/themes/card/foret.png"),
+  humain: require("../../assets/themes/card/humain.png"),
+  nain: require("../../assets/themes/card/nain.png"),
+  occulte: require("../../assets/themes/card/occulte.png"),
+  abyssal: require("../../assets/themes/card/abyssal.png"),
+  cendre: require("../../assets/themes/card/cendre.png"),
+  glace: require("../../assets/themes/card/glace.png"),
+  inquisition: require("../../assets/themes/card/inquisition.png"),
+  sang: require("../../assets/themes/card/sang.png"),
+  ronce: require("../../assets/themes/card/ronce.png"),
+  miroir: require("../../assets/themes/card/miroir.png"),
+};
 const APP_LOGO = require("../../assets/vade-retro-logo.png");
 const STAT_ICONS: Record<keyof Character["stats"], string> = {
   physique: "⚔",
@@ -120,6 +136,7 @@ const THEME_PRESETS: Record<
   {
     pageBg: string;
     backgroundImage: number;
+    cardBackgroundImage: number;
     panelBg: string;
     border: string;
     accent: string;
@@ -133,6 +150,7 @@ const THEME_PRESETS: Record<
   vide: {
     pageBg: "#04010a",
     backgroundImage: THEME_BACKGROUNDS.vide,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.vide,
     panelBg: "rgba(18, 8, 33, 0.88)",
     border: "rgba(168, 85, 247, 0.34)",
     accent: "#a855f7",
@@ -145,6 +163,7 @@ const THEME_PRESETS: Record<
   ange: {
     pageBg: "#f6f1df",
     backgroundImage: THEME_BACKGROUNDS.ange,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.ange,
     panelBg: "rgba(255, 252, 242, 0.94)",
     border: "rgba(217, 119, 6, 0.34)",
     accent: "#d4a017",
@@ -157,6 +176,7 @@ const THEME_PRESETS: Record<
   demon: {
     pageBg: "#0b0204",
     backgroundImage: THEME_BACKGROUNDS.demon,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.demon,
     panelBg: "rgba(32, 5, 16, 0.92)",
     border: "rgba(225, 29, 72, 0.44)",
     accent: "#fb174c",
@@ -169,6 +189,7 @@ const THEME_PRESETS: Record<
   foret: {
     pageBg: "#0c120b",
     backgroundImage: THEME_BACKGROUNDS.foret,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.foret,
     panelBg: "rgba(34, 24, 14, 0.88)",
     border: "rgba(34, 197, 94, 0.3)",
     accent: "#22c55e",
@@ -181,6 +202,7 @@ const THEME_PRESETS: Record<
   humain: {
     pageBg: "#111214",
     backgroundImage: THEME_BACKGROUNDS.humain,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.humain,
     panelBg: "rgba(58, 60, 66, 0.86)",
     border: "rgba(148, 163, 184, 0.3)",
     accent: "#94a3b8",
@@ -193,6 +215,7 @@ const THEME_PRESETS: Record<
   nain: {
     pageBg: "#11100d",
     backgroundImage: THEME_BACKGROUNDS.nain,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.nain,
     panelBg: "rgba(40, 34, 27, 0.9)",
     border: "rgba(180, 125, 50, 0.34)",
     accent: "#b47d32",
@@ -205,6 +228,7 @@ const THEME_PRESETS: Record<
   occulte: {
     pageBg: "#09070b",
     backgroundImage: THEME_BACKGROUNDS.occulte,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.occulte,
     panelBg: "rgba(22, 16, 20, 0.9)",
     border: "rgba(166, 124, 82, 0.34)",
     accent: "#a67c52",
@@ -217,6 +241,7 @@ const THEME_PRESETS: Record<
   abyssal: {
     pageBg: "#030b13",
     backgroundImage: THEME_BACKGROUNDS.abyssal,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.abyssal,
     panelBg: "rgba(8, 24, 38, 0.9)",
     border: "rgba(56, 189, 248, 0.28)",
     accent: "#38bdf8",
@@ -229,6 +254,7 @@ const THEME_PRESETS: Record<
   cendre: {
     pageBg: "#0d0d0c",
     backgroundImage: THEME_BACKGROUNDS.cendre,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.cendre,
     panelBg: "rgba(25, 25, 23, 0.92)",
     border: "rgba(251, 146, 60, 0.28)",
     accent: "#fb923c",
@@ -241,6 +267,7 @@ const THEME_PRESETS: Record<
   glace: {
     pageBg: "#eef8ff",
     backgroundImage: THEME_BACKGROUNDS.glace,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.glace,
     panelBg: "rgba(246, 252, 255, 0.95)",
     border: "rgba(14, 165, 233, 0.28)",
     accent: "#0ea5e9",
@@ -253,6 +280,7 @@ const THEME_PRESETS: Record<
   inquisition: {
     pageBg: "#060504",
     backgroundImage: THEME_BACKGROUNDS.inquisition,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.inquisition,
     panelBg: "rgba(16, 13, 11, 0.94)",
     border: "rgba(127, 29, 29, 0.38)",
     accent: "#991b1b",
@@ -265,6 +293,7 @@ const THEME_PRESETS: Record<
   sang: {
     pageBg: "#16040a",
     backgroundImage: THEME_BACKGROUNDS.sang,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.sang,
     panelBg: "rgba(42, 9, 20, 0.92)",
     border: "rgba(217, 119, 6, 0.3)",
     accent: "#d97706",
@@ -277,6 +306,7 @@ const THEME_PRESETS: Record<
   ronce: {
     pageBg: "#070d05",
     backgroundImage: THEME_BACKGROUNDS.ronce,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.ronce,
     panelBg: "rgba(18, 28, 11, 0.91)",
     border: "rgba(190, 242, 100, 0.3)",
     accent: "#bef264",
@@ -289,6 +319,7 @@ const THEME_PRESETS: Record<
   miroir: {
     pageBg: "#061113",
     backgroundImage: THEME_BACKGROUNDS.miroir,
+    cardBackgroundImage: THEME_CARD_BACKGROUNDS.miroir,
     panelBg: "rgba(10, 24, 26, 0.9)",
     border: "rgba(203, 213, 225, 0.32)",
     accent: "#cbd5e1",
@@ -734,6 +765,11 @@ export function CharacterSheetScreen({
     return null;
   }
   const activeTheme = THEME_PRESETS[selectedCharacter.theme ?? "humain"];
+  const cardBackgroundsEnabled = selectedCharacter.cardBackgroundsEnabled ?? true;
+  const draftCardBackgroundsEnabled = draftCharacter?.cardBackgroundsEnabled ?? true;
+  const sectionTheme = cardBackgroundsEnabled
+    ? activeTheme
+    : { ...activeTheme, cardBackgroundImage: undefined };
   const selectedQuickCastSpell =
     quickCastDraft?.kind === "spell"
       ? selectedCharacter.spells.find((spell) => spell.id === quickCastDraft.id) ?? null
@@ -809,6 +845,17 @@ export function CharacterSheetScreen({
 
     return () => clearTimeout(timeout);
   }, [rosterMessage]);
+
+  function toggleCardBackgrounds() {
+    setDraftCharacter((current) =>
+      current
+        ? {
+            ...current,
+            cardBackgroundsEnabled: !(current.cardBackgroundsEnabled ?? true),
+          }
+        : current,
+    );
+  }
   const editorSectionTitleStyle = [styles.editorGroupTitle, { color: activeTheme.title }];
   const editorHintStyle = [styles.editorHint, { color: activeTheme.subtitle }];
   const editorCardStyle = [
@@ -2184,7 +2231,6 @@ export function CharacterSheetScreen({
           style={[
             styles.heroVisualCard,
             isPhone ? styles.heroVisualCardPhone : null,
-            { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
           ]}
         >
           <AssetVisual
@@ -2279,6 +2325,7 @@ export function CharacterSheetScreen({
             sectionBorder: activeTheme.border,
             title: activeTheme.title,
             subtitle: activeTheme.subtitle,
+            cardBackgroundImage: sectionTheme.cardBackgroundImage,
           }}
           rightSlot={
             <View style={styles.editorActions}>
@@ -2369,25 +2416,48 @@ export function CharacterSheetScreen({
           </View>
           <View style={styles.editorGroup}>
             <Text style={editorSectionTitleStyle}>Theme</Text>
-            <View style={styles.editorDropdownWrap}>
+            <View style={styles.editorThemeControlRow}>
+              <View style={[styles.editorDropdownWrap, styles.editorThemeDropdownWrap]}>
+                <Pressable
+                  onPress={() =>
+                    setActiveOverlayMenu((current) =>
+                      current === "editorTheme" ? null : "editorTheme",
+                    )
+                  }
+                  style={[
+                    styles.editorSelectButton,
+                    {
+                      backgroundColor: activeTheme.chipBg,
+                      borderColor: activeTheme.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.editorSelectValue, { color: activeTheme.title }]}>
+                    {THEME_LABELS[draftCharacter.theme]}
+                  </Text>
+                  <Text style={[styles.editorSelectChevron, { color: activeTheme.title }]}>▾</Text>
+                </Pressable>
+              </View>
               <Pressable
-                onPress={() =>
-                  setActiveOverlayMenu((current) =>
-                    current === "editorTheme" ? null : "editorTheme",
-                  )
-                }
+                onPress={toggleCardBackgrounds}
                 style={[
-                  styles.editorSelectButton,
+                  styles.cardBackgroundToggle,
+                  styles.editorCardBackgroundToggle,
                   {
-                    backgroundColor: activeTheme.chipBg,
-                    borderColor: activeTheme.border,
+                    backgroundColor: draftCardBackgroundsEnabled ? activeTheme.buttonBg : activeTheme.chipBg,
+                    borderColor: draftCardBackgroundsEnabled ? activeTheme.accent : activeTheme.border,
                   },
                 ]}
               >
-                <Text style={[styles.editorSelectValue, { color: activeTheme.title }]}>
-                  {THEME_LABELS[draftCharacter.theme]}
+                <Text
+                  style={[
+                    styles.cardBackgroundToggleLabel,
+                    { color: draftCardBackgroundsEnabled ? activeTheme.buttonText : activeTheme.title },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {draftCardBackgroundsEnabled ? "Fonds cards actifs" : "Fonds cards inactifs"}
                 </Text>
-                <Text style={[styles.editorSelectChevron, { color: activeTheme.title }]}>▾</Text>
               </Pressable>
             </View>
             <Text style={editorHintStyle}>{THEME_DESCRIPTIONS[draftCharacter.theme]}</Text>
@@ -4610,7 +4680,7 @@ export function CharacterSheetScreen({
             >
               <ResourcesSection
                 character={selectedCharacter}
-                theme={activeTheme}
+                theme={sectionTheme}
                 onEdit={() => openSectionEditor("resources")}
                 onAdjustResource={(resourceKey, delta) =>
                   updateResource(selectedCharacter.id, resourceKey, delta)
@@ -4622,7 +4692,7 @@ export function CharacterSheetScreen({
               />
               <InventorySection
                 character={selectedCharacter}
-                theme={activeTheme}
+                theme={sectionTheme}
                 onEdit={() => openSectionEditor("inventory")}
               />
             </View>
@@ -4637,18 +4707,18 @@ export function CharacterSheetScreen({
               {renderQuickActions()}
               <StatsSkillsSection
                 character={selectedCharacter}
-                theme={activeTheme}
+                theme={sectionTheme}
                 onEditStats={() => openSectionEditor("stats")}
                 onEditSkills={() => openSectionEditor("skills")}
               />
           <StatusSections
             character={selectedCharacter}
-            theme={activeTheme}
+            theme={sectionTheme}
             onEditResistances={() => openSectionEditor("resistances")}
           />
               <SpellsSection
                 character={selectedCharacter}
-                theme={activeTheme}
+                theme={sectionTheme}
                 onEdit={() => openSectionEditor("spells")}
                 onToggleSpellActive={(spellId) =>
                   toggleSpellActive(selectedCharacter.id, spellId)
@@ -4658,7 +4728,7 @@ export function CharacterSheetScreen({
           </View>
           <EquipmentSection
             character={selectedCharacter}
-            theme={activeTheme}
+            theme={sectionTheme}
             onEdit={() => openSectionEditor("equipment")}
           />
         </>
@@ -4666,7 +4736,7 @@ export function CharacterSheetScreen({
         <>
           <ResourcesSection
             character={selectedCharacter}
-            theme={activeTheme}
+            theme={sectionTheme}
             onEdit={() => openSectionEditor("resources")}
             onAdjustResource={(resourceKey, delta) =>
               updateResource(selectedCharacter.id, resourceKey, delta)
@@ -4681,33 +4751,33 @@ export function CharacterSheetScreen({
 
           <StatsSkillsSection
             character={selectedCharacter}
-            theme={activeTheme}
+            theme={sectionTheme}
             onEditStats={() => openSectionEditor("stats")}
             onEditSkills={() => openSectionEditor("skills")}
           />
 
           <StatusSections
             character={selectedCharacter}
-            theme={activeTheme}
+            theme={sectionTheme}
             onEditResistances={() => openSectionEditor("resistances")}
           />
 
           <InventorySection
             character={selectedCharacter}
-            theme={activeTheme}
+            theme={sectionTheme}
             onEdit={() => openSectionEditor("inventory")}
           />
 
           <SpellsSection
             character={selectedCharacter}
-            theme={activeTheme}
+            theme={sectionTheme}
             onEdit={() => openSectionEditor("spells")}
             onToggleSpellActive={(spellId) => toggleSpellActive(selectedCharacter.id, spellId)}
           />
 
           <EquipmentSection
             character={selectedCharacter}
-            theme={activeTheme}
+            theme={sectionTheme}
             onEdit={() => openSectionEditor("equipment")}
           />
         </>
@@ -4863,6 +4933,24 @@ const styles = StyleSheet.create({
     color: "#f8fafc",
     fontWeight: "800",
   },
+  cardBackgroundToggle: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 64,
+  },
+  cardBackgroundToggleMobile: {
+    width: "100%",
+  },
+  cardBackgroundToggleLabel: {
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
   navMenuWrap: {
     position: "relative",
     minWidth: 230,
@@ -4986,18 +5074,17 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
   },
   heroVisualCard: {
-    width: 172,
+    width: "26%",
+    minWidth: 160,
+    maxWidth: 230,
     flexShrink: 0,
-    padding: 10,
-    borderRadius: 26,
-    borderWidth: 1,
-    gap: 10,
     alignItems: "center",
     alignSelf: "flex-start",
   },
   heroVisualCardPhone: {
     width: "100%",
-    maxWidth: 180,
+    minWidth: 0,
+    maxWidth: undefined,
   },
   heroVisualBadge: {
     alignSelf: "stretch",
@@ -5467,6 +5554,22 @@ const styles = StyleSheet.create({
   editorDropdownWrap: {
     position: "relative",
     zIndex: 60,
+  },
+  editorThemeControlRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  editorThemeDropdownWrap: {
+    flex: 1,
+    minWidth: 180,
+  },
+  editorCardBackgroundToggle: {
+    minHeight: 44,
+    minWidth: 150,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
   editorSelectButton: {
     minHeight: 44,
