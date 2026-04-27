@@ -3,7 +3,7 @@
     "name": "Vade Retro Companion",
     "slug": "vade-retro-companion",
     "scheme": "vaderetro",
-    "version": "0.1.7",
+    "version": "0.1.88",
     "icon": "./assets/vade-retro-logo.png",
     "orientation": "default",
     "userInterfaceStyle": "dark",
