@@ -1,10 +1,13 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { LOCAL_IMAGE_LIBRARY } from "../../data/image-library";
+
 type AssetVisualProps = {
   label: string;
   icon?: string;
   imageUrl?: string;
   imageModule?: number;
+  thumbnailModule?: number;
   small?: boolean;
   character?: boolean;
   large?: boolean;
@@ -17,6 +20,7 @@ export function AssetVisual({
   icon,
   imageUrl,
   imageModule,
+  thumbnailModule,
   small = false,
   character = false,
   large = false,
@@ -31,10 +35,13 @@ export function AssetVisual({
       ? styles.assetVisualSmall
       : styles.assetVisual;
   const imageResizeMode = character ? "cover" : "contain";
-  const content = imageUrl || imageModule ? (
+  const resolvedThumbnailModule =
+    thumbnailModule ?? (large ? undefined : getThumbnailModuleForImage(imageModule));
+  const resolvedImageModule = resolvedThumbnailModule ?? imageModule;
+  const content = imageUrl || resolvedImageModule ? (
     <View style={[sizeStyle, styles.imageFrame]}>
       <Image
-        source={imageUrl ? { uri: imageUrl } : imageModule}
+        source={imageUrl ? { uri: imageUrl } : resolvedImageModule}
         style={styles.imageContent}
         resizeMode={imageResizeMode}
       />
@@ -56,6 +63,20 @@ export function AssetVisual({
   }
 
   return content;
+}
+
+const thumbnailByImageModule = new Map<number, number>();
+
+Object.values(LOCAL_IMAGE_LIBRARY).forEach((options) => {
+  options.forEach((option) => {
+    if (option.thumbnailModule) {
+      thumbnailByImageModule.set(option.imageModule, option.thumbnailModule);
+    }
+  });
+});
+
+function getThumbnailModuleForImage(imageModule?: number) {
+  return imageModule ? thumbnailByImageModule.get(imageModule) : undefined;
 }
 
 const styles = StyleSheet.create({

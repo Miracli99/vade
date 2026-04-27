@@ -13,6 +13,7 @@ export type LocalImageOption = {
   category: ImageLibraryCategory;
   tags: string[];
   imageModule: number;
+  thumbnailModule?: number;
 };
 
 export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[]> = {
@@ -23,6 +24,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["ame","ancree","character","f","lanterne"],
       imageModule: require("../../assets/characters/ame_ancree_lanterne_f.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/ame_ancree_lanterne_f.png"),
     },
     {
       id: "char-ame-ancree-lanterne",
@@ -30,6 +32,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["ame","ancree","character","lanterne"],
       imageModule: require("../../assets/characters/ame_ancree_lanterne.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/ame_ancree_lanterne.png"),
     },
     {
       id: "char-ame-ancree-veilleuse",
@@ -37,6 +40,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["ame","ancree","character","veilleuse"],
       imageModule: require("../../assets/characters/ame_ancree_veilleuse.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/ame_ancree_veilleuse.png"),
     },
     {
       id: "char-cleric-hunter",
@@ -44,6 +48,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["character","cleric","hunter"],
       imageModule: require("../../assets/characters/cleric_hunter.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/cleric_hunter.png"),
     },
     {
       id: "char-demi-ange-melancolique-f",
@@ -51,6 +56,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["ange","character","demi","f","melancolique"],
       imageModule: require("../../assets/characters/demi_ange_melancolique_f.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/demi_ange_melancolique_f.png"),
     },
     {
       id: "char-demi-ange-melancolique",
@@ -58,6 +64,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["ange","character","demi","melancolique"],
       imageModule: require("../../assets/characters/demi_ange_melancolique.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/demi_ange_melancolique.png"),
     },
     {
       id: "char-demi-ange-solaire",
@@ -65,6 +72,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["ange","character","demi","solaire"],
       imageModule: require("../../assets/characters/demi_ange_solaire.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/demi_ange_solaire.png"),
     },
     {
       id: "char-demi-demon-heritier",
@@ -72,6 +80,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["character","demi","demon","heritier"],
       imageModule: require("../../assets/characters/demi_demon_heritier.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/demi_demon_heritier.png"),
     },
     {
       id: "char-demi-demone-braise-noble",
@@ -79,6 +88,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["braise","character","demi","demone","noble"],
       imageModule: require("../../assets/characters/demi_demone_braise_noble.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/demi_demone_braise_noble.png"),
     },
     {
       id: "char-demi-demone-heritiere",
@@ -86,6 +96,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["character","demi","demone","heritiere"],
       imageModule: require("../../assets/characters/demi_demone_heritiere.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/demi_demone_heritiere.png"),
     },
     {
       id: "char-demoniste",
@@ -93,6 +104,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["character","demoniste"],
       imageModule: require("../../assets/characters/demoniste.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/demoniste.png"),
     },
     {
       id: "char-enfant-foret-ancien",
@@ -100,6 +112,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["ancien","character","enfant","foret"],
       imageModule: require("../../assets/characters/enfant_foret_ancien.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/enfant_foret_ancien.png"),
     },
     {
       id: "char-enfant-foret-ancienne-f",
@@ -107,6 +120,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["ancienne","character","enfant","f","foret"],
       imageModule: require("../../assets/characters/enfant_foret_ancienne_f.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/enfant_foret_ancienne_f.png"),
     },
     {
       id: "char-enfant-foret-florale",
@@ -114,6 +128,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["character","enfant","florale","foret"],
       imageModule: require("../../assets/characters/enfant_foret_florale.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/enfant_foret_florale.png"),
     },
     {
       id: "char-guerisseur-foret",
@@ -121,6 +136,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["character","foret","guerisseur"],
       imageModule: require("../../assets/characters/guerisseur_foret.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/guerisseur_foret.png"),
     },
     {
       id: "char-humain-occultiste",
@@ -128,6 +144,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["character","humain","occultiste"],
       imageModule: require("../../assets/characters/humain_occultiste.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/humain_occultiste.png"),
     },
     {
       id: "char-humain-veilleur-sacre",
@@ -135,6 +152,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["character","humain","sacre","veilleur"],
       imageModule: require("../../assets/characters/humain_veilleur_sacre.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/humain_veilleur_sacre.png"),
     },
     {
       id: "char-humaine-occultiste",
@@ -142,6 +160,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["character","humaine","occultiste"],
       imageModule: require("../../assets/characters/humaine_occultiste.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/humaine_occultiste.png"),
     },
     {
       id: "char-paladin-ange",
@@ -149,6 +168,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "character",
       tags: ["ange","character","paladin"],
       imageModule: require("../../assets/characters/paladin_ange.png"),
+      thumbnailModule: require("../../assets/thumbnails/characters/paladin_ange.png"),
     }
   ],
   spell: [
@@ -158,6 +178,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["alchemy","athanor","spell"],
       imageModule: require("../../assets/spells/alchemy_athanor.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/alchemy_athanor.png"),
     },
     {
       id: "spell-alchemy-crossed-vials",
@@ -165,6 +186,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["alchemy","crossed","spell","vials"],
       imageModule: require("../../assets/spells/alchemy_crossed_vials.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/alchemy_crossed_vials.png"),
     },
     {
       id: "spell-alchemy-flask",
@@ -172,6 +194,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["alchemy","flask","spell"],
       imageModule: require("../../assets/spells/alchemy_flask.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/alchemy_flask.png"),
     },
     {
       id: "spell-alchemy-mortar-pestle",
@@ -179,6 +202,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["alchemy","mortar","pestle","spell"],
       imageModule: require("../../assets/spells/alchemy_mortar_pestle.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/alchemy_mortar_pestle.png"),
     },
     {
       id: "spell-alchemy-philosopher-stone",
@@ -186,6 +210,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["alchemy","philosopher","spell","stone"],
       imageModule: require("../../assets/spells/alchemy_philosopher_stone.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/alchemy_philosopher_stone.png"),
     },
     {
       id: "spell-angel-demon-balance-altar",
@@ -193,6 +218,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["altar","angel","balance","demon","spell"],
       imageModule: require("../../assets/spells/angel_demon_balance_altar.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/angel_demon_balance_altar.png"),
     },
     {
       id: "spell-angel-demon-covenant-chalice",
@@ -200,6 +226,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["angel","chalice","covenant","demon","spell"],
       imageModule: require("../../assets/spells/angel_demon_covenant_chalice.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/angel_demon_covenant_chalice.png"),
     },
     {
       id: "spell-angel-demon-dual-shield",
@@ -207,6 +234,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["angel","demon","dual","shield","spell"],
       imageModule: require("../../assets/spells/angel_demon_dual_shield.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/angel_demon_dual_shield.png"),
     },
     {
       id: "spell-angel-demon-eclipse-aura",
@@ -214,6 +242,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["angel","aura","demon","eclipse","spell"],
       imageModule: require("../../assets/spells/angel_demon_eclipse_aura.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/angel_demon_eclipse_aura.png"),
     },
     {
       id: "spell-angel-demon-eclipse-lance",
@@ -221,6 +250,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["angel","demon","eclipse","lance","spell"],
       imageModule: require("../../assets/spells/angel_demon_eclipse_lance.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/angel_demon_eclipse_lance.png"),
     },
     {
       id: "spell-angel-demon-enchanted-sword",
@@ -228,6 +258,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["angel","demon","enchanted","spell","sword"],
       imageModule: require("../../assets/spells/angel_demon_enchanted_sword.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/angel_demon_enchanted_sword.png"),
     },
     {
       id: "spell-angel-demon-halo-horn-crown",
@@ -235,6 +266,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["angel","crown","demon","halo","horn","spell"],
       imageModule: require("../../assets/spells/angel_demon_halo_horn_crown.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/angel_demon_halo_horn_crown.png"),
     },
     {
       id: "spell-angel-demon-judgement-chain",
@@ -242,6 +274,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["angel","chain","demon","judgement","spell"],
       imageModule: require("../../assets/spells/angel_demon_judgement_chain.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/angel_demon_judgement_chain.png"),
     },
     {
       id: "spell-angel-demon-requiem-tome",
@@ -249,6 +282,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["angel","demon","requiem","spell","tome"],
       imageModule: require("../../assets/spells/angel_demon_requiem_tome.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/angel_demon_requiem_tome.png"),
     },
     {
       id: "spell-angel-demon-winged-sigil",
@@ -256,6 +290,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["angel","demon","sigil","spell","winged"],
       imageModule: require("../../assets/spells/angel_demon_winged_sigil.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/angel_demon_winged_sigil.png"),
     },
     {
       id: "spell-arcane-astral-prism",
@@ -263,6 +298,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["arcane","astral","prism","spell"],
       imageModule: require("../../assets/spells/arcane_astral_prism.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/arcane_astral_prism.png"),
     },
     {
       id: "spell-arcane-chronicle-gate",
@@ -270,6 +306,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["arcane","chronicle","gate","spell"],
       imageModule: require("../../assets/spells/arcane_chronicle_gate.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/arcane_chronicle_gate.png"),
     },
     {
       id: "spell-arcane-ether-compass",
@@ -277,6 +314,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["arcane","compass","ether","spell"],
       imageModule: require("../../assets/spells/arcane_ether_compass.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/arcane_ether_compass.png"),
     },
     {
       id: "spell-arcane-runic-nexus",
@@ -284,6 +322,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["arcane","nexus","runic","spell"],
       imageModule: require("../../assets/spells/arcane_runic_nexus.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/arcane_runic_nexus.png"),
     },
     {
       id: "spell-arcane-void-star",
@@ -291,6 +330,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["arcane","spell","star","void"],
       imageModule: require("../../assets/spells/arcane_void_star.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/arcane_void_star.png"),
     },
     {
       id: "spell-chaos-broken-sigil",
@@ -298,6 +338,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["broken","chaos","sigil","spell"],
       imageModule: require("../../assets/spells/chaos_broken_sigil.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/chaos_broken_sigil.png"),
     },
     {
       id: "spell-chaos-rune-blade",
@@ -305,6 +346,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["blade","chaos","rune","spell"],
       imageModule: require("../../assets/spells/chaos_rune_blade.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/chaos_rune_blade.png"),
     },
     {
       id: "spell-chaos-shattered-core",
@@ -312,6 +354,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["chaos","core","shattered","spell"],
       imageModule: require("../../assets/spells/chaos_shattered_core.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/chaos_shattered_core.png"),
     },
     {
       id: "spell-chaos-twisted-crown",
@@ -319,6 +362,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["chaos","crown","spell","twisted"],
       imageModule: require("../../assets/spells/chaos_twisted_crown.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/chaos_twisted_crown.png"),
     },
     {
       id: "spell-chaos-warped-hourglass",
@@ -326,6 +370,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["chaos","hourglass","spell","warped"],
       imageModule: require("../../assets/spells/chaos_warped_hourglass.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/chaos_warped_hourglass.png"),
     },
     {
       id: "spell-cosmic-black-hole-iris",
@@ -333,6 +378,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["black","cosmic","hole","iris","spell"],
       imageModule: require("../../assets/spells/cosmic_black_hole_iris.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/cosmic_black_hole_iris.png"),
     },
     {
       id: "spell-cosmic-comet-spear",
@@ -340,6 +386,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["comet","cosmic","spear","spell"],
       imageModule: require("../../assets/spells/cosmic_comet_spear.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/cosmic_comet_spear.png"),
     },
     {
       id: "spell-cosmic-hourglass",
@@ -347,6 +394,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["cosmic","hourglass","spell"],
       imageModule: require("../../assets/spells/cosmic_hourglass.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/cosmic_hourglass.png"),
     },
     {
       id: "spell-cosmic-moon-reliquary",
@@ -354,6 +402,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["cosmic","moon","reliquary","spell"],
       imageModule: require("../../assets/spells/cosmic_moon_reliquary.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/cosmic_moon_reliquary.png"),
     },
     {
       id: "spell-cosmic-star-compass",
@@ -361,6 +410,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["compass","cosmic","spell","star"],
       imageModule: require("../../assets/spells/cosmic_star_compass.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/cosmic_star_compass.png"),
     },
     {
       id: "spell-dark-sacred-black-chalice",
@@ -368,6 +418,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["black","chalice","dark","sacred","spell"],
       imageModule: require("../../assets/spells/dark_sacred_black_chalice.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/dark_sacred_black_chalice.png"),
     },
     {
       id: "spell-dark-sacred-broken-halo",
@@ -375,6 +426,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["broken","dark","halo","sacred","spell"],
       imageModule: require("../../assets/spells/dark_sacred_broken_halo.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/dark_sacred_broken_halo.png"),
     },
     {
       id: "spell-dark-sacred-inverted-bell",
@@ -382,6 +434,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["bell","dark","inverted","sacred","spell"],
       imageModule: require("../../assets/spells/dark_sacred_inverted_bell.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/dark_sacred_inverted_bell.png"),
     },
     {
       id: "spell-dark-sacred-prayer-tome",
@@ -389,6 +442,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["dark","prayer","sacred","spell","tome"],
       imageModule: require("../../assets/spells/dark_sacred_prayer_tome.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/dark_sacred_prayer_tome.png"),
     },
     {
       id: "spell-dark-sacred-thorned-cross",
@@ -396,6 +450,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["cross","dark","sacred","spell","thorned"],
       imageModule: require("../../assets/spells/dark_sacred_thorned_cross.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/dark_sacred_thorned_cross.png"),
     },
     {
       id: "spell-demon-altar-sigil",
@@ -403,6 +458,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["altar","demon","sigil","spell"],
       imageModule: require("../../assets/spells/demon_altar_sigil.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/demon_altar_sigil.png"),
     },
     {
       id: "spell-demon-claw-crystal",
@@ -410,6 +466,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["claw","crystal","demon","spell"],
       imageModule: require("../../assets/spells/demon_claw_crystal.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/demon_claw_crystal.png"),
     },
     {
       id: "spell-demon-grimoire",
@@ -417,6 +474,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["demon","grimoire","spell"],
       imageModule: require("../../assets/spells/demon_grimoire.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/demon_grimoire.png"),
     },
     {
       id: "spell-demon-horned-sigil",
@@ -424,6 +482,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["demon","horned","sigil","spell"],
       imageModule: require("../../assets/spells/demon_horned_sigil.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/demon_horned_sigil.png"),
     },
     {
       id: "spell-demon-summon",
@@ -431,6 +490,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["demon","spell","summon"],
       imageModule: require("../../assets/spells/demon_summon.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/demon_summon.png"),
     },
     {
       id: "spell-druid-moon-antlers",
@@ -438,6 +498,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["antlers","druid","moon","spell"],
       imageModule: require("../../assets/spells/druid_moon_antlers.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/druid_moon_antlers.png"),
     },
     {
       id: "spell-druid-stone-bear",
@@ -445,6 +506,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["bear","druid","spell","stone"],
       imageModule: require("../../assets/spells/druid_stone_bear.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/druid_stone_bear.png"),
     },
     {
       id: "spell-druid-sun-seed",
@@ -452,6 +514,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["druid","seed","spell","sun"],
       imageModule: require("../../assets/spells/druid_sun_seed.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/druid_sun_seed.png"),
     },
     {
       id: "spell-druid-thorn-circle",
@@ -459,6 +522,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["circle","druid","spell","thorn"],
       imageModule: require("../../assets/spells/druid_thorn_circle.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/druid_thorn_circle.png"),
     },
     {
       id: "spell-druid-world-tree",
@@ -466,6 +530,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["druid","spell","tree","world"],
       imageModule: require("../../assets/spells/druid_world_tree.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/druid_world_tree.png"),
     },
     {
       id: "spell-earth-basalt-axe",
@@ -473,6 +538,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["axe","basalt","earth","spell"],
       imageModule: require("../../assets/spells/earth_basalt_axe.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/earth_basalt_axe.png"),
     },
     {
       id: "spell-earth-crystal-obelisk",
@@ -480,6 +546,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["crystal","earth","obelisk","spell"],
       imageModule: require("../../assets/spells/earth_crystal_obelisk.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/earth_crystal_obelisk.png"),
     },
     {
       id: "spell-earth-mountain-heart",
@@ -487,6 +554,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["earth","heart","mountain","spell"],
       imageModule: require("../../assets/spells/earth_mountain_heart.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/earth_mountain_heart.png"),
     },
     {
       id: "spell-earth-sandstone-tower",
@@ -494,6 +562,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["earth","sandstone","spell","tower"],
       imageModule: require("../../assets/spells/earth_sandstone_tower.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/earth_sandstone_tower.png"),
     },
     {
       id: "spell-earth-stone-gauntlet",
@@ -501,6 +570,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["earth","gauntlet","spell","stone"],
       imageModule: require("../../assets/spells/earth_stone_gauntlet.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/earth_stone_gauntlet.png"),
     },
     {
       id: "spell-enchanter-arcane-orb",
@@ -508,6 +578,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["arcane","enchanter","orb","spell"],
       imageModule: require("../../assets/spells/enchanter_arcane_orb.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/enchanter_arcane_orb.png"),
     },
     {
       id: "spell-enchanter-linked-masks",
@@ -515,6 +586,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["enchanter","linked","masks","spell"],
       imageModule: require("../../assets/spells/enchanter_linked_masks.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/enchanter_linked_masks.png"),
     },
     {
       id: "spell-enchanter-mind-crown",
@@ -522,6 +594,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["crown","enchanter","mind","spell"],
       imageModule: require("../../assets/spells/enchanter_mind_crown.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/enchanter_mind_crown.png"),
     },
     {
       id: "spell-enchanter-pendulum",
@@ -529,6 +602,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["enchanter","pendulum","spell"],
       imageModule: require("../../assets/spells/enchanter_pendulum.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/enchanter_pendulum.png"),
     },
     {
       id: "spell-enchanter-spellbook",
@@ -536,6 +610,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["enchanter","spell","spellbook"],
       imageModule: require("../../assets/spells/enchanter_spellbook.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/enchanter_spellbook.png"),
     },
     {
       id: "spell-holy-angel",
@@ -543,6 +618,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["angel","holy","spell"],
       imageModule: require("../../assets/spells/holy_angel.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/holy_angel.png"),
     },
     {
       id: "spell-holy-book",
@@ -550,6 +626,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["book","holy","spell"],
       imageModule: require("../../assets/spells/holy_book.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/holy_book.png"),
     },
     {
       id: "spell-holy-bubble",
@@ -557,6 +634,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["bubble","holy","spell"],
       imageModule: require("../../assets/spells/holy_bubble.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/holy_bubble.png"),
     },
     {
       id: "spell-holy-hammer",
@@ -564,6 +642,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["hammer","holy","spell"],
       imageModule: require("../../assets/spells/holy_hammer.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/holy_hammer.png"),
     },
     {
       id: "spell-holy-hand",
@@ -571,6 +650,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["hand","holy","spell"],
       imageModule: require("../../assets/spells/holy_hand.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/holy_hand.png"),
     },
     {
       id: "spell-holy-shield",
@@ -578,6 +658,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["holy","shield","spell"],
       imageModule: require("../../assets/spells/holy_shield.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/holy_shield.png"),
     },
     {
       id: "spell-holy-sword",
@@ -585,6 +666,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["holy","spell","sword"],
       imageModule: require("../../assets/spells/holy_sword.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/holy_sword.png"),
     },
     {
       id: "spell-lightning-crossed-blades",
@@ -592,6 +674,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["blades","crossed","lightning","spell"],
       imageModule: require("../../assets/spells/lightning_crossed_blades.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/lightning_crossed_blades.png"),
     },
     {
       id: "spell-lightning-storm-bell",
@@ -599,6 +682,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["bell","lightning","spell","storm"],
       imageModule: require("../../assets/spells/lightning_storm_bell.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/lightning_storm_bell.png"),
     },
     {
       id: "spell-lightning-storm-eye",
@@ -606,6 +690,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["eye","lightning","spell","storm"],
       imageModule: require("../../assets/spells/lightning_storm_eye.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/lightning_storm_eye.png"),
     },
     {
       id: "spell-paladin-cross",
@@ -613,6 +698,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["cross","paladin","spell"],
       imageModule: require("../../assets/spells/paladin_cross.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/paladin_cross.png"),
     },
     {
       id: "spell-paladin-shield",
@@ -620,6 +706,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["paladin","shield","spell"],
       imageModule: require("../../assets/spells/paladin_shield.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/paladin_shield.png"),
     },
     {
       id: "spell-rogue-night-shard",
@@ -627,6 +714,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["night","rogue","shard","spell"],
       imageModule: require("../../assets/spells/rogue_night_shard.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/rogue_night_shard.png"),
     },
     {
       id: "spell-rogue-shadow-dagger",
@@ -634,6 +722,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["dagger","rogue","shadow","spell"],
       imageModule: require("../../assets/spells/rogue_shadow_dagger.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/rogue_shadow_dagger.png"),
     },
     {
       id: "spell-rogue-smoke-step",
@@ -641,6 +730,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["rogue","smoke","spell","step"],
       imageModule: require("../../assets/spells/rogue_smoke_step.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/rogue_smoke_step.png"),
     },
     {
       id: "spell-rogue-venom-sigil",
@@ -648,6 +738,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["rogue","sigil","spell","venom"],
       imageModule: require("../../assets/spells/rogue_venom_sigil.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/rogue_venom_sigil.png"),
     },
     {
       id: "spell-shadow-crescent-dagger",
@@ -655,6 +746,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["crescent","dagger","shadow","spell"],
       imageModule: require("../../assets/spells/shadow_crescent_dagger.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/shadow_crescent_dagger.png"),
     },
     {
       id: "spell-shadow-dark-eclipse",
@@ -662,6 +754,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["dark","eclipse","shadow","spell"],
       imageModule: require("../../assets/spells/shadow_dark_eclipse.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/shadow_dark_eclipse.png"),
     },
     {
       id: "spell-shadow-lantern",
@@ -669,6 +762,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["lantern","shadow","spell"],
       imageModule: require("../../assets/spells/shadow_lantern.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/shadow_lantern.png"),
     },
     {
       id: "spell-shadow-mirror-shard",
@@ -676,6 +770,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["mirror","shadow","shard","spell"],
       imageModule: require("../../assets/spells/shadow_mirror_shard.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/shadow_mirror_shard.png"),
     },
     {
       id: "spell-shadow-wings-core",
@@ -683,6 +778,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["core","shadow","spell","wings"],
       imageModule: require("../../assets/spells/shadow_wings_core.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/shadow_wings_core.png"),
     },
     {
       id: "spell-sonic-ritual-bell",
@@ -690,6 +786,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["bell","ritual","sonic","spell"],
       imageModule: require("../../assets/spells/sonic_ritual_bell.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/sonic_ritual_bell.png"),
     },
     {
       id: "spell-sonic-tuning-fork",
@@ -697,6 +794,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["fork","sonic","spell","tuning"],
       imageModule: require("../../assets/spells/sonic_tuning_fork.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/sonic_tuning_fork.png"),
     },
     {
       id: "spell-vampiric-black-heart",
@@ -704,6 +802,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["black","heart","spell","vampiric"],
       imageModule: require("../../assets/spells/vampiric_black_heart.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/vampiric_black_heart.png"),
     },
     {
       id: "spell-vampiric-black-rose",
@@ -711,6 +810,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["black","rose","spell","vampiric"],
       imageModule: require("../../assets/spells/vampiric_black_rose.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/vampiric_black_rose.png"),
     },
     {
       id: "spell-vampiric-chalice",
@@ -718,6 +818,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["chalice","spell","vampiric"],
       imageModule: require("../../assets/spells/vampiric_chalice.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/vampiric_chalice.png"),
     },
     {
       id: "spell-vampiric-fangs-moon",
@@ -725,6 +826,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["fangs","moon","spell","vampiric"],
       imageModule: require("../../assets/spells/vampiric_fangs_moon.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/vampiric_fangs_moon.png"),
     },
     {
       id: "spell-vampiric-rune-blade",
@@ -732,6 +834,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "spell",
       tags: ["blade","rune","spell","vampiric"],
       imageModule: require("../../assets/spells/vampiric_rune_blade.png"),
+      thumbnailModule: require("../../assets/thumbnails/spells/vampiric_rune_blade.png"),
     }
   ],
   equipment: [
@@ -741,6 +844,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["amulette","equipment"],
       imageModule: require("../../assets/equipment/amulette.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/amulette.png"),
     },
     {
       id: "equip-arc-angelique",
@@ -748,6 +852,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["angelique","arc","equipment"],
       imageModule: require("../../assets/equipment/arc_angelique.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/arc_angelique.png"),
     },
     {
       id: "equip-arc-druide",
@@ -755,6 +860,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["arc","druide","equipment"],
       imageModule: require("../../assets/equipment/arc_druide.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/arc_druide.png"),
     },
     {
       id: "equip-armure-chevalier-rouge",
@@ -762,6 +868,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["armure","chevalier","equipment","rouge"],
       imageModule: require("../../assets/equipment/armure_chevalier_rouge.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/armure_chevalier_rouge.png"),
     },
     {
       id: "equip-armure-chevalier",
@@ -769,6 +876,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["armure","chevalier","equipment"],
       imageModule: require("../../assets/equipment/armure_chevalier.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/armure_chevalier.png"),
     },
     {
       id: "equip-armure-demo-femme",
@@ -776,6 +884,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["armure","demo","equipment","femme"],
       imageModule: require("../../assets/equipment/armure_demo_femme.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/armure_demo_femme.png"),
     },
     {
       id: "equip-armure-demoniste",
@@ -783,6 +892,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["armure","demoniste","equipment"],
       imageModule: require("../../assets/equipment/armure_demoniste.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/armure_demoniste.png"),
     },
     {
       id: "equip-armure-divine",
@@ -790,6 +900,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["armure","divine","equipment"],
       imageModule: require("../../assets/equipment/armure_divine.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/armure_divine.png"),
     },
     {
       id: "equip-armure-druide",
@@ -797,6 +908,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["armure","druide","equipment"],
       imageModule: require("../../assets/equipment/armure_druide.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/armure_druide.png"),
     },
     {
       id: "equip-armure-pal",
@@ -804,6 +916,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["armure","equipment","pal"],
       imageModule: require("../../assets/equipment/armure_pal.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/armure_pal.png"),
     },
     {
       id: "equip-armure-roublard",
@@ -811,6 +924,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["armure","equipment","roublard"],
       imageModule: require("../../assets/equipment/armure_roublard.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/armure_roublard.png"),
     },
     {
       id: "equip-bague-ange",
@@ -818,6 +932,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["ange","bague","equipment"],
       imageModule: require("../../assets/equipment/bague_ange.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bague_ange.png"),
     },
     {
       id: "equip-bague-demon",
@@ -825,6 +940,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["bague","demon","equipment"],
       imageModule: require("../../assets/equipment/bague_demon.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bague_demon.png"),
     },
     {
       id: "equip-bague-druide",
@@ -832,6 +948,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["bague","druide","equipment"],
       imageModule: require("../../assets/equipment/bague_druide.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bague_druide.png"),
     },
     {
       id: "equip-bague-humain",
@@ -839,6 +956,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["bague","equipment","humain"],
       imageModule: require("../../assets/equipment/bague_humain.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bague_humain.png"),
     },
     {
       id: "equip-bague-occulte",
@@ -846,6 +964,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["bague","equipment","occulte"],
       imageModule: require("../../assets/equipment/bague_occulte.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bague_occulte.png"),
     },
     {
       id: "equip-bague-runique",
@@ -853,6 +972,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["bague","equipment","runique"],
       imageModule: require("../../assets/equipment/bague_runique.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bague_runique.png"),
     },
     {
       id: "equip-bague-sacre",
@@ -860,6 +980,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["bague","equipment","sacre"],
       imageModule: require("../../assets/equipment/bague_sacre.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bague_sacre.png"),
     },
     {
       id: "equip-bague-vampirique",
@@ -867,6 +988,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["bague","equipment","vampirique"],
       imageModule: require("../../assets/equipment/bague_vampirique.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bague_vampirique.png"),
     },
     {
       id: "equip-baton-demo-2",
@@ -874,6 +996,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["2","baton","demo","equipment"],
       imageModule: require("../../assets/equipment/baton_demo_2.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/baton_demo_2.png"),
     },
     {
       id: "equip-baton-demo",
@@ -881,6 +1004,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["baton","demo","equipment"],
       imageModule: require("../../assets/equipment/baton_demo.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/baton_demo.png"),
     },
     {
       id: "equip-baton-druide",
@@ -888,6 +1012,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["baton","druide","equipment"],
       imageModule: require("../../assets/equipment/baton_druide.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/baton_druide.png"),
     },
     {
       id: "equip-baton-priest",
@@ -895,6 +1020,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["baton","equipment","priest"],
       imageModule: require("../../assets/equipment/baton_priest.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/baton_priest.png"),
     },
     {
       id: "equip-bouclier-death",
@@ -902,6 +1028,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["bouclier","death","equipment"],
       imageModule: require("../../assets/equipment/bouclier_death.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bouclier_death.png"),
     },
     {
       id: "equip-bow",
@@ -909,6 +1036,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["bow","equipment"],
       imageModule: require("../../assets/equipment/bow.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bow.png"),
     },
     {
       id: "equip-bracelet-epines-rubis",
@@ -916,6 +1044,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["bracelet","epines","equipment","rubis"],
       imageModule: require("../../assets/equipment/bracelet_epines_rubis.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bracelet_epines_rubis.png"),
     },
     {
       id: "equip-bracelet-ivoire-saphir",
@@ -923,6 +1052,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["bracelet","equipment","ivoire","saphir"],
       imageModule: require("../../assets/equipment/bracelet_ivoire_saphir.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/bracelet_ivoire_saphir.png"),
     },
     {
       id: "equip-casque-couronne-azur",
@@ -930,6 +1060,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["azur","casque","couronne","equipment"],
       imageModule: require("../../assets/equipment/casque_couronne_azur.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/casque_couronne_azur.png"),
     },
     {
       id: "equip-casque-demoniste",
@@ -937,6 +1068,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["casque","demoniste","equipment"],
       imageModule: require("../../assets/equipment/casque_demoniste.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/casque_demoniste.png"),
     },
     {
       id: "equip-casque-noir-cramoisi",
@@ -944,6 +1076,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["casque","cramoisi","equipment","noir"],
       imageModule: require("../../assets/equipment/casque_noir_cramoisi.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/casque_noir_cramoisi.png"),
     },
     {
       id: "equip-ceinture-royale-azur",
@@ -951,6 +1084,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["azur","ceinture","equipment","royale"],
       imageModule: require("../../assets/equipment/ceinture_royale_azur.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/ceinture_royale_azur.png"),
     },
     {
       id: "equip-ceinture-sombre-rubis",
@@ -958,6 +1092,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["ceinture","equipment","rubis","sombre"],
       imageModule: require("../../assets/equipment/ceinture_sombre_rubis.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/ceinture_sombre_rubis.png"),
     },
     {
       id: "equip-chaussure-noble-azur",
@@ -965,6 +1100,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["azur","chaussure","equipment","noble"],
       imageModule: require("../../assets/equipment/chaussure_noble_azur.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/chaussure_noble_azur.png"),
     },
     {
       id: "equip-chaussure-sombre-rubis",
@@ -972,6 +1108,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["chaussure","equipment","rubis","sombre"],
       imageModule: require("../../assets/equipment/chaussure_sombre_rubis.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/chaussure_sombre_rubis.png"),
     },
     {
       id: "equip-crossbow",
@@ -979,6 +1116,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["crossbow","equipment"],
       imageModule: require("../../assets/equipment/crossbow.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/crossbow.png"),
     },
     {
       id: "equip-dagger",
@@ -986,6 +1124,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["dagger","equipment"],
       imageModule: require("../../assets/equipment/dagger.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/dagger.png"),
     },
     {
       id: "equip-diademe-celeste-saphir",
@@ -993,6 +1132,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["celeste","diademe","equipment","saphir"],
       imageModule: require("../../assets/equipment/diademe_celeste_saphir.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/diademe_celeste_saphir.png"),
     },
     {
       id: "equip-diademe-lunaire-amethyste",
@@ -1000,6 +1140,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["amethyste","diademe","equipment","lunaire"],
       imageModule: require("../../assets/equipment/diademe_lunaire_amethyste.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/diademe_lunaire_amethyste.png"),
     },
     {
       id: "equip-diademe-noir-rubis",
@@ -1007,6 +1148,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["diademe","equipment","noir","rubis"],
       imageModule: require("../../assets/equipment/diademe_noir_rubis.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/diademe_noir_rubis.png"),
     },
     {
       id: "equip-epee-angelique-ailee",
@@ -1014,6 +1156,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["ailee","angelique","epee","equipment"],
       imageModule: require("../../assets/equipment/epee_angelique_ailee.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/epee_angelique_ailee.png"),
     },
     {
       id: "equip-epee-angelique-halo",
@@ -1021,6 +1164,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["angelique","epee","equipment","halo"],
       imageModule: require("../../assets/equipment/epee_angelique_halo.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/epee_angelique_halo.png"),
     },
     {
       id: "equip-faucille-druide",
@@ -1028,6 +1172,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["druide","equipment","faucille"],
       imageModule: require("../../assets/equipment/faucille_druide.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/faucille_druide.png"),
     },
     {
       id: "equip-grimoire-demo",
@@ -1035,6 +1180,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["demo","equipment","grimoire"],
       imageModule: require("../../assets/equipment/grimoire_demo.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/grimoire_demo.png"),
     },
     {
       id: "equip-grimoire-priest",
@@ -1042,6 +1188,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","grimoire","priest"],
       imageModule: require("../../assets/equipment/grimoire_priest.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/grimoire_priest.png"),
     },
     {
       id: "equip-grimoire",
@@ -1049,6 +1196,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","grimoire"],
       imageModule: require("../../assets/equipment/grimoire.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/grimoire.png"),
     },
     {
       id: "equip-gun",
@@ -1056,6 +1204,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","gun"],
       imageModule: require("../../assets/equipment/gun.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/gun.png"),
     },
     {
       id: "equip-kevlar-chelou",
@@ -1063,6 +1212,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["chelou","equipment","kevlar"],
       imageModule: require("../../assets/equipment/kevlar_chelou.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/kevlar_chelou.png"),
     },
     {
       id: "equip-kevlar-drood",
@@ -1070,6 +1220,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["drood","equipment","kevlar"],
       imageModule: require("../../assets/equipment/kevlar_drood.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/kevlar_drood.png"),
     },
     {
       id: "equip-kevlar-enchanteur-femme",
@@ -1077,6 +1228,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["enchanteur","equipment","femme","kevlar"],
       imageModule: require("../../assets/equipment/kevlar_enchanteur_femme.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/kevlar_enchanteur_femme.png"),
     },
     {
       id: "equip-kevlar-enchanteur",
@@ -1084,6 +1236,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["enchanteur","equipment","kevlar"],
       imageModule: require("../../assets/equipment/kevlar_enchanteur.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/kevlar_enchanteur.png"),
     },
     {
       id: "equip-kevlar-paladin-femme",
@@ -1091,6 +1244,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","femme","kevlar","paladin"],
       imageModule: require("../../assets/equipment/kevlar_paladin_femme.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/kevlar_paladin_femme.png"),
     },
     {
       id: "equip-kevlar-rogue-femme",
@@ -1098,6 +1252,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","femme","kevlar","rogue"],
       imageModule: require("../../assets/equipment/kevlar_rogue_femme.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/kevlar_rogue_femme.png"),
     },
     {
       id: "equip-kevlar-rogue",
@@ -1105,6 +1260,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","kevlar","rogue"],
       imageModule: require("../../assets/equipment/kevlar_rogue.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/kevlar_rogue.png"),
     },
     {
       id: "equip-kevlar-sacre",
@@ -1112,6 +1268,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","kevlar","sacre"],
       imageModule: require("../../assets/equipment/kevlar_sacre.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/kevlar_sacre.png"),
     },
     {
       id: "equip-kevlar-simple-2",
@@ -1119,6 +1276,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["2","equipment","kevlar","simple"],
       imageModule: require("../../assets/equipment/kevlar_simple_2.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/kevlar_simple_2.png"),
     },
     {
       id: "equip-kevlar-simple",
@@ -1126,6 +1284,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","kevlar","simple"],
       imageModule: require("../../assets/equipment/kevlar_simple.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/kevlar_simple.png"),
     },
     {
       id: "equip-lance-angelique",
@@ -1133,6 +1292,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["angelique","equipment","lance"],
       imageModule: require("../../assets/equipment/lance_angelique.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/lance_angelique.png"),
     },
     {
       id: "equip-lance-druide",
@@ -1140,6 +1300,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["druide","equipment","lance"],
       imageModule: require("../../assets/equipment/lance_druide.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/lance_druide.png"),
     },
     {
       id: "equip-lantern-occulte",
@@ -1147,6 +1308,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","lantern","occulte"],
       imageModule: require("../../assets/equipment/lantern_occulte.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/lantern_occulte.png"),
     },
     {
       id: "equip-lantern-violette",
@@ -1154,6 +1316,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","lantern","violette"],
       imageModule: require("../../assets/equipment/lantern_violette.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/lantern_violette.png"),
     },
     {
       id: "equip-longsword",
@@ -1161,6 +1324,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","longsword"],
       imageModule: require("../../assets/equipment/longsword.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/longsword.png"),
     },
     {
       id: "equip-marteau-angelique",
@@ -1168,6 +1332,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["angelique","equipment","marteau"],
       imageModule: require("../../assets/equipment/marteau_angelique.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/marteau_angelique.png"),
     },
     {
       id: "equip-marteau-druide",
@@ -1175,6 +1340,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["druide","equipment","marteau"],
       imageModule: require("../../assets/equipment/marteau_druide.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/marteau_druide.png"),
     },
     {
       id: "equip-pendentif-gothique-violet",
@@ -1182,6 +1348,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","gothique","pendentif","violet"],
       imageModule: require("../../assets/equipment/pendentif_gothique_violet.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/pendentif_gothique_violet.png"),
     },
     {
       id: "equip-pendentif-sacre-azur",
@@ -1189,6 +1356,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["azur","equipment","pendentif","sacre"],
       imageModule: require("../../assets/equipment/pendentif_sacre_azur.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/pendentif_sacre_azur.png"),
     },
     {
       id: "equip-rapiere",
@@ -1196,6 +1364,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","rapiere"],
       imageModule: require("../../assets/equipment/rapiere.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/rapiere.png"),
     },
     {
       id: "equip-sword-2",
@@ -1203,6 +1372,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["2","equipment","sword"],
       imageModule: require("../../assets/equipment/sword_2.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/sword_2.png"),
     },
     {
       id: "equip-sword",
@@ -1210,6 +1380,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "equipment",
       tags: ["equipment","sword"],
       imageModule: require("../../assets/equipment/sword.png"),
+      thumbnailModule: require("../../assets/thumbnails/equipment/sword.png"),
     }
   ],
   inventory: [
@@ -1219,6 +1390,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["amulette","inventory","sacree"],
       imageModule: require("../../assets/inventory/amulette_sacree.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/amulette_sacree.png"),
     },
     {
       id: "item-bague-runique",
@@ -1226,6 +1398,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["bague","inventory","runique"],
       imageModule: require("../../assets/inventory/bague_runique.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/bague_runique.png"),
     },
     {
       id: "item-bougie-maudite",
@@ -1233,6 +1406,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["bougie","inventory","maudite"],
       imageModule: require("../../assets/inventory/bougie_maudite.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/bougie_maudite.png"),
     },
     {
       id: "item-carquois-ange",
@@ -1240,6 +1414,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["ange","carquois","inventory"],
       imageModule: require("../../assets/inventory/carquois_ange.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/carquois_ange.png"),
     },
     {
       id: "item-carquois-demon",
@@ -1247,6 +1422,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["carquois","demon","inventory"],
       imageModule: require("../../assets/inventory/carquois_demon.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/carquois_demon.png"),
     },
     {
       id: "item-carquois-humain",
@@ -1254,6 +1430,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["carquois","humain","inventory"],
       imageModule: require("../../assets/inventory/carquois_humain.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/carquois_humain.png"),
     },
     {
       id: "item-cle-ancienne",
@@ -1261,6 +1438,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["ancienne","cle","inventory"],
       imageModule: require("../../assets/inventory/cle_ancienne.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/cle_ancienne.png"),
     },
     {
       id: "item-cle-cristal-azur",
@@ -1268,6 +1446,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["azur","cle","cristal","inventory"],
       imageModule: require("../../assets/inventory/cle_cristal_azur.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/cle_cristal_azur.png"),
     },
     {
       id: "item-cle-mecanique-bronze",
@@ -1275,6 +1454,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["bronze","cle","inventory","mecanique"],
       imageModule: require("../../assets/inventory/cle_mecanique_bronze.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/cle_mecanique_bronze.png"),
     },
     {
       id: "item-cle-obsidienne",
@@ -1282,6 +1462,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["cle","inventory","obsidienne"],
       imageModule: require("../../assets/inventory/cle_obsidienne.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/cle_obsidienne.png"),
     },
     {
       id: "item-dague-rituelle",
@@ -1289,6 +1470,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["dague","inventory","rituelle"],
       imageModule: require("../../assets/inventory/dague_rituelle.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/dague_rituelle.png"),
     },
     {
       id: "item-desinfectant",
@@ -1296,6 +1478,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["desinfectant","inventory"],
       imageModule: require("../../assets/inventory/desinfectant.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/desinfectant.png"),
     },
     {
       id: "item-eclat-dame",
@@ -1303,6 +1486,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["dame","eclat","inventory"],
       imageModule: require("../../assets/inventory/eclat_dame.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/eclat_dame.png"),
     },
     {
       id: "item-fiole-bleu",
@@ -1310,6 +1494,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["bleu","fiole","inventory"],
       imageModule: require("../../assets/inventory/fiole_bleu.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/fiole_bleu.png"),
     },
     {
       id: "item-fiole-rouge",
@@ -1317,6 +1502,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["fiole","inventory","rouge"],
       imageModule: require("../../assets/inventory/fiole_rouge.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/fiole_rouge.png"),
     },
     {
       id: "item-fiole-verte",
@@ -1324,6 +1510,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["fiole","inventory","verte"],
       imageModule: require("../../assets/inventory/fiole_verte.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/fiole_verte.png"),
     },
     {
       id: "item-lettre-scellee",
@@ -1331,6 +1518,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["inventory","lettre","scellee"],
       imageModule: require("../../assets/inventory/lettre_scellee.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/lettre_scellee.png"),
     },
     {
       id: "item-livre-brule",
@@ -1338,6 +1526,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["brule","inventory","livre"],
       imageModule: require("../../assets/inventory/livre_brule.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/livre_brule.png"),
     },
     {
       id: "item-livre-demoniaque",
@@ -1345,6 +1534,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["demoniaque","inventory","livre"],
       imageModule: require("../../assets/inventory/livre_demoniaque.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/livre_demoniaque.png"),
     },
     {
       id: "item-livre-saint",
@@ -1352,6 +1542,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["inventory","livre","saint"],
       imageModule: require("../../assets/inventory/livre_saint.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/livre_saint.png"),
     },
     {
       id: "item-livre-sceller",
@@ -1359,6 +1550,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["inventory","livre","sceller"],
       imageModule: require("../../assets/inventory/livre_sceller.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/livre_sceller.png"),
     },
     {
       id: "item-livre",
@@ -1366,6 +1558,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["inventory","livre"],
       imageModule: require("../../assets/inventory/livre.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/livre.png"),
     },
     {
       id: "item-oeil-en-bocal",
@@ -1373,6 +1566,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["bocal","en","inventory","oeil"],
       imageModule: require("../../assets/inventory/oeil_en_bocal.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/oeil_en_bocal.png"),
     },
     {
       id: "item-outils-blanc-rouleau",
@@ -1380,6 +1574,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["blanc","inventory","outils","rouleau"],
       imageModule: require("../../assets/inventory/outils_blanc_rouleau.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/outils_blanc_rouleau.png"),
     },
     {
       id: "item-pansement",
@@ -1387,6 +1582,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["inventory","pansement"],
       imageModule: require("../../assets/inventory/pansement.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/pansement.png"),
     },
     {
       id: "item-parchemin-maudit",
@@ -1394,6 +1590,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["inventory","maudit","parchemin"],
       imageModule: require("../../assets/inventory/parchemin_maudit.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/parchemin_maudit.png"),
     },
     {
       id: "item-piece-relique",
@@ -1401,6 +1598,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["inventory","piece","relique"],
       imageModule: require("../../assets/inventory/piece_relique.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/piece_relique.png"),
     },
     {
       id: "item-sac-voyage-cuir",
@@ -1408,6 +1606,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["cuir","inventory","sac","voyage"],
       imageModule: require("../../assets/inventory/sac_voyage_cuir.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/sac_voyage_cuir.png"),
     },
     {
       id: "item-trousse-secours",
@@ -1415,6 +1614,7 @@ export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[
       category: "inventory",
       tags: ["inventory","secours","trousse"],
       imageModule: require("../../assets/inventory/trousse_secours.png"),
+      thumbnailModule: require("../../assets/thumbnails/inventory/trousse_secours.png"),
     }
   ],
 };

@@ -79,11 +79,19 @@ function collectFiles(directory) {
 
 function buildCategoryEntries(folder, category) {
   const folderPath = path.join(ASSETS_DIR, folder);
+  const thumbnailFolderPath = path.join(ASSETS_DIR, "thumbnails", folder);
 
   return collectFiles(folderPath)
     .map((fullPath) => {
       const relativeFromFolder = path.relative(folderPath, fullPath);
       const relativeFromOutput = path.relative(path.dirname(OUTPUT_FILE), fullPath);
+      const thumbnailPath = path.join(
+        thumbnailFolderPath,
+        relativeFromFolder.replace(path.extname(relativeFromFolder), ".png"),
+      );
+      const thumbnailRequirePath = fs.existsSync(thumbnailPath)
+        ? toPosix(path.relative(path.dirname(OUTPUT_FILE), thumbnailPath))
+        : null;
       const idParts = [
         category === "character" ? "char" : category === "spell" ? "spell" : category === "equipment" ? "equip" : "item",
         toSlug(relativeFromFolder.replace(path.extname(relativeFromFolder), "")),
@@ -95,6 +103,7 @@ function buildCategoryEntries(folder, category) {
         category,
         tags: Array.from(new Set(toTagParts(relativeFromFolder, category))).sort(),
         requirePath: toPosix(relativeFromOutput),
+        thumbnailRequirePath,
       };
     })
     .sort((left, right) => left.requirePath.localeCompare(right.requirePath));
@@ -112,6 +121,7 @@ function renderEntries(entries) {
       category: "${entry.category}",
       tags: ${JSON.stringify(entry.tags)},
       imageModule: require("${entry.requirePath}"),
+      ${entry.thumbnailRequirePath ? `thumbnailModule: require("${entry.thumbnailRequirePath}"),` : ""}
     }`,
   );
 
@@ -138,6 +148,7 @@ export type LocalImageOption = {
   category: ImageLibraryCategory;
   tags: string[];
   imageModule: number;
+  thumbnailModule?: number;
 };
 
 export const LOCAL_IMAGE_LIBRARY: Record<ImageLibraryCategory, LocalImageOption[]> = {
