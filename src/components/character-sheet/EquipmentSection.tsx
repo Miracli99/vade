@@ -4,6 +4,7 @@ import { Character } from "../../types/game";
 import { getSpellCost } from "../../utils/game";
 import { Section } from "../Section";
 import { AssetVisual } from "./AssetVisual";
+import { MasonryList } from "./MasonryList";
 import { SectionEditButton } from "./SectionEditButton";
 import { CharacterSheetTheme } from "./theme";
 
@@ -31,9 +32,13 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
       rightSlot={<SectionEditButton theme={theme} onPress={onEdit} />}
     >
       <View style={styles.list}>
-        {character.equipment.map((item) => (
+        <MasonryList
+          items={character.equipment}
+          minColumnWidth={430}
+          maxColumns={3}
+          getKey={(item) => item.id}
+          renderItem={(item) => (
           <View
-            key={item.id}
               style={[
                 styles.card,
                 isCompact ? styles.cardCompact : null,
@@ -76,9 +81,12 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                       imageModule={item.grantedSpell.imageModule}
                       small
                     />
-                    <View style={styles.header}>
+                    <View style={styles.grantedSpellContent}>
                       <View style={styles.heading}>
-                        <Text style={[styles.title, { color: theme.title }]}>
+                        <Text
+                          style={[styles.title, styles.titleWrap, { color: theme.title }]}
+                          numberOfLines={2}
+                        >
                           Don associe · {item.grantedSpell.name}
                         </Text>
                         <Text style={[styles.meta, { color: theme.subtitle }]}>
@@ -89,28 +97,30 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                               : "Cout fixe"}
                         </Text>
                       </View>
-                      <Text
-                        style={[
-                          styles.useBadge,
-                          item.grantedSpell.reducible &&
-                          getSpellCost(item.grantedSpell, character.stance) <
-                            item.grantedSpell.basePsyCost
-                            ? styles.useBadgeReduced
-                            : null,
-                        ]}
-                      >
-                        {getSpellCost(item.grantedSpell, character.stance)} PSY
-                      </Text>
-                      {item.grantedSpell.armorBonus ? (
-                        <Text style={styles.armorBadge}>
-                          +{item.grantedSpell.armorBonus} armure
+                      <View style={styles.grantedSpellBadges}>
+                        <Text
+                          style={[
+                            styles.useBadge,
+                            item.grantedSpell.reducible &&
+                            getSpellCost(item.grantedSpell, character.stance) <
+                              item.grantedSpell.basePsyCost
+                              ? styles.useBadgeReduced
+                              : null,
+                          ]}
+                        >
+                          {getSpellCost(item.grantedSpell, character.stance)} PSY
                         </Text>
-                      ) : null}
-                      {item.grantedSpell.damageBonus ? (
-                        <Text style={styles.damageBadge}>
-                          +{item.grantedSpell.damageBonus} degats
-                        </Text>
-                      ) : null}
+                        {item.grantedSpell.armorBonus ? (
+                          <Text style={styles.armorBadge}>
+                            +{item.grantedSpell.armorBonus} armure
+                          </Text>
+                        ) : null}
+                        {item.grantedSpell.damageBonus ? (
+                          <Text style={styles.damageBadge}>
+                            +{item.grantedSpell.damageBonus} degats
+                          </Text>
+                        ) : null}
+                      </View>
                     </View>
                   </View>
                   <Text style={[styles.description, { color: theme.title }]}>
@@ -160,7 +170,8 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
               ))}
             </View>
           </View>
-        ))}
+        )}
+        />
       </View>
     </Section>
   );
@@ -184,13 +195,24 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 10,
   },
+  grantedSpellContent: {
+    flex: 1,
+    minWidth: 0,
+    gap: 8,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
     alignItems: "flex-start",
   },
-  heading: { flex: 1, gap: 3 },
+  heading: { flex: 1, gap: 3, minWidth: 0 },
+  grantedSpellBadges: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+    gap: 6,
+  },
   armorBadge: {
     color: "#3f2200",
     backgroundColor: "#fbbf24",
@@ -199,6 +221,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
     fontWeight: "900",
+    textAlign: "center",
   },
   damageBadge: {
     color: "#3f2200",
@@ -208,6 +231,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
     fontWeight: "900",
+    textAlign: "center",
   },
   useBadge: {
     color: "#082f49",
@@ -217,9 +241,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
     fontWeight: "900",
+    textAlign: "center",
   },
   useBadgeReduced: { color: "#3f2200", backgroundColor: "#fbbf24" },
   title: { fontSize: 17, fontWeight: "800" },
+  titleWrap: {
+    wordBreak: "break-word",
+  } as object,
   meta: { fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8 },
   description: { lineHeight: 21 },
   effect: { lineHeight: 20 },

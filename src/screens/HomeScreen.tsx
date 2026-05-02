@@ -5,6 +5,7 @@ import { AssetVisual } from "../components/character-sheet/AssetVisual";
 import { Character } from "../types/game";
 
 const APP_LOGO = require("../../assets/vade-retro-logo.png");
+const CHARACTER_BIO_PREVIEW_MAX_LENGTH = 220;
 
 type HomeScreenProps = {
   characters: Character[];
@@ -43,6 +44,20 @@ export function HomeScreen({
   const isAndroid = Platform.OS === "android";
   const [exportPickerOpen, setExportPickerOpen] = useState(false);
   const [syncSettingsOpen, setSyncSettingsOpen] = useState(false);
+
+  function getCharacterBioPreview(bio?: string) {
+    const normalizedBio = bio?.replace(/\s+/g, " ").trim();
+
+    if (!normalizedBio) {
+      return "Aucune bio renseignee.";
+    }
+
+    if (normalizedBio.length <= CHARACTER_BIO_PREVIEW_MAX_LENGTH) {
+      return normalizedBio;
+    }
+
+    return `${normalizedBio.slice(0, CHARACTER_BIO_PREVIEW_MAX_LENGTH).trimEnd()}...`;
+  }
 
   return (
     <View style={styles.root}>
@@ -137,7 +152,7 @@ export function HomeScreen({
                   {character.psy.max}
                 </Text>
                 <Text style={styles.characterBio} numberOfLines={3}>
-                  {character.bio || "Aucune bio renseignee."}
+                  {getCharacterBioPreview(character.bio)}
                 </Text>
                 <Text style={styles.characterCta}>Ouvrir la fiche</Text>
               </View>

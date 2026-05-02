@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Character } from "../../types/game";
 import { Section } from "../Section";
 import { AssetVisual } from "./AssetVisual";
+import { MasonryList } from "./MasonryList";
 import { SectionEditButton } from "./SectionEditButton";
 import { CharacterSheetTheme } from "./theme";
 
@@ -30,9 +31,13 @@ export function InventorySection({ character, theme, onEdit }: InventorySectionP
       rightSlot={<SectionEditButton theme={theme} onPress={onEdit} />}
     >
       <View style={styles.list}>
-        {character.inventory.map((item) => (
+        <MasonryList
+          items={character.inventory}
+          minColumnWidth={280}
+          maxColumns={2}
+          getKey={(item) => item.id}
+          renderItem={(item) => (
           <View
-            key={item.id}
               style={[
                 styles.item,
                 isCompact ? styles.itemCompact : null,
@@ -71,7 +76,8 @@ export function InventorySection({ character, theme, onEdit }: InventorySectionP
                 x{item.quantity}
               </Text>
             </View>
-          ))}
+          )}
+        />
       </View>
     </Section>
   );

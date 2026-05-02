@@ -4,6 +4,7 @@ import { Character } from "../../types/game";
 import { getSpellCost } from "../../utils/game";
 import { Section } from "../Section";
 import { AssetVisual } from "./AssetVisual";
+import { MasonryList } from "./MasonryList";
 import { SectionEditButton } from "./SectionEditButton";
 import { CharacterSheetTheme } from "./theme";
 
@@ -38,14 +39,18 @@ export function SpellsSection({
     >
       <View style={styles.grid}>
         {character.spells.length ? (
-          character.spells.map((spell) => {
+          <MasonryList
+            items={character.spells}
+            minColumnWidth={430}
+            maxColumns={3}
+            getKey={(spell) => spell.id}
+            renderItem={(spell) => {
             const computedCost = getSpellCost(spell, character.stance);
             const reduced = spell.reducible && computedCost < spell.basePsyCost;
             const isActive = character.activeSpellIds.includes(spell.id);
 
             return (
               <View
-                key={spell.id}
                 style={[
                   styles.card,
                   isCompact ? styles.cardCompact : null,
@@ -69,36 +74,39 @@ export function SpellsSection({
                       <Text style={[styles.title, { color: theme.title }]} numberOfLines={isCompact ? 2 : 1}>
                         {spell.name}
                       </Text>
-                      <Text style={[styles.meta, { color: theme.subtitle }]}>
+                      <Text
+                        style={[styles.meta, { color: theme.subtitle }]}
+                        numberOfLines={1}
+                      >
                         {spell.reducible ? "Don reductible" : "Don a cout fixe"}
                       </Text>
                     </View>
-                    <View style={styles.badgeRows}>
-                      <View style={styles.statusBadgeRow}>
-                        <Text
-                          style={[
-                            styles.activeBadge,
-                            {
-                              color: isActive ? theme.buttonText : "transparent",
-                              backgroundColor: isActive ? theme.accent : "transparent",
-                              borderColor: isActive ? theme.border : "transparent",
-                            },
-                          ]}
-                        >
-                          Actif
-                        </Text>
-                      </View>
-                      <View style={styles.badges}>
-                        {spell.armorBonus ? (
-                          <Text style={styles.armorBadge}>+{spell.armorBonus} armure</Text>
-                        ) : null}
-                        {spell.damageBonus ? (
-                          <Text style={styles.damageBadge}>+{spell.damageBonus} degats</Text>
-                        ) : null}
-                        <Text style={[styles.costBadge, reduced ? styles.costBadgeReduced : null]}>
-                          {computedCost} PSY
-                        </Text>
-                      </View>
+                  </View>
+                  <View style={styles.badgeRows}>
+                    <View style={styles.statusBadgeRow}>
+                      <Text
+                        style={[
+                          styles.activeBadge,
+                          {
+                            color: isActive ? theme.buttonText : "transparent",
+                            backgroundColor: isActive ? theme.accent : "transparent",
+                            borderColor: isActive ? theme.border : "transparent",
+                          },
+                        ]}
+                      >
+                        Actif
+                      </Text>
+                    </View>
+                    <View style={styles.badges}>
+                      {spell.armorBonus ? (
+                        <Text style={styles.armorBadge}>+{spell.armorBonus} armure</Text>
+                      ) : null}
+                      {spell.damageBonus ? (
+                        <Text style={styles.damageBadge}>+{spell.damageBonus} degats</Text>
+                      ) : null}
+                      <Text style={[styles.costBadge, reduced ? styles.costBadgeReduced : null]}>
+                        {computedCost} PSY
+                      </Text>
                     </View>
                   </View>
                   <Text style={[styles.description, { color: theme.title }]}>
@@ -137,7 +145,8 @@ export function SpellsSection({
                 </View>
               </View>
             );
-          })
+          }}
+          />
         ) : (
           <Text style={[styles.emptyText, { color: theme.subtitle }]}>Aucun don renseigne.</Text>
         )}
@@ -165,24 +174,22 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: "flex-start",
   },
-  heading: { flex: 1, gap: 3 },
+  heading: { flex: 1, gap: 3, minWidth: 0 },
   title: { fontSize: 17, fontWeight: "800" },
   meta: { fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8 },
   badgeRows: {
-    flexShrink: 1,
-    alignItems: "flex-end",
+    alignItems: "flex-start",
     gap: 6,
-    maxWidth: "58%",
   },
   statusBadgeRow: {
     minHeight: 29,
-    alignItems: "flex-end",
+    alignItems: "flex-start",
   },
   badges: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
+    flexWrap: "nowrap",
+    justifyContent: "flex-start",
+    alignItems: "center",
     gap: 6,
   },
   costBadge: {

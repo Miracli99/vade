@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { Character, ResistanceType } from "../../types/game";
 import { Section } from "../Section";
+import { MasonryList } from "./MasonryList";
 import { SectionEditButton } from "./SectionEditButton";
 import { CharacterSheetTheme } from "./theme";
 
@@ -37,9 +38,13 @@ export function StatusSections({
     >
       <View style={styles.resistanceList}>
         {character.resistances.length ? (
-          character.resistances.map((entry) => (
+          <MasonryList
+            items={character.resistances}
+            minColumnWidth={280}
+            maxColumns={2}
+            getKey={(entry) => entry.id}
+            renderItem={(entry) => (
             <View
-              key={entry.id}
               style={[
                 styles.resistanceCard,
                 { backgroundColor: theme.chipBg, borderColor: theme.border },
@@ -75,7 +80,8 @@ export function StatusSections({
                 <Text style={[styles.description, { color: theme.subtitle }]}>{entry.notes}</Text>
               ) : null}
             </View>
-          ))
+          )}
+          />
         ) : (
           <Text style={[styles.emptyText, { color: theme.subtitle }]}>
             Aucune affinite renseignee.

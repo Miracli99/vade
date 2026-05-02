@@ -1,5 +1,13 @@
 import { PropsWithChildren, ReactNode } from "react";
-import { ImageBackground, ImageSourcePropType, StyleSheet, Text, View } from "react-native";
+import {
+  ImageBackground,
+  ImageSourcePropType,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import resolveAssetSource from "react-native/Libraries/Image/resolveAssetSource";
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -40,6 +48,24 @@ export function Section({ title, subtitle, rightSlot, children, theme }: Section
   ];
 
   if (theme?.cardBackgroundImage) {
+    if (Platform.OS === "web") {
+      const source = resolveAssetSource(theme.cardBackgroundImage);
+
+      return (
+        <View
+          style={[
+            sectionStyle,
+            styles.webCardBackground,
+            {
+              backgroundImage: `url("${source.uri}")`,
+            } as object,
+          ]}
+        >
+          {content}
+        </View>
+      );
+    }
+
     return (
       <ImageBackground
         source={theme.cardBackgroundImage}
@@ -70,6 +96,11 @@ const styles = StyleSheet.create({
   cardBackground: {
     borderRadius: 24,
   },
+  webCardBackground: {
+    backgroundRepeat: "repeat",
+    backgroundSize: "auto",
+    backgroundPosition: "top left",
+  } as object,
   textureOverlay: {
     position: "absolute",
     top: 0,
