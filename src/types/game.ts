@@ -74,6 +74,7 @@ export type EquipmentItem = {
   imageUrl?: string;
   imageModule?: number;
   notes?: string;
+  armorBonus?: number;
   usableLabel?: string;
   usePsyCost?: number;
   reducible?: boolean;
@@ -90,6 +91,7 @@ export type Spell = {
   imageUrl?: string;
   imageModule?: number;
   basePsyCost: number;
+  armorBonus?: number;
   reducible: boolean;
   augmentable?: boolean;
   description: string;

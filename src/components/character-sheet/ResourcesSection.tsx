@@ -1,6 +1,7 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
+import { getEffectiveArmorResource } from "../../utils/game";
 import { Section } from "../Section";
 import { AttackBonusCard, ResourceMeter } from "./ResourceCards";
 import { SectionEditButton } from "./SectionEditButton";
@@ -26,6 +27,7 @@ export function ResourcesSection({
   const { width } = useWindowDimensions();
   const isPhone = width < 720;
   const isTablet = width >= 720 && width < 1180;
+  const effectiveArmor = getEffectiveArmorResource(character);
 
   return (
     <Section
@@ -69,7 +71,7 @@ export function ResourcesSection({
             label="Armure"
             glyph="🛡"
             accent="#f59e0b"
-            resource={character.armor}
+            resource={effectiveArmor}
             bonusLabel="Bonus"
             theme={theme}
             onAdjust={(delta) => onAdjustResource("armor", delta)}

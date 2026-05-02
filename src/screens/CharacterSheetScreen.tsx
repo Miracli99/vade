@@ -48,6 +48,7 @@ import {
 } from "../types/game";
 import {
   clampValue,
+  getEffectiveArmorResource,
   getReducibleCost,
   getScaledSpellCost,
   getSpellCost,
@@ -1103,7 +1104,7 @@ export function CharacterSheetScreen({
       }
 
       if (!damageDraft.ignoreArmor && remaining > 0) {
-        armorReduced = Math.min(character.armor.current, remaining);
+        armorReduced = Math.min(getEffectiveArmorResource(character).current, remaining);
         remaining -= armorReduced;
       }
 
@@ -1756,6 +1757,7 @@ export function CharacterSheetScreen({
                 name: "Nouveau don",
                 icon: "✦",
                 basePsyCost: 0,
+                armorBonus: 0,
                 reducible: true,
                 augmentable: false,
                 description: "",
@@ -1974,6 +1976,7 @@ export function CharacterSheetScreen({
                   id: makeId("equipment-spell"),
                   name: `Don de ${item.name}`,
                   basePsyCost: 0,
+                  armorBonus: 0,
                   reducible: true,
                   augmentable: false,
                   description: "",
@@ -2000,6 +2003,7 @@ export function CharacterSheetScreen({
                 category: "Objet",
                 icon: "🧰",
                 notes: "",
+                armorBonus: 0,
                 tags: [],
                 activeEffects: [],
                 passiveEffects: [],
@@ -2841,6 +2845,16 @@ export function CharacterSheetScreen({
                         })
                       }
                     />
+                    <EditorField
+                      label="Bonus d'armure (actif)"
+                      value={String(spell.armorBonus ?? 0)}
+                      keyboardType="numeric"
+                      onChangeText={(value) =>
+                        updateDraftSpell(index, {
+                          armorBonus: Math.max(0, Number.parseInt(value || "0", 10) || 0),
+                        })
+                      }
+                    />
                   </View>
                   <View style={styles.editorMediaRow}>
                     <AssetVisual
@@ -2953,6 +2967,16 @@ export function CharacterSheetScreen({
                       tags={item.tags}
                       onChangeTags={(tags) => updateDraftEquipment(index, { tags })}
                     />
+                    <EditorField
+                      label="Bonus armure"
+                      value={String(item.armorBonus ?? 0)}
+                      keyboardType="numeric"
+                      onChangeText={(value) =>
+                        updateDraftEquipment(index, {
+                          armorBonus: Math.max(0, Number.parseInt(value || "0", 10) || 0),
+                        })
+                      }
+                    />
                   </View>
                   <View style={styles.editorMediaRow}>
                     <AssetVisual
@@ -3017,6 +3041,19 @@ export function CharacterSheetScreen({
                           onChangeText={(value) =>
                             updateDraftEquipmentGrantedSpell(index, {
                               basePsyCost: Math.max(
+                                0,
+                                Number.parseInt(value || "0", 10) || 0,
+                              ),
+                            })
+                          }
+                        />
+                        <EditorField
+                          label="Bonus d'armure (actif)"
+                          value={String(item.grantedSpell.armorBonus ?? 0)}
+                          keyboardType="numeric"
+                          onChangeText={(value) =>
+                            updateDraftEquipmentGrantedSpell(index, {
+                              armorBonus: Math.max(
                                 0,
                                 Number.parseInt(value || "0", 10) || 0,
                               ),

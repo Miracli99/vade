@@ -31,6 +31,10 @@ function normalizeSpell(spell: Spell): Spell {
   return {
     ...spell,
     basePsyCost: Math.max(0, normalizeNumber(spell.basePsyCost)),
+    armorBonus:
+      spell.armorBonus === undefined
+        ? undefined
+        : Math.max(0, normalizeNumber(spell.armorBonus)),
     reducible: spell.reducible ?? false,
     imageModule: spell.imageModule,
     augmentable:
@@ -74,6 +78,10 @@ export function normalizeCharacter(character: Character): Character {
     })),
     equipment: equipment.map((item) => ({
       ...item,
+      armorBonus:
+        item.armorBonus === undefined
+          ? undefined
+          : Math.max(0, normalizeNumber(item.armorBonus)),
       usePsyCost:
         item.usePsyCost === undefined
           ? undefined

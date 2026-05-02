@@ -1,4 +1,4 @@
-import { CombatStance, Spell } from "../types/game";
+import { Character, CombatStance, ResourcePool, Spell } from "../types/game";
 
 export const stanceLabels: Record<CombatStance, string> = {
   focus: "Focus",
@@ -30,6 +30,41 @@ export function getScaledSpellCost(
   extraPsy: number = 0,
 ) {
   return getSpellCost(spell, stance) + Math.max(0, extraPsy);
+}
+
+export function getEquipmentArmorBonus(equipment: Character["equipment"]) {
+  return equipment.reduce(
+    (total, item) => total + Math.max(0, item.armorBonus ?? 0),
+    0,
+  );
+}
+
+export function getActiveSpellArmorBonus(character: Character) {
+  const activeSpellIds = new Set(character.activeSpellIds);
+  const equipmentSpells = character.equipment
+    .map((item) => item.grantedSpell)
+    .filter((spell): spell is Spell => Boolean(spell));
+  const activeSpells = [...character.spells, ...equipmentSpells].filter((spell) =>
+    activeSpellIds.has(spell.id),
+  );
+
+  return activeSpells.reduce(
+    (total, spell) => total + Math.max(0, spell.armorBonus ?? 0),
+    0,
+  );
+}
+
+export function getEffectiveArmorResource(character: Character): ResourcePool {
+  const activeBonus =
+    character.armor.bonus +
+    getEquipmentArmorBonus(character.equipment) +
+    getActiveSpellArmorBonus(character);
+
+  return {
+    current: character.armor.current + activeBonus,
+    max: character.armor.max + activeBonus,
+    bonus: activeBonus,
+  };
 }
 
 export function clampValue(value: number, max: number) {

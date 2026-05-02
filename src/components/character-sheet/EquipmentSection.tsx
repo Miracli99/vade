@@ -54,6 +54,9 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                       </Text>
                   <Text style={[styles.meta, { color: theme.subtitle }]}>{item.category}</Text>
                 </View>
+                {item.armorBonus ? (
+                  <Text style={styles.armorBadge}>+{item.armorBonus} armure</Text>
+                ) : null}
               </View>
               {item.notes ? (
                 <Text style={[styles.description, { color: theme.title }]}>{item.notes}</Text>
@@ -98,6 +101,11 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                       >
                         {getSpellCost(item.grantedSpell, character.stance)} PSY
                       </Text>
+                      {item.grantedSpell.armorBonus ? (
+                        <Text style={styles.armorBadge}>
+                          +{item.grantedSpell.armorBonus} armure
+                        </Text>
+                      ) : null}
                     </View>
                   </View>
                   <Text style={[styles.description, { color: theme.title }]}>
@@ -178,6 +186,15 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   heading: { flex: 1, gap: 3 },
+  armorBadge: {
+    color: "#3f2200",
+    backgroundColor: "#fbbf24",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    overflow: "hidden",
+    fontWeight: "900",
+  },
   useBadge: {
     color: "#082f49",
     backgroundColor: "#bae6fd",
