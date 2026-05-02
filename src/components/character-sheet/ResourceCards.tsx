@@ -19,6 +19,7 @@ type ResourceMeterProps = {
   accent: string;
   resource: ResourcePool;
   bonusLabel?: string;
+  bonusDetail?: string;
   overlayBonus?: boolean;
   theme: ThemeTokens;
   onAdjust: (delta: number) => void;
@@ -31,6 +32,7 @@ export function ResourceMeter({
   accent,
   resource,
   bonusLabel = "Bonus",
+  bonusDetail,
   overlayBonus = false,
   theme,
   onAdjust,
@@ -57,6 +59,11 @@ export function ResourceMeter({
           <Text style={[styles.subtle, { color: theme.subtitle }]}>
             {onAdjustBonus ? `${bonusLabel} +${resource.bonus}` : "Reserve active"}
           </Text>
+          {bonusDetail ? (
+            <Text style={[styles.subtle, styles.detailText, { color: theme.subtitle }]}>
+              {bonusDetail}
+            </Text>
+          ) : null}
         </View>
         <View style={[styles.countPill, { borderColor: theme.border }]}>
           <Text style={[styles.count, isPhone ? styles.countPhone : null, { color: theme.title }]}>
@@ -216,6 +223,9 @@ const styles = StyleSheet.create({
   subtle: {
     fontSize: 12,
     lineHeight: 18,
+  },
+  detailText: {
+    fontWeight: "800",
   },
   countPill: {
     minWidth: 72,

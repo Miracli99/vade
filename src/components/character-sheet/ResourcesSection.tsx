@@ -1,7 +1,7 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
-import { getEffectiveArmorResource } from "../../utils/game";
+import { getActiveSpellArmorBonus, getEffectiveArmorResource } from "../../utils/game";
 import { Section } from "../Section";
 import { AttackBonusCard, ResourceMeter } from "./ResourceCards";
 import { SectionEditButton } from "./SectionEditButton";
@@ -28,6 +28,7 @@ export function ResourcesSection({
   const isPhone = width < 720;
   const isTablet = width >= 720 && width < 1180;
   const effectiveArmor = getEffectiveArmorResource(character);
+  const activeSpellArmorBonus = getActiveSpellArmorBonus(character);
 
   return (
     <Section
@@ -73,6 +74,11 @@ export function ResourcesSection({
             accent="#f59e0b"
             resource={effectiveArmor}
             bonusLabel="Bonus"
+            bonusDetail={
+              activeSpellArmorBonus > 0
+                ? `Augmentee par don actif +${activeSpellArmorBonus}`
+                : undefined
+            }
             theme={theme}
             onAdjust={(delta) => onAdjustResource("armor", delta)}
             onAdjustBonus={(delta) => onAdjustResourceBonus("armor", delta)}
