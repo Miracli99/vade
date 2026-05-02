@@ -121,13 +121,20 @@ export function ResourceMeter({
 
 type AttackBonusCardProps = {
   value: number;
+  activeSpellDamageBonus?: number;
   theme: ThemeTokens & { accent: string };
   onAdjust: (delta: number) => void;
 };
 
-export function AttackBonusCard({ value, theme, onAdjust }: AttackBonusCardProps) {
+export function AttackBonusCard({
+  value,
+  activeSpellDamageBonus = 0,
+  theme,
+  onAdjust,
+}: AttackBonusCardProps) {
   const { width } = useWindowDimensions();
   const isPhone = width < 720;
+  const effectiveValue = value + activeSpellDamageBonus;
 
   return (
     <View style={[styles.card, isPhone ? styles.cardPhone : null, { backgroundColor: theme.chipBg, borderColor: theme.border }]}>
@@ -137,9 +144,14 @@ export function AttackBonusCard({ value, theme, onAdjust }: AttackBonusCardProps
             Attaque bonus
           </Text>
           <Text style={[styles.subtle, { color: theme.subtitle }]}>Modificateur offensif</Text>
+          {activeSpellDamageBonus > 0 ? (
+            <Text style={[styles.subtle, styles.detailText, { color: theme.subtitle }]}>
+              Augmente par don actif +{activeSpellDamageBonus} degats
+            </Text>
+          ) : null}
         </View>
         <View style={[styles.countPill, { borderColor: theme.border }]}>
-          <Text style={[styles.count, isPhone ? styles.countPhone : null, { color: theme.title }]}>+{value}</Text>
+          <Text style={[styles.count, isPhone ? styles.countPhone : null, { color: theme.title }]}>+{effectiveValue}</Text>
         </View>
       </View>
 
@@ -149,7 +161,7 @@ export function AttackBonusCard({ value, theme, onAdjust }: AttackBonusCardProps
         </View>
         <View style={styles.attackSummary}>
           <Text style={[styles.attackValue, isPhone ? styles.attackValuePhone : null, { color: theme.title }]}>
-            +{value}
+            +{effectiveValue}
           </Text>
           <Text style={[styles.subtle, { color: theme.subtitle }]}>Ajoute ce bonus aux actions offensives</Text>
         </View>

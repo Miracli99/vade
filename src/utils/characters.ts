@@ -35,6 +35,10 @@ function normalizeSpell(spell: Spell): Spell {
       spell.armorBonus === undefined
         ? undefined
         : Math.max(0, normalizeNumber(spell.armorBonus)),
+    damageBonus:
+      spell.damageBonus === undefined
+        ? undefined
+        : Math.max(0, normalizeNumber(spell.damageBonus)),
     reducible: spell.reducible ?? false,
     imageModule: spell.imageModule,
     augmentable:

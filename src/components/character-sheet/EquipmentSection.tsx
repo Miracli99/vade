@@ -106,6 +106,11 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                           +{item.grantedSpell.armorBonus} armure
                         </Text>
                       ) : null}
+                      {item.grantedSpell.damageBonus ? (
+                        <Text style={styles.damageBadge}>
+                          +{item.grantedSpell.damageBonus} degats
+                        </Text>
+                      ) : null}
                     </View>
                   </View>
                   <Text style={[styles.description, { color: theme.title }]}>
@@ -189,6 +194,15 @@ const styles = StyleSheet.create({
   armorBadge: {
     color: "#3f2200",
     backgroundColor: "#fbbf24",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    overflow: "hidden",
+    fontWeight: "900",
+  },
+  damageBadge: {
+    color: "#3f2200",
+    backgroundColor: "#fca5a5",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,

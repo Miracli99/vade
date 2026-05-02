@@ -1,7 +1,11 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
-import { getActiveSpellArmorBonus, getEffectiveArmorResource } from "../../utils/game";
+import {
+  getActiveSpellArmorBonus,
+  getActiveSpellDamageBonus,
+  getEffectiveArmorResource,
+} from "../../utils/game";
 import { Section } from "../Section";
 import { AttackBonusCard, ResourceMeter } from "./ResourceCards";
 import { SectionEditButton } from "./SectionEditButton";
@@ -29,6 +33,7 @@ export function ResourcesSection({
   const isTablet = width >= 720 && width < 1180;
   const effectiveArmor = getEffectiveArmorResource(character);
   const activeSpellArmorBonus = getActiveSpellArmorBonus(character);
+  const activeSpellDamageBonus = getActiveSpellDamageBonus(character);
 
   return (
     <Section
@@ -87,6 +92,7 @@ export function ResourcesSection({
         <View style={[styles.cell, isPhone ? styles.cellPhone : isTablet ? styles.cellTablet : styles.cellDesktop]}>
           <AttackBonusCard
             value={character.attackBonus}
+            activeSpellDamageBonus={activeSpellDamageBonus}
             theme={theme}
             onAdjust={onAdjustAttackBonus}
           />

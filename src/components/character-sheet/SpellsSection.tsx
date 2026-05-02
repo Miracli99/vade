@@ -91,6 +91,9 @@ export function SpellsSection({
                       {spell.armorBonus ? (
                         <Text style={styles.armorBadge}>+{spell.armorBonus} armure</Text>
                       ) : null}
+                      {spell.damageBonus ? (
+                        <Text style={styles.damageBadge}>+{spell.damageBonus} degats</Text>
+                      ) : null}
                       <Text style={[styles.costBadge, reduced ? styles.costBadgeReduced : null]}>
                         {computedCost} PSY
                       </Text>
@@ -185,6 +188,15 @@ const styles = StyleSheet.create({
   armorBadge: {
     color: "#3f2200",
     backgroundColor: "#fbbf24",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    overflow: "hidden",
+    fontWeight: "900",
+  },
+  damageBadge: {
+    color: "#3f2200",
+    backgroundColor: "#fca5a5",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,

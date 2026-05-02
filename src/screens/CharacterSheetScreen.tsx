@@ -1758,6 +1758,7 @@ export function CharacterSheetScreen({
                 icon: "✦",
                 basePsyCost: 0,
                 armorBonus: 0,
+                damageBonus: 0,
                 reducible: true,
                 augmentable: false,
                 description: "",
@@ -1977,6 +1978,7 @@ export function CharacterSheetScreen({
                   name: `Don de ${item.name}`,
                   basePsyCost: 0,
                   armorBonus: 0,
+                  damageBonus: 0,
                   reducible: true,
                   augmentable: false,
                   description: "",
@@ -2855,6 +2857,16 @@ export function CharacterSheetScreen({
                         })
                       }
                     />
+                    <EditorField
+                      label="Bonus de degats (actif)"
+                      value={String(spell.damageBonus ?? 0)}
+                      keyboardType="numeric"
+                      onChangeText={(value) =>
+                        updateDraftSpell(index, {
+                          damageBonus: Math.max(0, Number.parseInt(value || "0", 10) || 0),
+                        })
+                      }
+                    />
                   </View>
                   <View style={styles.editorMediaRow}>
                     <AssetVisual
@@ -3054,6 +3066,19 @@ export function CharacterSheetScreen({
                           onChangeText={(value) =>
                             updateDraftEquipmentGrantedSpell(index, {
                               armorBonus: Math.max(
+                                0,
+                                Number.parseInt(value || "0", 10) || 0,
+                              ),
+                            })
+                          }
+                        />
+                        <EditorField
+                          label="Bonus de degats (actif)"
+                          value={String(item.grantedSpell.damageBonus ?? 0)}
+                          keyboardType="numeric"
+                          onChangeText={(value) =>
+                            updateDraftEquipmentGrantedSpell(index, {
+                              damageBonus: Math.max(
                                 0,
                                 Number.parseInt(value || "0", 10) || 0,
                               ),

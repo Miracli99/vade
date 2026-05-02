@@ -92,6 +92,7 @@ export type Spell = {
   imageModule?: number;
   basePsyCost: number;
   armorBonus?: number;
+  damageBonus?: number;
   reducible: boolean;
   augmentable?: boolean;
   description: string;

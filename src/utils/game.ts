@@ -40,17 +40,26 @@ export function getEquipmentArmorBonus(equipment: Character["equipment"]) {
 }
 
 export function getActiveSpellArmorBonus(character: Character) {
+  return getActiveSpells(character).reduce(
+    (total, spell) => total + Math.max(0, spell.armorBonus ?? 0),
+    0,
+  );
+}
+
+export function getActiveSpellDamageBonus(character: Character) {
+  return getActiveSpells(character).reduce(
+    (total, spell) => total + Math.max(0, spell.damageBonus ?? 0),
+    0,
+  );
+}
+
+function getActiveSpells(character: Character) {
   const activeSpellIds = new Set(character.activeSpellIds);
   const equipmentSpells = character.equipment
     .map((item) => item.grantedSpell)
     .filter((spell): spell is Spell => Boolean(spell));
-  const activeSpells = [...character.spells, ...equipmentSpells].filter((spell) =>
+  return [...character.spells, ...equipmentSpells].filter((spell) =>
     activeSpellIds.has(spell.id),
-  );
-
-  return activeSpells.reduce(
-    (total, spell) => total + Math.max(0, spell.armorBonus ?? 0),
-    0,
   );
 }
 
