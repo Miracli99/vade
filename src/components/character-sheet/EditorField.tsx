@@ -1,4 +1,4 @@
-import { ReactNode, createContext, useContext } from "react";
+import { ReactNode, createContext, useContext, useEffect, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
 type EditorFieldTheme = {
@@ -70,6 +70,75 @@ export function EditorField({
       />
     </View>
   );
+}
+
+type TagEditorFieldProps = {
+  label?: string;
+  tags: string[];
+  onChangeTags: (tags: string[]) => void;
+  placeholder?: string;
+};
+
+export function TagEditorField({
+  label = "Tags",
+  tags,
+  onChangeTags,
+  placeholder,
+}: TagEditorFieldProps) {
+  const theme = useContext(EditorFieldThemeContext);
+  const [draftValue, setDraftValue] = useState(formatTagInput(tags));
+  const [isFocused, setIsFocused] = useState(false);
+  const tagSignature = tags.join("\u0001");
+
+  useEffect(() => {
+    if (!isFocused) {
+      setDraftValue(formatTagInput(tags));
+    }
+  }, [isFocused, tagSignature]);
+
+  function handleChange(value: string) {
+    setDraftValue(value);
+    onChangeTags(parseTagInput(value));
+  }
+
+  function handleBlur() {
+    setIsFocused(false);
+    setDraftValue(formatTagInput(parseTagInput(draftValue)));
+  }
+
+  return (
+    <View style={styles.editorField}>
+      <Text style={[styles.editorFieldLabel, { color: theme.label }]}>{label}</Text>
+      <TextInput
+        value={draftValue}
+        onChangeText={handleChange}
+        onFocus={() => setIsFocused(true)}
+        onBlur={handleBlur}
+        keyboardType="default"
+        style={[
+          styles.editorInput,
+          {
+            backgroundColor: theme.inputBg,
+            borderColor: theme.inputBorder,
+            color: theme.inputText,
+          },
+        ]}
+        placeholder={placeholder}
+        placeholderTextColor={theme.placeholder}
+      />
+    </View>
+  );
+}
+
+function parseTagInput(rawValue: string) {
+  return rawValue
+    .split(/[,\n;]/)
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+function formatTagInput(tags: string[]) {
+  return tags.join(", ");
 }
 
 const styles = StyleSheet.create({

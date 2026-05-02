@@ -19,6 +19,7 @@ import { AssetVisual } from "../components/character-sheet/AssetVisual";
 import {
   EditorField,
   EditorFieldThemeProvider,
+  TagEditorField,
 } from "../components/character-sheet/EditorField";
 import { EquipmentSection } from "../components/character-sheet/EquipmentSection";
 import { InventorySection } from "../components/character-sheet/InventorySection";
@@ -615,17 +616,6 @@ const RESISTANCE_LABELS: Record<ResistanceType, string> = {
   faiblesse: "Faiblesse",
   immunite: "Immunite",
 };
-
-function parseTags(rawValue: string) {
-  return rawValue
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-}
-
-function formatTags(tags: string[]) {
-  return tags.join(", ");
-}
 
 function cloneTemplate<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -2640,12 +2630,9 @@ export function CharacterSheetScreen({
                         })
                       }
                     />
-                    <EditorField
-                      label="Tags"
-                      value={formatTags(effect.tags)}
-                      onChangeText={(value) =>
-                        updateDraftStatusEffect(index, { tags: parseTags(value) })
-                      }
+                    <TagEditorField
+                      tags={effect.tags}
+                      onChangeTags={(tags) => updateDraftStatusEffect(index, { tags })}
                     />
                   </View>
                   <View style={styles.editorToggleRow}>
@@ -2839,12 +2826,9 @@ export function CharacterSheetScreen({
                       value={spell.name}
                       onChangeText={(value) => updateDraftSpell(index, { name: value })}
                     />
-                    <EditorField
-                      label="Tags"
-                      value={formatTags(spell.tags)}
-                      onChangeText={(value) =>
-                        updateDraftSpell(index, { tags: parseTags(value) })
-                      }
+                    <TagEditorField
+                      tags={spell.tags}
+                      onChangeTags={(tags) => updateDraftSpell(index, { tags })}
                     />
                     <EditorField
                       label="Cout PSY"
@@ -2965,29 +2949,9 @@ export function CharacterSheetScreen({
                         updateDraftEquipment(index, { category: value })
                       }
                     />
-                    <EditorField
-                      label="Tags"
-                      value={formatTags(item.tags)}
-                      onChangeText={(value) =>
-                        updateDraftEquipment(index, { tags: parseTags(value) })
-                      }
-                    />
-                    <EditorField
-                      label="Action utilisable"
-                      value={item.usableLabel ?? ""}
-                      onChangeText={(value) =>
-                        updateDraftEquipment(index, { usableLabel: value })
-                      }
-                    />
-                    <EditorField
-                      label="Cout PSY"
-                      value={String(item.usePsyCost ?? 0)}
-                      keyboardType="numeric"
-                      onChangeText={(value) =>
-                        updateDraftEquipment(index, {
-                          usePsyCost: Math.max(0, Number.parseInt(value || "0", 10) || 0),
-                        })
-                      }
+                    <TagEditorField
+                      tags={item.tags}
+                      onChangeTags={(tags) => updateDraftEquipment(index, { tags })}
                     />
                   </View>
                   <View style={styles.editorMediaRow}>
@@ -3005,19 +2969,6 @@ export function CharacterSheetScreen({
                     >
                       <Text style={editorUploadButtonLabelStyle}>
                         Choisir une image
-                      </Text>
-                    </Pressable>
-                  </View>
-                  <View style={styles.editorToggleRow}>
-                    <Text style={editorInlineLabelStyle}>Cout reductible en Focus</Text>
-                    <Pressable
-                      onPress={() =>
-                        updateDraftEquipment(index, { reducible: !(item.reducible ?? false) })
-                      }
-                      style={getEditorToggleButtonStyle(item.reducible ?? false)}
-                    >
-                      <Text style={getEditorToggleButtonLabelStyle(item.reducible ?? false)}>
-                        {item.reducible ? "Oui" : "Non"}
                       </Text>
                     </Pressable>
                   </View>
@@ -3053,13 +3004,10 @@ export function CharacterSheetScreen({
                             updateDraftEquipmentGrantedSpell(index, { name: value })
                           }
                         />
-                        <EditorField
-                          label="Tags"
-                          value={formatTags(item.grantedSpell.tags)}
-                          onChangeText={(value) =>
-                            updateDraftEquipmentGrantedSpell(index, {
-                              tags: parseTags(value),
-                            })
+                        <TagEditorField
+                          tags={item.grantedSpell.tags}
+                          onChangeTags={(tags) =>
+                            updateDraftEquipmentGrantedSpell(index, { tags })
                           }
                         />
                         <EditorField
@@ -3215,12 +3163,9 @@ export function CharacterSheetScreen({
                         })
                       }
                     />
-                    <EditorField
-                      label="Tags"
-                      value={formatTags(item.tags)}
-                      onChangeText={(value) =>
-                        updateDraftInventory(index, { tags: parseTags(value) })
-                      }
+                    <TagEditorField
+                      tags={item.tags}
+                      onChangeTags={(tags) => updateDraftInventory(index, { tags })}
                     />
                   </View>
                   <View style={styles.editorMediaRow}>

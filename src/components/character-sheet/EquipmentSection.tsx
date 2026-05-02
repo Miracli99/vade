@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
-import { getReducibleCost, getSpellCost } from "../../utils/game";
+import { getSpellCost } from "../../utils/game";
 import { Section } from "../Section";
 import { AssetVisual } from "./AssetVisual";
 import { SectionEditButton } from "./SectionEditButton";
@@ -54,30 +54,9 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                       </Text>
                   <Text style={[styles.meta, { color: theme.subtitle }]}>{item.category}</Text>
                 </View>
-                {item.usePsyCost ? (
-                  <View style={styles.badges}>
-                    <Text
-                      style={[
-                        styles.useBadge,
-                        item.reducible &&
-                        getReducibleCost(item.usePsyCost, true, character.stance) < item.usePsyCost
-                          ? styles.useBadgeReduced
-                          : null,
-                      ]}
-                    >
-                      {getReducibleCost(item.usePsyCost, item.reducible ?? false, character.stance)} PSY
-                    </Text>
-                  </View>
-                ) : null}
               </View>
               {item.notes ? (
                 <Text style={[styles.description, { color: theme.title }]}>{item.notes}</Text>
-              ) : null}
-              {item.usePsyCost ? (
-                <Text style={[styles.effect, { color: theme.subtitle }]}>
-                  Utilisable · {item.usableLabel ?? "Activation"} ·
-                  {item.reducible ? " cout reductible en Focus" : " cout fixe"}
-                </Text>
               ) : null}
               {item.grantedSpell ? (
                 <View
@@ -86,31 +65,40 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                     { backgroundColor: theme.panelBg, borderColor: theme.border },
                   ]}
                 >
-                  <View style={styles.header}>
-                    <View style={styles.heading}>
-                      <Text style={[styles.title, { color: theme.title }]}>
-                        Don associe · {item.grantedSpell.name}
-                      </Text>
-                      <Text style={[styles.meta, { color: theme.subtitle }]}>
-                        {item.grantedSpell.augmentable
-                          ? "Augmentable"
-                          : item.grantedSpell.reducible
-                            ? "Reductible"
-                            : "Cout fixe"}
+                  <View style={styles.grantedSpellHeader}>
+                    <AssetVisual
+                      label={item.grantedSpell.name}
+                      icon={item.grantedSpell.icon}
+                      imageUrl={item.grantedSpell.imageUrl}
+                      imageModule={item.grantedSpell.imageModule}
+                      small
+                    />
+                    <View style={styles.header}>
+                      <View style={styles.heading}>
+                        <Text style={[styles.title, { color: theme.title }]}>
+                          Don associe · {item.grantedSpell.name}
+                        </Text>
+                        <Text style={[styles.meta, { color: theme.subtitle }]}>
+                          {item.grantedSpell.augmentable
+                            ? "Augmentable"
+                            : item.grantedSpell.reducible
+                              ? "Reductible"
+                              : "Cout fixe"}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.useBadge,
+                          item.grantedSpell.reducible &&
+                          getSpellCost(item.grantedSpell, character.stance) <
+                            item.grantedSpell.basePsyCost
+                            ? styles.useBadgeReduced
+                            : null,
+                        ]}
+                      >
+                        {getSpellCost(item.grantedSpell, character.stance)} PSY
                       </Text>
                     </View>
-                    <Text
-                      style={[
-                        styles.useBadge,
-                        item.grantedSpell.reducible &&
-                        getSpellCost(item.grantedSpell, character.stance) <
-                          item.grantedSpell.basePsyCost
-                          ? styles.useBadgeReduced
-                          : null,
-                      ]}
-                    >
-                      {getSpellCost(item.grantedSpell, character.stance)} PSY
-                    </Text>
                   </View>
                   <Text style={[styles.description, { color: theme.title }]}>
                     {item.grantedSpell.description}
@@ -178,6 +166,11 @@ const styles = StyleSheet.create({
     flexDirection: "column",
   },
   body: { flex: 1, gap: 8 },
+  grantedSpellHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -185,7 +178,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   heading: { flex: 1, gap: 3 },
-  badges: { alignItems: "flex-end", gap: 8 },
   useBadge: {
     color: "#082f49",
     backgroundColor: "#bae6fd",
