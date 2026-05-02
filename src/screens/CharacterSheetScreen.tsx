@@ -4718,21 +4718,19 @@ export function CharacterSheetScreen({
                 onEditStats={() => openSectionEditor("stats")}
                 onEditSkills={() => openSectionEditor("skills")}
               />
-          <StatusSections
-            character={selectedCharacter}
-            theme={sectionTheme}
-            onEditResistances={() => openSectionEditor("resistances")}
-          />
-              <SpellsSection
+              <StatusSections
                 character={selectedCharacter}
                 theme={sectionTheme}
-                onEdit={() => openSectionEditor("spells")}
-                onToggleSpellActive={(spellId) =>
-                  toggleSpellActive(selectedCharacter.id, spellId)
-                }
+                onEditResistances={() => openSectionEditor("resistances")}
               />
             </View>
           </View>
+          <SpellsSection
+            character={selectedCharacter}
+            theme={sectionTheme}
+            onEdit={() => openSectionEditor("spells")}
+            onToggleSpellActive={(spellId) => toggleSpellActive(selectedCharacter.id, spellId)}
+          />
           <EquipmentSection
             character={selectedCharacter}
             theme={sectionTheme}
