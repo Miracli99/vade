@@ -73,30 +73,32 @@ export function SpellsSection({
                         {spell.reducible ? "Don reductible" : "Don a cout fixe"}
                       </Text>
                     </View>
-                    <View style={styles.badges}>
-                      {isActive ? (
+                    <View style={styles.badgeRows}>
+                      <View style={styles.statusBadgeRow}>
                         <Text
                           style={[
                             styles.activeBadge,
                             {
-                              color: theme.buttonText,
-                              backgroundColor: theme.accent,
-                              borderColor: theme.border,
+                              color: isActive ? theme.buttonText : "transparent",
+                              backgroundColor: isActive ? theme.accent : "transparent",
+                              borderColor: isActive ? theme.border : "transparent",
                             },
                           ]}
                         >
                           Actif
                         </Text>
-                      ) : null}
-                      {spell.armorBonus ? (
-                        <Text style={styles.armorBadge}>+{spell.armorBonus} armure</Text>
-                      ) : null}
-                      {spell.damageBonus ? (
-                        <Text style={styles.damageBadge}>+{spell.damageBonus} degats</Text>
-                      ) : null}
-                      <Text style={[styles.costBadge, reduced ? styles.costBadgeReduced : null]}>
-                        {computedCost} PSY
-                      </Text>
+                      </View>
+                      <View style={styles.badges}>
+                        {spell.armorBonus ? (
+                          <Text style={styles.armorBadge}>+{spell.armorBonus} armure</Text>
+                        ) : null}
+                        {spell.damageBonus ? (
+                          <Text style={styles.damageBadge}>+{spell.damageBonus} degats</Text>
+                        ) : null}
+                        <Text style={[styles.costBadge, reduced ? styles.costBadgeReduced : null]}>
+                          {computedCost} PSY
+                        </Text>
+                      </View>
                     </View>
                   </View>
                   <Text style={[styles.description, { color: theme.title }]}>
@@ -166,7 +168,23 @@ const styles = StyleSheet.create({
   heading: { flex: 1, gap: 3 },
   title: { fontSize: 17, fontWeight: "800" },
   meta: { fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8 },
-  badges: { alignItems: "flex-end", gap: 8 },
+  badgeRows: {
+    flexShrink: 1,
+    alignItems: "flex-end",
+    gap: 6,
+    maxWidth: "58%",
+  },
+  statusBadgeRow: {
+    minHeight: 29,
+    alignItems: "flex-end",
+  },
+  badges: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    alignItems: "flex-end",
+    gap: 6,
+  },
   costBadge: {
     color: "#082f49",
     backgroundColor: "#bae6fd",
@@ -175,6 +193,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
     fontWeight: "900",
+    minWidth: 72,
+    textAlign: "center",
   },
   costBadgeReduced: { color: "#3f2200", backgroundColor: "#fbbf24" },
   activeBadge: {
@@ -184,6 +204,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     fontWeight: "900",
     borderWidth: 1,
+    minWidth: 72,
+    textAlign: "center",
   },
   armorBadge: {
     color: "#3f2200",
@@ -193,6 +215,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
     fontWeight: "900",
+    minWidth: 72,
+    textAlign: "center",
   },
   damageBadge: {
     color: "#3f2200",
@@ -202,6 +226,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
     fontWeight: "900",
+    minWidth: 72,
+    textAlign: "center",
   },
   description: { lineHeight: 21 },
   effect: { lineHeight: 20 },
