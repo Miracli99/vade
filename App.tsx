@@ -1,4 +1,6 @@
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -42,6 +44,7 @@ const APP_CONFIG = require("./app.json") as {
 };
 const APP_VERSION = APP_CONFIG.expo?.version ?? "0.0.0";
 const UPDATE_MANIFEST_URL = APP_CONFIG.expo?.extra?.updateManifestUrl ?? "";
+const ANDROID_APK_MIME_TYPE = "application/vnd.android.package-archive";
 
 type AppRoute = "home" | "character" | "history";
 
@@ -461,11 +464,34 @@ export default function App() {
     setUpdateError(null);
 
     try {
-      await Linking.openURL(availableUpdate.apkUrl);
+      if (Platform.OS !== "android") {
+        await Linking.openURL(availableUpdate.apkUrl);
+        setAvailableUpdate(null);
+        return;
+      }
+
+      const fileName = `vade-retro-${availableUpdate.version.replace(/[^a-zA-Z0-9.-]+/g, "-")}.apk`;
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+
+      const downloadResult = await FileSystem.downloadAsync(availableUpdate.apkUrl, fileUri);
+
+      if (downloadResult.status < 200 || downloadResult.status >= 300) {
+        throw new Error(`Telechargement refuse (${downloadResult.status}).`);
+      }
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(downloadResult.uri, {
+          mimeType: ANDROID_APK_MIME_TYPE,
+          dialogTitle: "Installer Vade Retro",
+        });
+      } else {
+        await Linking.openURL(availableUpdate.apkUrl);
+      }
+
       setAvailableUpdate(null);
     } catch {
       setUpdateError(
-        "Impossible d'ouvrir le telechargement Android. Verifiez le lien APK ou essayez depuis un navigateur.",
+        "Impossible de telecharger ou ouvrir l'APK Android. Verifiez le lien APK ou essayez depuis un navigateur.",
       );
     } finally {
       setInstallingUpdate(false);
