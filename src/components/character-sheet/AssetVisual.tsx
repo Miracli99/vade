@@ -1,6 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { LOCAL_IMAGE_LIBRARY } from "../../data/image-library";
+import { isKnownImageModule } from "../../utils/assets";
 
 type AssetVisualProps = {
   label: string;
@@ -35,9 +36,11 @@ export function AssetVisual({
       ? styles.assetVisualSmall
       : styles.assetVisual;
   const imageResizeMode = character ? "cover" : "contain";
+  const safeImageModule = isKnownImageModule(imageModule) ? imageModule : undefined;
+  const safeThumbnailModule = isKnownImageModule(thumbnailModule) ? thumbnailModule : undefined;
   const resolvedThumbnailModule =
-    thumbnailModule ?? (large ? undefined : getThumbnailModuleForImage(imageModule));
-  const resolvedImageModule = resolvedThumbnailModule ?? imageModule;
+    safeThumbnailModule ?? (large ? undefined : getThumbnailModuleForImage(safeImageModule));
+  const resolvedImageModule = resolvedThumbnailModule ?? safeImageModule;
   const content = imageUrl || resolvedImageModule ? (
     <View style={[sizeStyle, styles.imageFrame]}>
       <Image

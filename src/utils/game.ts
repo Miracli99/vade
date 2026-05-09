@@ -32,7 +32,7 @@ export function getScaledSpellCost(
   return getSpellCost(spell, stance) + Math.max(0, extraPsy);
 }
 
-export function getEquipmentArmorBonus(equipment: Character["equipment"]) {
+export function getEquipmentArmorBonus(equipment: Character["equipment"] = []) {
   return equipment.reduce(
     (total, item) => total + Math.max(0, item.armorBonus ?? 0),
     0,
@@ -54,24 +54,25 @@ export function getActiveSpellDamageBonus(character: Character) {
 }
 
 function getActiveSpells(character: Character) {
-  const activeSpellIds = new Set(character.activeSpellIds);
-  const equipmentSpells = character.equipment
+  const activeSpellIds = new Set(character.activeSpellIds ?? []);
+  const equipmentSpells = (character.equipment ?? [])
     .map((item) => item.grantedSpell)
     .filter((spell): spell is Spell => Boolean(spell));
-  return [...character.spells, ...equipmentSpells].filter((spell) =>
+  return [...(character.spells ?? []), ...equipmentSpells].filter((spell) =>
     activeSpellIds.has(spell.id),
   );
 }
 
 export function getEffectiveArmorResource(character: Character): ResourcePool {
+  const armor = character.armor ?? { current: 0, max: 0, bonus: 0 };
   const activeBonus =
-    character.armor.bonus +
+    armor.bonus +
     getEquipmentArmorBonus(character.equipment) +
     getActiveSpellArmorBonus(character);
 
   return {
-    current: character.armor.current + activeBonus,
-    max: character.armor.max + activeBonus,
+    current: armor.current + activeBonus,
+    max: armor.max + activeBonus,
     bonus: activeBonus,
   };
 }

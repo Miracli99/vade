@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Platform, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
 import { getSpellCost } from "../../utils/game";
@@ -84,7 +84,11 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                     <View style={styles.grantedSpellContent}>
                       <View style={styles.heading}>
                         <Text
-                          style={[styles.title, styles.titleWrap, { color: theme.title }]}
+                          style={[
+                            styles.title,
+                            Platform.OS === "web" ? styles.titleWrap : null,
+                            { color: theme.title },
+                          ]}
                           numberOfLines={2}
                         >
                           Don associe · {item.grantedSpell.name}

@@ -1,4 +1,5 @@
 import { Character, ResourcePool, Spell } from "../types/game";
+import { normalizeImageModule } from "./assets";
 
 const DEFAULT_RESOURCE: ResourcePool = {
   current: 0,
@@ -40,7 +41,7 @@ function normalizeSpell(spell: Spell): Spell {
         ? undefined
         : Math.max(0, normalizeNumber(spell.damageBonus)),
     reducible: spell.reducible ?? false,
-    imageModule: spell.imageModule,
+    imageModule: normalizeImageModule(spell.imageModule),
     augmentable:
       spell.augmentable ??
       Boolean((spell as Spell & { scaling?: { label?: string; bonusPerPsy?: string } }).scaling),
@@ -75,7 +76,7 @@ export function normalizeCharacter(character: Character): Character {
       mentale: Math.max(0, normalizeNumber(character.stats?.mentale)),
       sociale: Math.max(0, normalizeNumber(character.stats?.sociale)),
     },
-    imageModule: character.imageModule,
+    imageModule: normalizeImageModule(character.imageModule),
     skills: skills.map((skill) => ({
       ...skill,
       value: Math.max(0, normalizeNumber(skill.value)),
@@ -90,7 +91,7 @@ export function normalizeCharacter(character: Character): Character {
         item.usePsyCost === undefined
           ? undefined
           : Math.max(0, normalizeNumber(item.usePsyCost)),
-      imageModule: item.imageModule,
+      imageModule: normalizeImageModule(item.imageModule),
       grantedSpell: item.grantedSpell ? normalizeSpell(item.grantedSpell) : undefined,
       tags: item.tags ?? [],
       activeEffects: item.activeEffects ?? [],
@@ -101,7 +102,7 @@ export function normalizeCharacter(character: Character): Character {
     inventory: inventory.map((item) => ({
       ...item,
       quantity: Math.max(0, normalizeNumber(item.quantity)),
-      imageModule: item.imageModule,
+      imageModule: normalizeImageModule(item.imageModule),
       tags: item.tags ?? [],
     })),
     statusEffects: character.statusEffects ?? [],
