@@ -125,8 +125,10 @@ export async function importCharactersFromDirectory(
 
   const entryUris = await FileSystem.StorageAccessFramework.readDirectoryAsync(directoryUri);
   const characterUris = entryUris.filter(isCharacterSyncEntry);
-  const jsonUris = entryUris.filter(isJsonEntry);
-  const importUris = characterUris.length ? characterUris : jsonUris;
+  const additionalJsonUris = entryUris.filter(
+    (entryUri) => isJsonEntry(entryUri) && !isCharacterSyncEntry(entryUri),
+  );
+  const importUris = [...characterUris, ...additionalJsonUris];
   const importedCharacters: Character[] = [];
   const skippedFiles: DirectoryImportResult["skippedFiles"] = [];
 

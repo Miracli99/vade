@@ -243,18 +243,20 @@ export default function App() {
     };
   }
 
-  function applyImportedCharacters(importedCharacters: Character[], overwriteExisting: boolean) {
+  async function applyImportedCharacters(importedCharacters: Character[], overwriteExisting: boolean) {
     const mergeResult = mergeImportedCharacters(characters, importedCharacters, overwriteExisting);
     const importedIds = new Set(importedCharacters.map((character) => character.id));
     const firstSelectableCharacter =
       mergeResult.characters.find((character) => importedIds.has(character.id)) ??
       mergeResult.characters.find((character) => character.id === selectedId) ??
       mergeResult.characters[0];
+    const nextSelectedId = firstSelectableCharacter?.id ?? selectedId;
 
+    latestSyncCharactersRef.current = mergeResult.characters;
     setCharacters(mergeResult.characters);
 
-    if (firstSelectableCharacter) {
-      setSelectedId(firstSelectableCharacter.id);
+    if (nextSelectedId) {
+      setSelectedId(nextSelectedId);
     }
 
     setRoute("home");
@@ -264,6 +266,22 @@ export default function App() {
         ? `${importedCharacters.length} importe(s): ${mergeResult.addedCount} ajoute(s), ${mergeResult.updatedCount} mis a jour.`
         : `${mergeResult.addedCount} ajoute(s), ${mergeResult.updatedCount} doublon(s) ignore(s).`,
     );
+
+    if (!storageReady || !nextSelectedId) {
+      return;
+    }
+
+    try {
+      await persistCharactersToStorage(mergeResult.characters, nextSelectedId);
+
+      if (syncDirectoryUri && Platform.OS === "android") {
+        latestSyncDirectoryUriRef.current = syncDirectoryUri;
+        await flushSyncDirectory();
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? ` ${error.message}` : "";
+      setHomeMessage(`Import applique, mais sync Android impossible.${reason}`);
+    }
   }
 
   async function handleImportFromHome() {
@@ -298,7 +316,7 @@ export default function App() {
         return;
       }
 
-      applyImportedCharacters(normalizedImportedCharacters, true);
+      void applyImportedCharacters(normalizedImportedCharacters, true);
     } catch {
       setHomeMessage("Import impossible: JSON invalide.");
     }
@@ -369,7 +387,14 @@ export default function App() {
     try {
       setRefreshBusy(true);
       const importResult = await importCharactersFromDirectory(syncDirectoryUri);
-      const normalizedImportedCharacters = importResult.characters.map(normalizeCharacter);
+      const normalizedImportedCharacters = Array.from(
+        new Map(
+          importResult.characters.map((character) => {
+            const normalizedCharacter = normalizeCharacter(character);
+            return [normalizedCharacter.id, normalizedCharacter] as const;
+          }),
+        ).values(),
+      );
       const importedIds = new Set(normalizedImportedCharacters.map((character) => character.id));
       const skippedCharacterIds = new Set(
         importResult.skippedFiles
@@ -518,7 +543,7 @@ export default function App() {
               <Pressable
                 onPress={() => {
                   if (pendingImport) {
-                    applyImportedCharacters(pendingImport.characters, false);
+                    void applyImportedCharacters(pendingImport.characters, false);
                   }
                 }}
                 style={styles.updateSecondaryButton}
@@ -528,7 +553,7 @@ export default function App() {
               <Pressable
                 onPress={() => {
                   if (pendingImport) {
-                    applyImportedCharacters(pendingImport.characters, true);
+                    void applyImportedCharacters(pendingImport.characters, true);
                   }
                 }}
                 style={styles.updatePrimaryButton}
