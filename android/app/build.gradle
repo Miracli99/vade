@@ -7,21 +7,10 @@ apply plugin: "com.facebook.react"
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 def appConfig = new JsonSlurper().parse(file("$projectRoot/app.json"))
 def appVersionName = appConfig.expo?.version ?: "0.0.0"
-def versionCodeFromName = { versionName ->
-    def parts = versionName.tokenize(".").collect { part ->
-        def matcher = part =~ /\d+/
-        matcher.find() ? matcher.group().toInteger() : 0
-    }
-    def major = parts.size() > 0 ? parts[0] : 0
-    def minor = parts.size() > 1 ? parts[1] : 0
-    def patch = parts.size() > 2 ? parts[2] : 0
-
-    return major * 10000 + minor * 100 + patch
-}
 def appVersionCode = (
     findProperty("vade.versionCode")
         ?: appConfig.expo?.android?.versionCode
-        ?: versionCodeFromName(appVersionName)
+        ?: 1
 ).toInteger()
 def releaseStoreFile = findProperty("VADE_UPLOAD_STORE_FILE") ?: System.getenv("VADE_UPLOAD_STORE_FILE")
 def releaseStorePassword = findProperty("VADE_UPLOAD_STORE_PASSWORD") ?: System.getenv("VADE_UPLOAD_STORE_PASSWORD")

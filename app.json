@@ -19,6 +19,7 @@
         "foregroundImage": "./assets/vade-retro-logo.png",
         "backgroundColor": "#0b1020"
       },
+      "versionCode": 202,
       "package": "com.vaderetro.companion"
     },
     "web": {
