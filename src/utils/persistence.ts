@@ -12,6 +12,7 @@ const SYNC_DIRECTORY_URI_KEY = "vade-retro.sync-directory-uri.v1";
 const CHARACTER_SYNC_PREFIX = "character-";
 const CHARACTER_SYNC_SUFFIX = ".json";
 const JSON_MIME_TYPE = "application/json";
+const VALID_STANCES = new Set(["focus", "combat", "defensif"]);
 
 type SyncCharacterFile = {
   version: 1;
@@ -127,28 +128,8 @@ export async function importCharactersFromDirectory(
         encoding: FileSystem.EncodingType.UTF8,
       });
 
-      const parsed = JSON.parse(text) as
-        | Character[]
-        | Character
-        | SyncCharacterFile
-        | { characters?: Character[] };
-
-      if (isSyncCharacterFile(parsed)) {
-        importedCharacters.push(parsed.character);
-        continue;
-      }
-
-      if (Array.isArray(parsed)) {
-        importedCharacters.push(...parsed);
-        continue;
-      }
-
-      if (hasCharactersArray(parsed)) {
-        importedCharacters.push(...parsed.characters);
-        continue;
-      }
-
-      importedCharacters.push(parsed as Character);
+      const parsed = JSON.parse(text) as unknown;
+      importedCharacters.push(...extractImportedCharacters(parsed));
     } catch {
       const fileName = getUriFileName(entryUri);
       skippedFiles.push({
@@ -238,19 +219,8 @@ export async function importCharacters(): Promise<Character[] | null> {
 }
 
 function parseImportedCharacters(text: string) {
-  const parsed = JSON.parse(text) as
-    | Character[]
-    | { characters?: Character[] };
-
-  if (Array.isArray(parsed)) {
-    return parsed;
-  }
-
-  if (Array.isArray(parsed.characters)) {
-    return parsed.characters;
-  }
-
-  throw new Error("Format JSON invalide.");
+  const parsed = JSON.parse(text) as unknown;
+  return extractImportedCharacters(parsed);
 }
 
 function pickWebFile() {
@@ -298,22 +268,71 @@ function getUriFileName(entryUri: string) {
   return normalizedUri.slice(normalizedUri.lastIndexOf("/") + 1);
 }
 
+function extractImportedCharacters(value: unknown): Character[] {
+  const candidates = getImportedCharacterCandidates(value);
+
+  if (!candidates.length || !candidates.every(isImportableCharacter)) {
+    throw new Error("Format JSON invalide.");
+  }
+
+  return candidates;
+}
+
+function getImportedCharacterCandidates(value: unknown): unknown[] {
+  if (isSyncCharacterFile(value)) {
+    return [value.character];
+  }
+
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (hasCharactersArray(value)) {
+    return value.characters;
+  }
+
+  return [value];
+}
+
 function isSyncCharacterFile(value: unknown): value is SyncCharacterFile {
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      "character" in value &&
-      (value as SyncCharacterFile).version === 1,
+  return isRecord(value) && value.version === 1 && isImportableCharacter(value.character);
+}
+
+function hasCharactersArray(value: unknown): value is { characters: unknown[] } {
+  return isRecord(value) && Array.isArray(value.characters);
+}
+
+function isImportableCharacter(value: unknown): value is Character {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    isNonEmptyString(value.id) &&
+    isNonEmptyString(value.name) &&
+    isNonEmptyString(value.archetype) &&
+    isRecord(value.pv) &&
+    isRecord(value.psy) &&
+    isRecord(value.armor) &&
+    isRecord(value.stats) &&
+    Array.isArray(value.skills) &&
+    Array.isArray(value.equipment) &&
+    Array.isArray(value.spells) &&
+    Array.isArray(value.activeSpellIds) &&
+    Array.isArray(value.statusEffects) &&
+    Array.isArray(value.resistances) &&
+    Array.isArray(value.inventory) &&
+    typeof value.stance === "string" &&
+    VALID_STANCES.has(value.stance)
   );
 }
 
-function hasCharactersArray(value: unknown): value is { characters: Character[] } {
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      "characters" in value &&
-      Array.isArray((value as { characters?: Character[] }).characters),
-  );
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function isNonEmptyString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function formatFileList(fileNames: string[]) {
