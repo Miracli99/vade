@@ -10,3 +10,6 @@ yarn-error.log*
 .DS_Store
 .vscode
 .codex
+*.jks
+*.keystore
+!android/app/debug.keystore

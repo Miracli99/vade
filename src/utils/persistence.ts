@@ -80,7 +80,6 @@ export async function syncCharactersToDirectory(characters: Character[], directo
   }
 
   const existingEntries = await FileSystem.StorageAccessFramework.readDirectoryAsync(directoryUri);
-  const expectedUris = new Set<string>();
 
   for (const character of characters) {
     const fileName = getCharacterSyncFileName(character.id);
@@ -103,16 +102,6 @@ export async function syncCharactersToDirectory(characters: Character[], directo
     await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(payload, null, 2), {
       encoding: FileSystem.EncodingType.UTF8,
     });
-
-    expectedUris.add(fileUri);
-  }
-
-  for (const entryUri of existingEntries) {
-    if (!isCharacterSyncEntry(entryUri) || expectedUris.has(entryUri)) {
-      continue;
-    }
-
-    await FileSystem.deleteAsync(entryUri, { idempotent: true });
   }
 }
 
