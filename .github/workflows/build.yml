@@ -136,9 +136,30 @@ jobs:
         shell: bash
         run: |
           APP_VERSION="$(node -p "require('./app.json').expo.version")"
-          APK_FILENAME="vade-compagnions-${APP_VERSION}.apk"
-          mv android/app/build/outputs/apk/release/app-release.apk "android/app/build/outputs/apk/release/${APK_FILENAME}"
+          APK_DIR="android/app/build/outputs/apk/release"
+          APK_SOURCE=""
+
+          if [ -f "${APK_DIR}/app-release.apk" ]; then
+            APK_SOURCE="${APK_DIR}/app-release.apk"
+            APK_FILENAME="vade-compagnions-${APP_VERSION}.apk"
+          elif [ -f "${APK_DIR}/app-release-unsigned.apk" ]; then
+            APK_SOURCE="${APK_DIR}/app-release-unsigned.apk"
+            APK_FILENAME="vade-compagnions-${APP_VERSION}-unsigned.apk"
+          else
+            APK_SOURCE="$(find "${APK_DIR}" -maxdepth 1 -type f -name '*.apk' | sort | head -n 1)"
+            APK_FILENAME="vade-compagnions-${APP_VERSION}.apk"
+          fi
+
+          if [ -z "${APK_SOURCE}" ]; then
+            echo "No APK found in ${APK_DIR}" >&2
+            find android/app/build/outputs -type f | sort >&2
+            exit 1
+          fi
+
+          APK_PATH="${APK_DIR}/${APK_FILENAME}"
+          mv "${APK_SOURCE}" "${APK_PATH}"
           echo "filename=${APK_FILENAME}" >> "$GITHUB_OUTPUT"
+          echo "path=${APK_PATH}" >> "$GITHUB_OUTPUT"
 
       - name: List APK outputs
         if: always()
@@ -150,7 +171,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: android-apk
-          path: android/app/build/outputs/apk/release/${{ steps.apk_meta.outputs.filename }}
+          path: ${{ steps.apk_meta.outputs.path }}
           if-no-files-found: error
 
       - name: Compute release metadata
@@ -172,7 +193,7 @@ jobs:
           tag_name: ${{ steps.release_meta.outputs.tag }}
           name: ${{ steps.release_meta.outputs.name }}
           generate_release_notes: true
-          files: android/app/build/outputs/apk/release/${{ steps.apk_meta.outputs.filename }}
+          files: ${{ steps.apk_meta.outputs.path }}
 
       - name: Setup GitHub Pages
         if: success() && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
