@@ -205,6 +205,7 @@ jobs:
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           OWNER_LOWER="${GITHUB_REPOSITORY_OWNER,,}"
           APP_VERSION="$(node -p "require('./app.json').expo.version")"
+          RELEASE_NOTES="$(node -p "JSON.stringify(require('fs').readFileSync('release-notes.txt', 'utf8').trim())")"
           APK_FILENAME="${{ steps.apk_meta.outputs.filename }}"
           APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${{ steps.release_meta.outputs.tag }}/${APK_FILENAME}"
           MANIFEST_URL="https://${OWNER_LOWER}.github.io/${REPO_NAME}/app-update.json"
@@ -213,7 +214,7 @@ jobs:
           {
             "version": "${APP_VERSION}",
             "apkUrl": "${APK_URL}",
-            "notes": "Build automatique GitHub Actions pour ${GITHUB_SHA::7}.",
+            "notes": ${RELEASE_NOTES},
             "manifestUrl": "${MANIFEST_URL}"
           }
           EOF

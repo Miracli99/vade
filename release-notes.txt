@@ -1,0 +1,3 @@
+- Corrections de l'installation APK Android.
+- Sync Android plus sure pour les fiches personnages.
+- Import JSON renforce pour eviter les fichiers invalides.
