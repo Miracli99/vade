@@ -127,9 +127,9 @@ jobs:
         working-directory: android
         run: chmod +x gradlew
 
-      - name: Build release APK
+      - name: Build Android APKs
         working-directory: android
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease assembleDebug
 
       - name: Rename APK with app version
         id: apk_meta
@@ -137,21 +137,18 @@ jobs:
         run: |
           APP_VERSION="$(node -p "require('./app.json').expo.version")"
           APK_DIR="android/app/build/outputs/apk/release"
+          DEBUG_APK="android/app/build/outputs/apk/debug/app-debug.apk"
           APK_SOURCE=""
 
           if [ -f "${APK_DIR}/app-release.apk" ]; then
             APK_SOURCE="${APK_DIR}/app-release.apk"
             APK_FILENAME="vade-compagnions-${APP_VERSION}.apk"
-          elif [ -f "${APK_DIR}/app-release-unsigned.apk" ]; then
-            APK_SOURCE="${APK_DIR}/app-release-unsigned.apk"
-            APK_FILENAME="vade-compagnions-${APP_VERSION}-unsigned.apk"
+          elif [ -f "${DEBUG_APK}" ]; then
+            APK_SOURCE="${DEBUG_APK}"
+            APK_FILENAME="vade-compagnions-${APP_VERSION}-debug.apk"
           else
-            APK_SOURCE="$(find "${APK_DIR}" -maxdepth 1 -type f -name '*.apk' | sort | head -n 1)"
-            APK_FILENAME="vade-compagnions-${APP_VERSION}.apk"
-          fi
-
-          if [ -z "${APK_SOURCE}" ]; then
-            echo "No APK found in ${APK_DIR}" >&2
+            echo "No signed release APK or debug APK found." >&2
+            echo "Unsigned release APKs are not installable on Android." >&2
             find android/app/build/outputs -type f | sort >&2
             exit 1
           fi
