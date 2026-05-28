@@ -16,6 +16,7 @@ import {
 
 import { Section } from "../components/Section";
 import { AssetVisual } from "../components/character-sheet/AssetVisual";
+import { CharacterSheetBackdrop } from "../components/character-sheet/CharacterSheetBackdrop";
 import {
   EditorField,
   EditorFieldThemeProvider,
@@ -56,12 +57,14 @@ import {
   stanceLabels,
 } from "../utils/game";
 import { normalizeCharacter } from "../utils/characters";
+import { getResponsiveFlags } from "../utils/responsive";
 import {
   LOCAL_IMAGE_LIBRARY,
   ImageLibraryCategory,
   LocalImageOption,
 } from "../data/image-library";
 
+const APP_LOGO = require("../../assets/vade-retro-logo.png");
 const STANCES: CombatStance[] = ["focus", "combat", "defensif"];
 const THEME_BACKGROUNDS: Record<CharacterTheme, number> = {
   vide: require("../../assets/themes/vide.png"),
@@ -95,7 +98,6 @@ const THEME_CARD_BACKGROUNDS: Record<CharacterTheme, number> = {
   ronce: require("../../assets/themes/card/ronce.png"),
   miroir: require("../../assets/themes/card/miroir.png"),
 };
-const APP_LOGO = require("../../assets/vade-retro-logo.png");
 const STAT_ICONS: Record<keyof Character["stats"], string> = {
   physique: "⚔",
   mentale: "✦",
@@ -789,11 +791,13 @@ export function CharacterSheetScreen({
       ? ARCHETYPE_OPTIONS.find((option) => option.id === creationDraft.archetypeId)
       : undefined) ?? ARCHETYPE_OPTIONS[ARCHETYPE_OPTIONS.length - 1]!;
   const editingAll = editorSection === "all";
-  const isPhone = width < 720;
-  const isLaptop = width >= 1280;
-  const useSplitLayout = width >= 980;
-  const useWideHero = width >= 720;
-  const useQuickActionsColumns = width >= 1280 ? 4 : width >= 720 ? 2 : 1;
+  const {
+    isPhone,
+    isDesktop,
+    isSplit: useSplitLayout,
+  } = getResponsiveFlags(width);
+  const useWideHero = !isPhone;
+  const useQuickActionsColumns = isDesktop ? 4 : !isPhone ? 2 : 1;
   const imageLibraryOptions = imageLibraryTarget
     ? LOCAL_IMAGE_LIBRARY[getImageLibraryCategory(imageLibraryTarget)]
     : [];
@@ -2117,26 +2121,15 @@ export function CharacterSheetScreen({
       style={[styles.scroll, { backgroundColor: activeTheme.pageBg }]}
       contentContainerStyle={[
         styles.content,
-        isPhone ? styles.contentPhone : isLaptop ? styles.contentLaptop : styles.contentTablet,
+        isPhone ? styles.contentPhone : isDesktop ? styles.contentLaptop : styles.contentTablet,
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <Image
-        source={activeTheme.backgroundImage}
-        style={styles.pageBackdrop}
-        resizeMode="cover"
-      />
-      <View
-        style={[
-          styles.pageBackdropOverlay,
-          { backgroundColor: activeTheme.pageBg },
-        ]}
-      />
-      <View style={[styles.pageGlow, { backgroundColor: activeTheme.accent }]} />
+      <CharacterSheetBackdrop theme={activeTheme} />
       <View
         style={[
           styles.navbar,
-          isPhone ? styles.navbarMobile : isLaptop ? styles.navbarLaptop : styles.navbarTablet,
+          isPhone ? styles.navbarMobile : isDesktop ? styles.navbarLaptop : styles.navbarTablet,
         ]}
       >
         <View style={styles.navBrandBlock}>
@@ -2144,6 +2137,8 @@ export function CharacterSheetScreen({
             disabled={!onOpenHome}
             onPress={onOpenHome}
             style={styles.navBrandPressable}
+            accessibilityRole="button"
+            accessibilityLabel="Retourner a l'accueil"
           >
             <View style={styles.navBrandRow}>
               <Image
@@ -2183,6 +2178,8 @@ export function CharacterSheetScreen({
                 styles.navCharacterButton,
                 { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Changer de personnage actif"
             >
               <View style={styles.navCharacterSeal}>
                 <Text style={[styles.navCharacterSealText, { color: activeTheme.accent }]}>
@@ -2220,6 +2217,8 @@ export function CharacterSheetScreen({
             styles.heroEditIconButtonFloating,
             { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="Modifier l'identite du personnage"
         >
           <Text style={[styles.heroEditIconLabel, { color: activeTheme.title }]}>✎</Text>
         </Pressable>
@@ -2276,6 +2275,8 @@ export function CharacterSheetScreen({
               setActiveOverlayMenu((current) => (current === "bioView" ? null : "bioView"))
             }
             style={[styles.heroBioButton, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}
+            accessibilityRole="button"
+            accessibilityLabel={selectedCharacter.bio ? "Afficher la bio du personnage" : "Ajouter une bio au personnage"}
           >
             <Text style={[styles.heroBioButtonLabel, { color: activeTheme.title }]}>
               {selectedCharacter.bio ? "Voir la bio" : "Ajouter une bio"}
@@ -4682,7 +4683,7 @@ export function CharacterSheetScreen({
             <View
               style={[
                 styles.tabletPrimaryColumn,
-                isLaptop ? styles.tabletPrimaryColumnLaptop : styles.tabletPrimaryColumnTablet,
+                isDesktop ? styles.tabletPrimaryColumnLaptop : styles.tabletPrimaryColumnTablet,
               ]}
             >
               <ResourcesSection
@@ -4706,7 +4707,7 @@ export function CharacterSheetScreen({
             <View
               style={[
                 styles.tabletSecondaryColumn,
-                isLaptop
+                isDesktop
                   ? styles.tabletSecondaryColumnLaptop
                   : styles.tabletSecondaryColumnTablet,
               ]}
@@ -5031,11 +5032,18 @@ const styles = StyleSheet.create({
     borderColor: "rgba(148, 163, 184, 0.16)",
     overflow: "hidden",
     zIndex: 140,
-    shadowColor: "#000",
-    shadowOpacity: 0.28,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 10px 16px rgba(0, 0, 0, 0.28)",
+      } as object,
+      default: {
+        shadowColor: "#000",
+        shadowOpacity: 0.28,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 12,
+      },
+    }),
   },
   dropdownItem: {
     paddingHorizontal: 14,
@@ -5605,11 +5613,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: "hidden",
     zIndex: 80,
-    shadowColor: "#000",
-    shadowOpacity: 0.24,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 8px 14px rgba(0, 0, 0, 0.24)",
+      } as object,
+      default: {
+        shadowColor: "#000",
+        shadowOpacity: 0.24,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 10,
+      },
+    }),
   },
   editorInput: {
     minHeight: 44,

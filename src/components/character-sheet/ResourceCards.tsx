@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { ResourcePool } from "../../types/game";
+import { getResponsiveFlags } from "../../utils/responsive";
 
 type ThemeTokens = {
   chipBg: string;
@@ -39,8 +40,7 @@ export function ResourceMeter({
   onAdjustBonus,
 }: ResourceMeterProps) {
   const { width } = useWindowDimensions();
-  const isPhone = width < 720;
-  const isNarrow = width < 420;
+  const { isPhone, isNarrowPhone } = getResponsiveFlags(width);
   const effectiveMax = overlayBonus
     ? Math.max(resource.max, resource.current + resource.bonus, 1)
     : Math.max(resource.max, 1);
@@ -105,7 +105,7 @@ export function ResourceMeter({
         </View>
       </View>
 
-      <View style={[styles.controlsRow, isNarrow ? styles.controlsRowTight : null]}>
+      <View style={[styles.controlsRow, isNarrowPhone ? styles.controlsRowTight : null]}>
         <AdjustButton label="-1" onPress={() => onAdjust(-1)} theme={theme} compact={isPhone} />
         <AdjustButton label="+1" onPress={() => onAdjust(1)} theme={theme} compact={isPhone} />
         {onAdjustBonus ? (
@@ -133,7 +133,7 @@ export function AttackBonusCard({
   onAdjust,
 }: AttackBonusCardProps) {
   const { width } = useWindowDimensions();
-  const isPhone = width < 720;
+  const isPhone = getResponsiveFlags(width).isPhone;
   const effectiveValue = value + activeSpellDamageBonus;
 
   return (

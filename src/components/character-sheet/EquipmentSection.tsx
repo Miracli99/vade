@@ -2,6 +2,7 @@ import { Platform, StyleSheet, Text, View, useWindowDimensions } from "react-nat
 
 import { Character } from "../../types/game";
 import { getSpellCost } from "../../utils/game";
+import { getResponsiveFlags } from "../../utils/responsive";
 import { Section } from "../Section";
 import { AssetVisual } from "./AssetVisual";
 import { MasonryList } from "./MasonryList";
@@ -16,7 +17,7 @@ type EquipmentSectionProps = {
 
 export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionProps) {
   const { width } = useWindowDimensions();
-  const isCompact = width < 720;
+  const isCompact = getResponsiveFlags(width).isPhone;
 
   return (
     <Section
@@ -29,7 +30,7 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
         subtitle: theme.subtitle,
         cardBackgroundImage: theme.cardBackgroundImage,
       }}
-      rightSlot={<SectionEditButton theme={theme} onPress={onEdit} />}
+      rightSlot={<SectionEditButton theme={theme} onPress={onEdit} accessibilityLabel="Modifier l'equipement" />}
     >
       <View style={styles.list}>
         <MasonryList

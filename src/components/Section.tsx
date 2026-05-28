@@ -99,7 +99,6 @@ const styles = StyleSheet.create({
   webCardBackground: {
     backgroundRepeat: "repeat",
     backgroundSize: "auto",
-    backgroundPosition: "top left",
   } as object,
   textureOverlay: {
     position: "absolute",

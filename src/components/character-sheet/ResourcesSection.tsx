@@ -6,6 +6,7 @@ import {
   getActiveSpellDamageBonus,
   getEffectiveArmorResource,
 } from "../../utils/game";
+import { getResponsiveFlags } from "../../utils/responsive";
 import { Section } from "../Section";
 import { AttackBonusCard, ResourceMeter } from "./ResourceCards";
 import { SectionEditButton } from "./SectionEditButton";
@@ -29,8 +30,7 @@ export function ResourcesSection({
   onAdjustAttackBonus,
 }: ResourcesSectionProps) {
   const { width } = useWindowDimensions();
-  const isPhone = width < 720;
-  const isTablet = width >= 720 && width < 1180;
+  const { isPhone, isTablet } = getResponsiveFlags(width);
   const effectiveArmor = getEffectiveArmorResource(character);
   const activeSpellArmorBonus = getActiveSpellArmorBonus(character);
   const activeSpellDamageBonus = getActiveSpellDamageBonus(character);
@@ -46,7 +46,7 @@ export function ResourcesSection({
         subtitle: theme.subtitle,
         cardBackgroundImage: theme.cardBackgroundImage,
       }}
-      rightSlot={<SectionEditButton theme={theme} onPress={onEdit} />}
+      rightSlot={<SectionEditButton theme={theme} onPress={onEdit} accessibilityLabel="Modifier les ressources" />}
     >
       <View style={styles.grid}>
         <View style={[styles.cell, isPhone ? styles.cellPhone : isTablet ? styles.cellTablet : styles.cellDesktop]}>

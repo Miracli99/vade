@@ -34,7 +34,7 @@ export function StatusSections({
         subtitle: theme.subtitle,
         cardBackgroundImage: theme.cardBackgroundImage,
       }}
-      rightSlot={<SectionEditButton theme={theme} onPress={onEditResistances} />}
+      rightSlot={<SectionEditButton theme={theme} onPress={onEditResistances} accessibilityLabel="Modifier les affinites" />}
     >
       <View style={styles.resistanceList}>
         {character.resistances.length ? (

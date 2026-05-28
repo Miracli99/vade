@@ -5,9 +5,14 @@ import { CharacterSheetTheme } from "./theme";
 type SectionEditButtonProps = {
   theme: CharacterSheetTheme;
   onPress: () => void;
+  accessibilityLabel?: string;
 };
 
-export function SectionEditButton({ theme, onPress }: SectionEditButtonProps) {
+export function SectionEditButton({
+  theme,
+  onPress,
+  accessibilityLabel = "Modifier la section",
+}: SectionEditButtonProps) {
   return (
     <Pressable
       onPress={onPress}
@@ -15,6 +20,8 @@ export function SectionEditButton({ theme, onPress }: SectionEditButtonProps) {
         styles.button,
         { backgroundColor: theme.chipBg, borderColor: theme.border },
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
     >
       <Text style={[styles.label, { color: theme.title }]}>✎</Text>
     </Pressable>

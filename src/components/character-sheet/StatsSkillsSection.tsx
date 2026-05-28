@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
+import { getResponsiveFlags } from "../../utils/responsive";
 import { Section } from "../Section";
 import { SectionEditButton } from "./SectionEditButton";
 import { CharacterSheetTheme } from "./theme";
@@ -25,7 +26,7 @@ export function StatsSkillsSection({
   onEditSkills,
 }: StatsSkillsSectionProps) {
   const { width } = useWindowDimensions();
-  const isCompact = width < 720;
+  const isCompact = getResponsiveFlags(width).isPhone;
 
   return (
     <View style={styles.dualColumns}>
@@ -41,7 +42,7 @@ export function StatsSkillsSection({
               subtitle: theme.subtitle,
               cardBackgroundImage: theme.cardBackgroundImage,
             }}
-            rightSlot={<SectionEditButton theme={theme} onPress={onEditStats} />}
+            rightSlot={<SectionEditButton theme={theme} onPress={onEditStats} accessibilityLabel="Modifier les stats" />}
           >
             <View style={styles.statsGrid}>
               {Object.entries(character.stats).map(([key, value]) => (
@@ -79,7 +80,7 @@ export function StatsSkillsSection({
               subtitle: theme.subtitle,
               cardBackgroundImage: theme.cardBackgroundImage,
             }}
-            rightSlot={<SectionEditButton theme={theme} onPress={onEditSkills} />}
+            rightSlot={<SectionEditButton theme={theme} onPress={onEditSkills} accessibilityLabel="Modifier les competences" />}
           >
             <View style={styles.table}>
               {!isCompact ? (

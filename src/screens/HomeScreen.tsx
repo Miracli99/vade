@@ -3,6 +3,7 @@ import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, 
 
 import { AssetVisual } from "../components/character-sheet/AssetVisual";
 import { Character } from "../types/game";
+import { getResponsiveFlags } from "../utils/responsive";
 
 const APP_LOGO = require("../../assets/vade-retro-logo.png");
 const CHARACTER_BIO_PREVIEW_MAX_LENGTH = 220;
@@ -39,8 +40,7 @@ export function HomeScreen({
   onOpenHistory,
 }: HomeScreenProps) {
   const { width } = useWindowDimensions();
-  const isPhone = width < 760;
-  const isNarrowPhone = width < 430;
+  const { isPhone, isNarrowPhone } = getResponsiveFlags(width);
   const isAndroid = Platform.OS === "android";
   const [exportPickerOpen, setExportPickerOpen] = useState(false);
   const [syncSettingsOpen, setSyncSettingsOpen] = useState(false);
@@ -82,7 +82,12 @@ export function HomeScreen({
           </View>
         </View>
 
-        <Pressable onPress={onOpenHistory} style={styles.storyCard}>
+        <Pressable
+          onPress={onOpenHistory}
+          style={styles.storyCard}
+          accessibilityRole="button"
+          accessibilityLabel="Ouvrir la page histoire"
+        >
           <Text style={styles.storyEyebrow}>Lecture</Text>
           <Text style={styles.storyTitle}>Histoire</Text>
           <Text style={styles.storyDescription}>
@@ -93,19 +98,34 @@ export function HomeScreen({
       </View>
 
       <View style={styles.sectionHeader}>
-        <View style={styles.sectionHeaderTop}>
+        <View style={[styles.sectionHeaderTop, isPhone ? styles.sectionHeaderTopPhone : null]}>
           <View style={styles.sectionHeaderText}>
             <Text style={styles.sectionTitle}>Personnages</Text>
             <Text style={styles.sectionSubtitle}>Ouverture directe des fiches et export manuel d&apos;un personnage</Text>
           </View>
-          <View style={styles.rosterActions}>
-            <Pressable onPress={onCreateCharacter} style={styles.primaryActionButton}>
+          <View style={[styles.rosterActions, isPhone ? styles.rosterActionsPhone : null]}>
+            <Pressable
+              onPress={onCreateCharacter}
+              style={styles.primaryActionButton}
+              accessibilityRole="button"
+              accessibilityLabel="Creer un nouveau personnage"
+            >
               <Text style={styles.primaryActionLabel}>Nouveau</Text>
             </Pressable>
-            <Pressable onPress={onImportCharacters} style={styles.secondaryActionButton}>
+            <Pressable
+              onPress={onImportCharacters}
+              style={styles.secondaryActionButton}
+              accessibilityRole="button"
+              accessibilityLabel="Importer des personnages"
+            >
               <Text style={styles.secondaryActionLabel}>Importer</Text>
             </Pressable>
-            <Pressable onPress={() => setExportPickerOpen(true)} style={styles.secondaryActionButton}>
+            <Pressable
+              onPress={() => setExportPickerOpen(true)}
+              style={styles.secondaryActionButton}
+              accessibilityRole="button"
+              accessibilityLabel="Exporter un personnage"
+            >
               <Text style={styles.secondaryActionLabel}>Exporter</Text>
             </Pressable>
             {isAndroid ? (
@@ -129,6 +149,8 @@ export function HomeScreen({
               key={character.id}
               onPress={() => onOpenCharacter(character.id)}
               style={[styles.characterCard, isPhone ? styles.characterCardPhone : null]}
+              accessibilityRole="button"
+              accessibilityLabel={`Ouvrir la fiche de ${character.name}`}
             >
               <AssetVisual
                 label={character.name}
@@ -181,6 +203,8 @@ export function HomeScreen({
                       setExportPickerOpen(false);
                     }}
                     style={styles.exportOption}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Exporter ${character.name}`}
                   >
                     <View style={styles.exportOptionBody}>
                       <Text style={styles.exportOptionName}>{character.name}</Text>
@@ -193,7 +217,12 @@ export function HomeScreen({
                 );
               })}
             </View>
-            <Pressable onPress={() => setExportPickerOpen(false)} style={styles.exportPickerCloseButton}>
+            <Pressable
+              onPress={() => setExportPickerOpen(false)}
+              style={styles.exportPickerCloseButton}
+              accessibilityRole="button"
+              accessibilityLabel="Fermer la selection d'export"
+            >
               <Text style={styles.exportPickerCloseButtonLabel}>Fermer</Text>
             </Pressable>
           </View>
@@ -218,6 +247,8 @@ export function HomeScreen({
               <Pressable
                 onPress={onEnableSync}
                 style={[styles.secondaryActionButton, syncEnabled ? styles.syncActionButtonActive : null]}
+                accessibilityRole="button"
+                accessibilityLabel={syncEnabled ? "Changer le dossier de sync Android" : "Activer la sync Android"}
               >
                 <Text style={styles.secondaryActionLabel}>
                   {syncBusy ? "Sync..." : syncEnabled ? "Changer dossier" : "Activer"}
@@ -227,18 +258,30 @@ export function HomeScreen({
                 onPress={onRefreshSync}
                 style={styles.secondaryActionButton}
                 disabled={!syncEnabled || refreshBusy || syncBusy}
+                accessibilityRole="button"
+                accessibilityLabel="Rafraichir depuis le dossier de sync Android"
               >
                 <Text style={[styles.secondaryActionLabel, !syncEnabled || refreshBusy || syncBusy ? styles.actionLabelMuted : null]}>
                   {refreshBusy ? "Refresh..." : "Refresh"}
                 </Text>
               </Pressable>
               {syncEnabled ? (
-                <Pressable onPress={onDisableSync} style={styles.secondaryActionButton}>
+                <Pressable
+                  onPress={onDisableSync}
+                  style={styles.secondaryActionButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Desactiver la sync Android"
+                >
                   <Text style={styles.secondaryActionLabel}>Desactiver</Text>
                 </Pressable>
               ) : null}
             </View>
-            <Pressable onPress={() => setSyncSettingsOpen(false)} style={styles.exportPickerCloseButton}>
+            <Pressable
+              onPress={() => setSyncSettingsOpen(false)}
+              style={styles.exportPickerCloseButton}
+              accessibilityRole="button"
+              accessibilityLabel="Fermer les parametres de sync Android"
+            >
               <Text style={styles.exportPickerCloseButtonLabel}>Fermer</Text>
             </Pressable>
           </View>
@@ -363,7 +406,13 @@ const styles = StyleSheet.create({
     gap: 16,
     flexWrap: "wrap",
   },
+  sectionHeaderTopPhone: {
+    flexDirection: "column",
+    alignItems: "stretch",
+  },
   sectionHeaderText: {
+    flex: 1,
+    minWidth: 0,
     gap: 4,
   },
   sectionTitle: {
@@ -373,6 +422,8 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     color: "#94a3b8",
+    flexShrink: 1,
+    lineHeight: 20,
   },
   syncPanelActions: {
     flexDirection: "row",
@@ -386,6 +437,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+  },
+  rosterActionsPhone: {
+    alignSelf: "stretch",
   },
   primaryActionButton: {
     paddingHorizontal: 14,

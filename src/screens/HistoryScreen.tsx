@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { HistoryContentBlock, HistoryPage, historyPages } from "../data/historyContent";
+import { getResponsiveFlags } from "../utils/responsive";
 
 type HistoryScreenProps = {
   onOpenHome: () => void;
@@ -9,7 +10,7 @@ type HistoryScreenProps = {
 
 export function HistoryScreen({ onOpenHome }: HistoryScreenProps) {
   const { width } = useWindowDimensions();
-  const isPhone = width < 760;
+  const { isPhone } = getResponsiveFlags(width);
   const [activePageId, setActivePageId] = useState<HistoryPage["id"]>("lore");
 
   const activePage = useMemo<HistoryPage>(() => {
@@ -24,7 +25,12 @@ export function HistoryScreen({ onOpenHome }: HistoryScreenProps) {
       showsVerticalScrollIndicator={false}
     >
       <View style={[styles.header, isPhone ? styles.headerPhone : null]}>
-        <Pressable onPress={onOpenHome} style={styles.backButton}>
+        <Pressable
+          onPress={onOpenHome}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Retourner a l'accueil"
+        >
           <Text style={styles.backButtonLabel}>← Accueil</Text>
         </Pressable>
         <Text style={styles.eyebrow}>Codex</Text>
@@ -44,6 +50,9 @@ export function HistoryScreen({ onOpenHome }: HistoryScreenProps) {
               key={page.id}
               onPress={() => setActivePageId(page.id)}
               style={[styles.pageCard, active ? styles.pageCardActive : null]}
+              accessibilityRole="button"
+              accessibilityLabel={`Afficher ${page.title}`}
+              accessibilityState={{ selected: active }}
             >
               <Text style={[styles.pageCardEyebrow, active ? styles.pageCardEyebrowActive : null]}>
                 {page.eyebrow}
