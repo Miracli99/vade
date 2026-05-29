@@ -800,6 +800,9 @@ export function CharacterSheetScreen({
   } = getResponsiveFlags(width);
   const useWideHero = !isPhone;
   const useQuickActionsColumns = isDesktop ? 4 : !isPhone ? 2 : 1;
+  const normalizedBio = selectedCharacter.bio?.replace(/\s+/g, " ").trim() ?? "";
+  const characterBioPreview =
+    normalizedBio.length > 180 ? `${normalizedBio.slice(0, 180).trimEnd()}...` : normalizedBio;
   const imageLibraryOptions = imageLibraryTarget
     ? LOCAL_IMAGE_LIBRARY[getImageLibraryCategory(imageLibraryTarget)]
     : [];
@@ -2056,18 +2059,6 @@ export function CharacterSheetScreen({
           { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
         ]}
       >
-        <Pressable
-          onPress={() => openSectionEditor("identity")}
-          style={[
-            styles.heroEditIconButton,
-            styles.heroEditIconButtonFloating,
-            { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Modifier l'identite du personnage"
-        >
-          <Text style={[styles.heroEditIconLabel, { color: activeTheme.title }]}>✎</Text>
-        </Pressable>
         <View
           style={[
             styles.heroVisualCard,
@@ -2085,18 +2076,28 @@ export function CharacterSheetScreen({
         </View>
 
         <View style={styles.heroText}>
-          <View style={styles.heroTextHeader}>
-            <Text style={[styles.eyebrow, { color: activeTheme.accent }]}>
-              Feuille de personnage
-            </Text>
+          <View style={[styles.heroTopRow, isPhone ? styles.heroTopRowPhone : null]}>
+            <View style={styles.heroIdentity}>
+              <Text style={[styles.title, isPhone ? styles.titlePhone : null, { color: activeTheme.title }]}>
+                {selectedCharacter.name}
+              </Text>
+              <Text style={[styles.description, styles.heroDescription, { color: activeTheme.subtitle }]}>
+                {selectedCharacter.archetype}
+                {selectedCharacter.specialization ? ` · ${selectedCharacter.specialization}` : ""}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => openSectionEditor("identity")}
+              style={[
+                styles.heroEditButton,
+                { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Modifier l'identite du personnage"
+            >
+              <Text style={[styles.heroEditButtonLabel, { color: activeTheme.title }]}>Modifier</Text>
+            </Pressable>
           </View>
-          <Text style={[styles.title, isPhone ? styles.titlePhone : null, { color: activeTheme.title }]}>
-            {selectedCharacter.name}
-          </Text>
-          <Text style={[styles.description, styles.heroDescription, { color: activeTheme.subtitle }]}>
-            {selectedCharacter.archetype}
-            {selectedCharacter.specialization ? ` · ${selectedCharacter.specialization}` : ""}
-          </Text>
 
           <View style={styles.heroChipRow}>
             <View style={[styles.heroChip, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}>
@@ -2116,18 +2117,26 @@ export function CharacterSheetScreen({
             </View>
           </View>
 
-          <Pressable
-            onPress={() =>
-              setActiveOverlayMenu((current) => (current === "bioView" ? null : "bioView"))
-            }
-            style={[styles.heroBioButton, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}
-            accessibilityRole="button"
-            accessibilityLabel={selectedCharacter.bio ? "Afficher la bio du personnage" : "Ajouter une bio au personnage"}
-          >
-            <Text style={[styles.heroBioButtonLabel, { color: activeTheme.title }]}>
-              {selectedCharacter.bio ? "Voir la bio" : "Ajouter une bio"}
+          {characterBioPreview ? (
+            <Text style={[styles.heroBioPreview, { color: activeTheme.subtitle }]} numberOfLines={isPhone ? 4 : 3}>
+              {characterBioPreview}
             </Text>
-          </Pressable>
+          ) : null}
+
+          <View style={styles.heroActionRow}>
+            <Pressable
+              onPress={() =>
+                setActiveOverlayMenu((current) => (current === "bioView" ? null : "bioView"))
+              }
+              style={[styles.heroBioButton, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}
+              accessibilityRole="button"
+              accessibilityLabel={selectedCharacter.bio ? "Afficher la bio du personnage" : "Ajouter une bio au personnage"}
+            >
+              <Text style={[styles.heroBioButtonLabel, { color: activeTheme.title }]}>
+                {selectedCharacter.bio ? "Bio complete" : "Ajouter une bio"}
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
       </View>
@@ -4505,24 +4514,6 @@ export function CharacterSheetScreen({
         </Modal>
       ) : null}
 
-      <View style={styles.bannerRow}>
-        <View style={[styles.bannerTag, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}>
-          <Text style={[styles.bannerTagLabel, { color: activeTheme.title }]}>
-            {selectedCharacter.spells.length} dons
-          </Text>
-        </View>
-        <View style={[styles.bannerTag, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}>
-          <Text style={[styles.bannerTagLabel, { color: activeTheme.title }]}>
-            {selectedCharacter.equipment.length} equipements
-          </Text>
-        </View>
-        <View style={[styles.bannerTag, { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border }]}>
-          <Text style={[styles.bannerTagLabel, { color: activeTheme.title }]}>
-            {selectedCharacter.inventory.length} objets
-          </Text>
-        </View>
-      </View>
-
       {useSplitLayout ? (
         <>
           <View style={styles.tabletSectionGrid}>
@@ -4916,9 +4907,9 @@ const styles = StyleSheet.create({
   },
   hero: {
     position: "relative",
-    gap: 18,
-    padding: 20,
-    borderRadius: 28,
+    gap: 20,
+    padding: 18,
+    borderRadius: 18,
     backgroundColor: "#0b1020",
     borderWidth: 1,
     borderColor: "rgba(245, 158, 11, 0.14)",
@@ -4927,19 +4918,20 @@ const styles = StyleSheet.create({
   },
   heroTablet: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "stretch",
   },
   heroMobile: {
     flexDirection: "column",
     alignItems: "stretch",
   },
   heroVisualCard: {
-    width: "26%",
-    minWidth: 160,
-    maxWidth: 230,
+    width: "24%",
+    minWidth: 150,
+    maxWidth: 220,
     flexShrink: 0,
     alignItems: "center",
-    alignSelf: "flex-start",
+    justifyContent: "center",
+    alignSelf: "stretch",
   },
   heroVisualCardPhone: {
     width: "100%",
@@ -5187,14 +5179,23 @@ const styles = StyleSheet.create({
   heroText: {
     flex: 1,
     minWidth: 0,
-    gap: 12,
+    gap: 14,
     alignSelf: "stretch",
+    justifyContent: "center",
   },
-  heroTextHeader: {
+  heroTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 12,
+  },
+  heroTopRowPhone: {
+    flexDirection: "column",
+  },
+  heroIdentity: {
+    flex: 1,
+    minWidth: 0,
+    gap: 5,
   },
   eyebrow: {
     color: "#fbbf24",
@@ -5205,11 +5206,11 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#f8fafc",
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: "900",
   },
   titlePhone: {
-    fontSize: 28,
+    fontSize: 26,
   },
   description: {
     color: "#b9c6da",
@@ -5243,6 +5244,27 @@ const styles = StyleSheet.create({
   },
   heroBioButtonLabel: {
     fontWeight: "800",
+  },
+  heroBioPreview: {
+    maxWidth: 760,
+    lineHeight: 21,
+    fontSize: 14,
+  },
+  heroActionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  heroEditButton: {
+    minHeight: 42,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  heroEditButtonLabel: {
+    fontWeight: "900",
   },
   heroEditIconButton: {
     width: 44,
