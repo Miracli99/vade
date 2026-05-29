@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-na
 
 import { ResourcePool } from "../../types/game";
 import { getResponsiveFlags } from "../../utils/responsive";
+import { modernColors, modernRadii } from "../ui/design";
 
 type ThemeTokens = {
   chipBg: string;
@@ -204,13 +205,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: 12,
     padding: 14,
-    borderRadius: 20,
+    borderRadius: modernRadii.lg,
     borderWidth: 1,
   },
   cardPhone: {
     gap: 10,
     padding: 12,
-    borderRadius: 18,
+    borderRadius: modernRadii.md,
   },
   header: {
     flexDirection: "row",
@@ -243,9 +244,10 @@ const styles = StyleSheet.create({
     minWidth: 72,
     paddingHorizontal: 10,
     paddingVertical: 7,
-    borderRadius: 999,
+    borderRadius: modernRadii.sm,
     borderWidth: 1,
     alignItems: "center",
+    backgroundColor: "rgba(5, 8, 13, 0.38)",
   },
   count: {
     fontSize: 20,
@@ -262,7 +264,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 54,
     height: 54,
-    borderRadius: 16,
+    borderRadius: modernRadii.md,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -270,7 +272,7 @@ const styles = StyleSheet.create({
   iconWrapPhone: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: modernRadii.md,
   },
   icon: {
     fontSize: 28,
@@ -285,20 +287,21 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   track: {
-    height: 10,
-    borderRadius: 999,
+    height: 9,
+    borderRadius: modernRadii.sm,
     overflow: "hidden",
+    opacity: 0.88,
   },
   fill: {
     height: "100%",
-    borderRadius: 999,
+    borderRadius: modernRadii.sm,
   },
   bonusFill: {
     position: "absolute",
     top: 0,
     bottom: 0,
-    borderRadius: 999,
-    backgroundColor: "#38bdf8",
+    borderRadius: modernRadii.sm,
+    backgroundColor: modernColors.azure,
   },
   metaRow: {
     flexDirection: "row",
@@ -332,7 +335,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingVertical: 10,
     paddingHorizontal: 8,
-    borderRadius: 12,
+    borderRadius: modernRadii.sm,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -340,7 +343,7 @@ const styles = StyleSheet.create({
   adjustButtonCompact: {
     paddingVertical: 9,
     paddingHorizontal: 6,
-    borderRadius: 10,
+    borderRadius: modernRadii.sm,
   },
   adjustButtonLabel: {
     fontSize: 13,

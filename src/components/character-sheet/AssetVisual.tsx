@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { LOCAL_IMAGE_LIBRARY } from "../../data/image-library";
 import { isKnownImageModule } from "../../utils/assets";
+import { modernColors, modernRadii } from "../ui/design";
 
 type AssetVisualProps = {
   label: string;
@@ -40,7 +41,8 @@ export function AssetVisual({
   const safeThumbnailModule = isKnownImageModule(thumbnailModule) ? thumbnailModule : undefined;
   const resolvedThumbnailModule =
     safeThumbnailModule ?? (large ? undefined : getThumbnailModuleForImage(safeImageModule));
-  const resolvedImageModule = resolvedThumbnailModule ?? safeImageModule;
+  const resolvedImageModule =
+    resolvedThumbnailModule ?? safeImageModule ?? (character ? getFallbackCharacterImageModule(label) : undefined);
   const content = imageUrl || resolvedImageModule ? (
     <View style={[sizeStyle, styles.imageFrame]}>
       <Image
@@ -69,6 +71,7 @@ export function AssetVisual({
 }
 
 const thumbnailByImageModule = new Map<number, number>();
+const fallbackCharacterImageByName = new Map<string, number>();
 
 Object.values(LOCAL_IMAGE_LIBRARY).forEach((options) => {
   options.forEach((option) => {
@@ -78,44 +81,58 @@ Object.values(LOCAL_IMAGE_LIBRARY).forEach((options) => {
   });
 });
 
+LOCAL_IMAGE_LIBRARY.character.forEach((option) => {
+  if (option.id === "char-humaine-occultiste") {
+    fallbackCharacterImageByName.set("soeur agnes", option.thumbnailModule ?? option.imageModule);
+  }
+
+  if (option.id === "char-cleric-hunter") {
+    fallbackCharacterImageByName.set("marco vale", option.thumbnailModule ?? option.imageModule);
+  }
+});
+
 function getThumbnailModuleForImage(imageModule?: number) {
   return imageModule ? thumbnailByImageModule.get(imageModule) : undefined;
+}
+
+function getFallbackCharacterImageModule(label: string) {
+  return fallbackCharacterImageByName.get(label.toLowerCase().trim());
 }
 
 const styles = StyleSheet.create({
   assetVisual: {
     width: 84,
     height: 84,
-    borderRadius: 20,
+    borderRadius: modernRadii.lg,
   },
   characterVisual: {
     width: 96,
     height: 128,
-    borderRadius: 24,
+    borderRadius: modernRadii.lg,
   },
   characterVisualLarge: {
     width: "100%",
     aspectRatio: 0.76,
-    borderRadius: 28,
+    borderRadius: modernRadii.lg,
   },
   assetVisualButton: {
-    borderRadius: 20,
+    borderRadius: modernRadii.lg,
   },
   assetVisualSmall: {
     width: 42,
     height: 42,
-    borderRadius: 12,
+    borderRadius: modernRadii.md,
   },
   assetFallback: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#17223c",
+    backgroundColor: modernColors.panelElevated,
     borderWidth: 1,
-    borderColor: "rgba(148, 163, 184, 0.12)",
+    borderColor: modernColors.border,
   },
   assetFallbackActive: {
-    backgroundColor: "#2a3557",
-    borderColor: "rgba(251, 191, 36, 0.35)",
+    backgroundColor: modernColors.accentSoft,
+    borderColor: modernColors.borderStrong,
   },
   assetFallbackText: {
     fontSize: 34,

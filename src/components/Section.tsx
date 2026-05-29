@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import resolveAssetSource from "react-native/Libraries/Image/resolveAssetSource";
 
+import { modernColors, modernRadii } from "./ui/design";
+
 type SectionProps = PropsWithChildren<{
   title: string;
   subtitle?: string;
@@ -85,16 +87,16 @@ const styles = StyleSheet.create({
   section: {
     position: "relative",
     gap: 12,
-    paddingVertical: 18,
+    paddingVertical: 16,
     paddingHorizontal: 16,
-    borderRadius: 24,
-    backgroundColor: "rgba(10, 14, 28, 0.74)",
+    borderRadius: modernRadii.lg,
+    backgroundColor: modernColors.panelGlass,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.14)",
+    borderColor: modernColors.border,
     overflow: "hidden",
   },
   cardBackground: {
-    borderRadius: 24,
+    borderRadius: modernRadii.lg,
   },
   webCardBackground: {
     backgroundRepeat: "repeat",
@@ -106,7 +108,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.18)",
+    backgroundColor: "rgba(5, 8, 13, 0.42)",
   },
   header: {
     position: "relative",
@@ -123,8 +125,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#f8fafc",
-    fontSize: 19,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "900",
   },
   subtitle: {
     color: "#a5b4cc",

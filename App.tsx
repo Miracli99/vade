@@ -16,9 +16,9 @@ import {
 } from "react-native";
 
 import { sampleCharacters } from "./src/data/sampleCharacters";
-import { HomeScreen } from "./src/screens/HomeScreen";
-import { CharacterSheetScreen } from "./src/screens/CharacterSheetScreen";
-import { HistoryScreen } from "./src/screens/HistoryScreen";
+import { HomeScreen } from "./src/screens/home";
+import { CharacterSheetScreen } from "./src/screens/character";
+import { HistoryScreen } from "./src/screens/history";
 import { Character } from "./src/types/game";
 import { normalizeCharacter } from "./src/utils/characters";
 import {
@@ -515,6 +515,7 @@ export default function App() {
           onDisableSync={() => void handleDisableSync()}
           onRefreshSync={() => void handleRefreshFromSyncDirectory()}
           onOpenCharacter={openCharacter}
+          onOpenCharacters={() => openCharacter(selectedId)}
           onOpenHistory={() => setRoute("history")}
         />
       ) : null}
@@ -527,9 +528,15 @@ export default function App() {
           creationRequest={creationRequest}
           onCreationRequestHandled={() => setCreationRequest(0)}
           onOpenHome={() => setRoute("home")}
+          onOpenHistory={() => setRoute("history")}
         />
       ) : null}
-      {route === "history" ? <HistoryScreen onOpenHome={() => setRoute("home")} /> : null}
+      {route === "history" ? (
+        <HistoryScreen
+          onOpenHome={() => setRoute("home")}
+          onOpenCharacter={() => setRoute("character")}
+        />
+      ) : null}
       <Modal
         visible={Boolean(pendingImport)}
         transparent
