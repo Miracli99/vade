@@ -112,7 +112,9 @@ const styles = StyleSheet.create({
   },
   characterVisualLarge: {
     width: "100%",
-    aspectRatio: 0.76,
+    maxWidth: 220,
+    aspectRatio: 0.72,
+    alignSelf: "center",
     borderRadius: modernRadii.lg,
   },
   assetVisualButton: {

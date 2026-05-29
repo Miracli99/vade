@@ -2059,6 +2059,7 @@ export function CharacterSheetScreen({
           { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
         ]}
       >
+        <View pointerEvents="none" style={[styles.heroAccentBar, { backgroundColor: activeTheme.accent }]} />
         <View
           style={[
             styles.heroVisualCard,
@@ -2076,6 +2077,10 @@ export function CharacterSheetScreen({
         </View>
 
         <View style={styles.heroText}>
+          <View style={styles.heroKickerRow}>
+            <Text style={[styles.heroKicker, { color: activeTheme.accent }]}>Fiche active</Text>
+            <View style={[styles.heroSignal, { backgroundColor: activeTheme.accent }]} />
+          </View>
           <View style={[styles.heroTopRow, isPhone ? styles.heroTopRowPhone : null]}>
             <View style={styles.heroIdentity}>
               <Text style={[styles.title, isPhone ? styles.titlePhone : null, { color: activeTheme.title }]}>
@@ -4516,13 +4521,14 @@ export function CharacterSheetScreen({
 
       {useSplitLayout ? (
         <>
-          <View style={styles.tabletSectionGrid}>
-            <View
-              style={[
-                styles.tabletPrimaryColumn,
-                isDesktop ? styles.tabletPrimaryColumnLaptop : styles.tabletPrimaryColumnTablet,
-              ]}
-            >
+          <View style={styles.sheetZoneHeader}>
+            <Text style={[styles.sheetZoneTitle, { color: activeTheme.title }]}>Table de jeu</Text>
+            <Text style={[styles.sheetZoneSubtitle, { color: activeTheme.subtitle }]}>
+              Ressources, actions rapides et lecture immediate du personnage.
+            </Text>
+          </View>
+          <View style={styles.tacticalGrid}>
+            <View style={styles.tacticalColumnWide}>
               <ResourcesSection
                 character={selectedCharacter}
                 theme={sectionTheme}
@@ -4535,27 +4541,15 @@ export function CharacterSheetScreen({
                 }
                 onAdjustAttackBonus={(delta) => updateAttackBonus(selectedCharacter.id, delta)}
               />
-              <InventorySection
-                character={selectedCharacter}
-                theme={sectionTheme}
-                onEdit={() => openSectionEditor("inventory")}
-              />
-            </View>
-            <View
-              style={[
-                styles.tabletSecondaryColumn,
-                isDesktop
-                  ? styles.tabletSecondaryColumnLaptop
-                  : styles.tabletSecondaryColumnTablet,
-              ]}
-            >
-              {renderQuickActions()}
               <StatsSkillsSection
                 character={selectedCharacter}
                 theme={sectionTheme}
                 onEditStats={() => openSectionEditor("stats")}
                 onEditSkills={() => openSectionEditor("skills")}
               />
+            </View>
+            <View style={styles.tacticalColumn}>
+              {renderQuickActions()}
               <StatusSections
                 character={selectedCharacter}
                 theme={sectionTheme}
@@ -4563,17 +4557,34 @@ export function CharacterSheetScreen({
               />
             </View>
           </View>
-          <SpellsSection
-            character={selectedCharacter}
-            theme={sectionTheme}
-            onEdit={() => openSectionEditor("spells")}
-            onToggleSpellActive={(spellId) => toggleSpellActive(selectedCharacter.id, spellId)}
-          />
-          <EquipmentSection
-            character={selectedCharacter}
-            theme={sectionTheme}
-            onEdit={() => openSectionEditor("equipment")}
-          />
+          <View style={styles.sheetZoneHeader}>
+            <Text style={[styles.sheetZoneTitle, { color: activeTheme.title }]}>Arsenal</Text>
+            <Text style={[styles.sheetZoneSubtitle, { color: activeTheme.subtitle }]}>
+              Objets, dons et equipements disponibles pendant la session.
+            </Text>
+          </View>
+          <View style={styles.arsenalGrid}>
+            <View style={styles.arsenalColumn}>
+              <InventorySection
+                character={selectedCharacter}
+                theme={sectionTheme}
+                onEdit={() => openSectionEditor("inventory")}
+              />
+              <EquipmentSection
+                character={selectedCharacter}
+                theme={sectionTheme}
+                onEdit={() => openSectionEditor("equipment")}
+              />
+            </View>
+            <View style={styles.arsenalColumnWide}>
+              <SpellsSection
+                character={selectedCharacter}
+                theme={sectionTheme}
+                onEdit={() => openSectionEditor("spells")}
+                onToggleSpellActive={(spellId) => toggleSpellActive(selectedCharacter.id, spellId)}
+              />
+            </View>
+          </View>
         </>
       ) : (
         <>
@@ -4650,16 +4661,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#070b16",
   },
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingTop: 16,
     paddingBottom: 48,
-    gap: 18,
+    gap: 20,
   },
   contentPhone: {
-    paddingHorizontal: 0,
+    paddingHorizontal: 12,
     paddingTop: 16,
     paddingBottom: 28,
-    gap: 14,
+    gap: 16,
   },
   contentTablet: {
     alignSelf: "center",
@@ -4670,7 +4681,7 @@ const styles = StyleSheet.create({
   contentLaptop: {
     alignSelf: "center",
     width: "100%",
-    maxWidth: 1480,
+    maxWidth: 1560,
     paddingHorizontal: 28,
   },
   pageBackdrop: {
@@ -4907,36 +4918,62 @@ const styles = StyleSheet.create({
   },
   hero: {
     position: "relative",
-    gap: 20,
-    padding: 18,
-    borderRadius: 18,
+    gap: 0,
+    padding: 0,
+    borderRadius: 12,
     backgroundColor: "#0b1020",
     borderWidth: 1,
     borderColor: "rgba(245, 158, 11, 0.14)",
-    overflow: "visible",
+    overflow: "hidden",
     zIndex: 20,
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 18px 42px rgba(0, 0, 0, 0.34)",
+      } as object,
+      default: {
+        shadowColor: "#000",
+        shadowOpacity: 0.32,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 16 },
+        elevation: 10,
+      },
+    }),
   },
   heroTablet: {
     flexDirection: "row",
     alignItems: "stretch",
+    flexWrap: "wrap",
   },
   heroMobile: {
     flexDirection: "column",
     alignItems: "stretch",
   },
   heroVisualCard: {
-    width: "24%",
-    minWidth: 150,
-    maxWidth: 220,
-    flexShrink: 0,
+    flexBasis: 230,
+    flexGrow: 0,
+    minWidth: 220,
+    maxWidth: 280,
+    flexShrink: 1,
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "stretch",
+    padding: 18,
+    borderRightWidth: 1,
+    borderRightColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(0, 0, 0, 0.18)",
   },
   heroVisualCardPhone: {
     width: "100%",
+    flexBasis: "auto",
+    maxHeight: undefined,
     minWidth: 0,
-    maxWidth: undefined,
+    maxWidth: 260,
+    alignSelf: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRightWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.08)",
   },
   heroVisualBadge: {
     alignSelf: "stretch",
@@ -5177,11 +5214,38 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   heroText: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 460,
     minWidth: 0,
-    gap: 14,
+    gap: 18,
     alignSelf: "stretch",
     justifyContent: "center",
+    padding: 24,
+  },
+  heroAccentBar: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 5,
+    zIndex: 3,
+  },
+  heroKickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  heroKicker: {
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+  },
+  heroSignal: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
   },
   heroTopRow: {
     flexDirection: "row",
@@ -5206,11 +5270,11 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#f8fafc",
-    fontSize: 32,
+    fontSize: 42,
     fontWeight: "900",
   },
   titlePhone: {
-    fontSize: 26,
+    fontSize: 31,
   },
   description: {
     color: "#b9c6da",
@@ -5225,9 +5289,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   heroChip: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: 8,
     borderWidth: 1,
   },
   heroChipLabel: {
@@ -5238,7 +5302,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     paddingHorizontal: 14,
     paddingVertical: 11,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
     marginTop: 2,
   },
@@ -5247,8 +5311,11 @@ const styles = StyleSheet.create({
   },
   heroBioPreview: {
     maxWidth: 760,
-    lineHeight: 21,
+    lineHeight: 22,
     fontSize: 14,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: "rgba(255, 255, 255, 0.16)",
   },
   heroActionRow: {
     flexDirection: "row",
@@ -5260,7 +5327,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
   },
   heroEditButtonLabel: {
@@ -5655,28 +5722,35 @@ const styles = StyleSheet.create({
   },
   tabletSectionGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "flex-start",
     gap: 18,
   },
   tabletPrimaryColumn: {
-    flex: 1.05,
+    flexGrow: 1.05,
+    flexShrink: 1,
+    flexBasis: 520,
+    minWidth: 300,
     gap: 18,
   },
   tabletPrimaryColumnTablet: {
-    flex: 1,
+    flexGrow: 1,
   },
   tabletPrimaryColumnLaptop: {
-    flex: 1.08,
+    flexGrow: 1.08,
   },
   tabletSecondaryColumn: {
-    flex: 0.95,
+    flexGrow: 0.95,
+    flexShrink: 1,
+    flexBasis: 420,
+    minWidth: 300,
     gap: 18,
   },
   tabletSecondaryColumnTablet: {
-    flex: 1,
+    flexGrow: 1,
   },
   tabletSecondaryColumnLaptop: {
-    flex: 0.92,
+    flexGrow: 0.92,
   },
   bannerTag: {
     paddingHorizontal: 12,
@@ -5691,10 +5765,73 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 12,
   },
+  sheetZoneHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    gap: 12,
+    flexWrap: "wrap",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 4,
+    borderRadius: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
+  },
+  sheetZoneTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  sheetZoneSubtitle: {
+    flexShrink: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  tacticalGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    gap: 18,
+  },
+  tacticalColumn: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 380,
+    minWidth: 320,
+    gap: 18,
+  },
+  tacticalColumnWide: {
+    flexGrow: 1.25,
+    flexShrink: 1,
+    flexBasis: 520,
+    minWidth: 320,
+    gap: 18,
+  },
+  arsenalGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    gap: 18,
+  },
+  arsenalColumn: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 360,
+    minWidth: 300,
+    gap: 18,
+  },
+  arsenalColumnWide: {
+    flexGrow: 1.2,
+    flexShrink: 1,
+    flexBasis: 460,
+    minWidth: 320,
+    gap: 18,
+  },
   quickActionsCard: {
     gap: 14,
     padding: 16,
-    borderRadius: 22,
+    borderRadius: 12,
     borderWidth: 1,
   },
   quickActionsHeader: {

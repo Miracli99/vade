@@ -89,14 +89,26 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderRadius: modernRadii.lg,
+    borderRadius: modernRadii.md,
     backgroundColor: modernColors.panelGlass,
     borderWidth: 1,
     borderColor: modernColors.border,
     overflow: "hidden",
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 14px 30px rgba(0, 0, 0, 0.18)",
+      } as object,
+      default: {
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
+        shadowRadius: 18,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 4,
+      },
+    }),
   },
   cardBackground: {
-    borderRadius: modernRadii.lg,
+    borderRadius: modernRadii.md,
   },
   webCardBackground: {
     backgroundRepeat: "repeat",

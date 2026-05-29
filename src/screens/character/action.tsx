@@ -170,7 +170,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   quickActionButton: {
-    minWidth: 0,
+    minWidth: 220,
+    flexShrink: 1,
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
@@ -181,14 +182,15 @@ const styles = StyleSheet.create({
   },
   quickActionButtonSingle: {
     width: "100%",
+    minWidth: 0,
   },
   quickActionButtonDouble: {
-    flexBasis: "48%",
     flexGrow: 1,
+    flexBasis: 260,
   },
   quickActionButtonTriple: {
-    flexBasis: "31%",
     flexGrow: 1,
+    flexBasis: 220,
   },
   quickActionIconWrap: {
     width: 34,
