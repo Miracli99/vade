@@ -22,6 +22,25 @@ Puis :
 - `a` dans Expo pour Android
 - `w` dans Expo pour le web
 
+## APK Android autonome
+
+Pour generer un APK qui fonctionne sans Metro :
+
+```bash
+npm run android:release
+```
+
+Cette commande necessite un JDK 17 configure dans `JAVA_HOME`.
+
+L'APK est produit dans `android/app/build/outputs/apk/release/`. Un APK `debug`
+attend Metro et affiche une erreur `Unable to load script` s'il est lance seul.
+
+Apres une modification de `app.json`, synchroniser les fichiers natifs :
+
+```bash
+npx expo prebuild --platform android
+```
+
 ## Structure
 
 - `App.tsx` : point d'entree Expo

@@ -230,7 +230,7 @@ export function HomeScreen({
         onRequestClose={() => setExportPickerOpen(false)}
       >
         <View style={styles.exportPickerBackdrop}>
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setExportPickerOpen(false)} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setExportPickerOpen(false)} />
           <View style={styles.exportPickerCard}>
             <Text style={styles.exportPickerTitle}>Exporter un personnage</Text>
             <View style={styles.exportPickerList}>
@@ -275,7 +275,7 @@ export function HomeScreen({
         onRequestClose={() => setSyncSettingsOpen(false)}
       >
         <View style={styles.exportPickerBackdrop}>
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setSyncSettingsOpen(false)} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSyncSettingsOpen(false)} />
           <View style={styles.syncDialogCard}>
             <View style={styles.syncDialogHeader}>
               <Text style={styles.exportPickerTitle}>Sync Android</Text>

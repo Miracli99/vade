@@ -212,7 +212,7 @@ export function CharacterActionModals({
   return (
     <Modal visible transparent animationType="fade" onRequestClose={close}>
       <View style={sheetStyles.overlayBackdrop}>
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={close} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={close} />
         <View
           style={[
             sheetStyles.overlayCard,

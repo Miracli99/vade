@@ -18,13 +18,13 @@ export function CharacterSheetBackdrop({ theme }: CharacterSheetBackdropProps) {
 
 const styles = StyleSheet.create({
   pageBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: "100%",
     height: "100%",
     opacity: 0.5,
   },
   pageBackdropOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     opacity: 0.58,
   },
   pageGlow: {

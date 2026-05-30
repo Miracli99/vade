@@ -1,19 +1,18 @@
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
-  StatusBar as NativeStatusBar,
   Modal,
   Platform,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { sampleCharacters } from "./src/data/sampleCharacters";
 import { HomeScreen } from "./src/screens/home";
@@ -58,7 +57,6 @@ type PendingImport = {
 };
 
 export default function App() {
-  const androidTopInset = Platform.OS === "android" ? NativeStatusBar.currentHeight ?? 0 : 0;
   const [route, setRoute] = useState<AppRoute>("home");
   const [characters, setCharacters] = useState<Character[]>(sampleCharacters.map(normalizeCharacter));
   const [selectedId, setSelectedId] = useState(sampleCharacters[0]?.id ?? "");
@@ -499,26 +497,27 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={[styles.app, androidTopInset > 0 ? { paddingTop: androidTopInset } : null]}>
-      <ExpoStatusBar style="light" />
-      {route === "home" ? (
-        <HomeScreen
-          characters={characters}
-          message={homeMessage}
-          onCreateCharacter={openCreationFromHome}
-          onImportCharacters={() => void handleImportFromHome()}
-          onExportCharacter={(characterId) => void handleExportFromHome(characterId)}
-          syncEnabled={Boolean(syncDirectoryUri)}
-          syncBusy={syncBusy}
-          refreshBusy={refreshBusy}
-          onEnableSync={() => void handlePickSyncDirectory()}
-          onDisableSync={() => void handleDisableSync()}
-          onRefreshSync={() => void handleRefreshFromSyncDirectory()}
-          onOpenCharacter={openCharacter}
-          onOpenCharacters={() => openCharacter(selectedId)}
-          onOpenHistory={() => setRoute("history")}
-        />
-      ) : null}
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.app}>
+        <ExpoStatusBar style="light" />
+        {route === "home" ? (
+          <HomeScreen
+            characters={characters}
+            message={homeMessage}
+            onCreateCharacter={openCreationFromHome}
+            onImportCharacters={() => void handleImportFromHome()}
+            onExportCharacter={(characterId) => void handleExportFromHome(characterId)}
+            syncEnabled={Boolean(syncDirectoryUri)}
+            syncBusy={syncBusy}
+            refreshBusy={refreshBusy}
+            onEnableSync={() => void handlePickSyncDirectory()}
+            onDisableSync={() => void handleDisableSync()}
+            onRefreshSync={() => void handleRefreshFromSyncDirectory()}
+            onOpenCharacter={openCharacter}
+            onOpenCharacters={() => openCharacter(selectedId)}
+            onOpenHistory={() => setRoute("history")}
+          />
+        ) : null}
       {route === "character" ? (
         <CharacterSheetScreen
           characters={characters}
@@ -544,7 +543,7 @@ export default function App() {
         onRequestClose={() => setPendingImport(null)}
       >
         <View style={styles.updateBackdrop}>
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setPendingImport(null)} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setPendingImport(null)} />
           <View style={styles.updateCard}>
             <Text style={styles.updateEyebrow}>Conflit d'import</Text>
             <Text style={styles.updateTitle}>Personnage deja existant</Text>
@@ -604,7 +603,7 @@ export default function App() {
         onRequestClose={closeUpdateModal}
       >
         <View style={styles.updateBackdrop}>
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={closeUpdateModal} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeUpdateModal} />
           <View style={styles.updateCard}>
             <Text style={styles.updateEyebrow}>Mise a jour disponible</Text>
             <Text style={styles.updateTitle}>Version {availableUpdate?.version}</Text>
@@ -657,7 +656,8 @@ export default function App() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 

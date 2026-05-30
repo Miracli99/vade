@@ -1,5 +1,6 @@
 import { PropsWithChildren, ReactNode } from "react";
 import {
+  Image,
   ImageBackground,
   ImageSourcePropType,
   Platform,
@@ -7,7 +8,6 @@ import {
   Text,
   View,
 } from "react-native";
-import resolveAssetSource from "react-native/Libraries/Image/resolveAssetSource";
 
 import { modernColors, modernRadii } from "./ui/design";
 
@@ -51,7 +51,7 @@ export function Section({ title, subtitle, rightSlot, children, theme }: Section
 
   if (theme?.cardBackgroundImage) {
     if (Platform.OS === "web") {
-      const source = resolveAssetSource(theme.cardBackgroundImage);
+      const source = Image.resolveAssetSource(theme.cardBackgroundImage);
 
       return (
         <View

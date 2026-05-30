@@ -1,6 +1,6 @@
 import type React from "react";
 import { useState } from "react";
-import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, ImageSourcePropType, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 const APP_LOGO = require("../../assets/vade-retro-logo.png");
 
@@ -301,11 +301,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 14,
     zIndex: 10001,
-    elevation: 101,
-    shadowColor: "#000",
-    shadowOpacity: 0.28,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 12 },
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 12px 18px rgba(0, 0, 0, 0.28)",
+      } as object,
+      default: {
+        elevation: 101,
+        shadowColor: "#000",
+        shadowOpacity: 0.28,
+        shadowRadius: 18,
+        shadowOffset: { width: 0, height: 12 },
+      },
+    }),
   },
   mobileMenuItem: {
     minHeight: 44,

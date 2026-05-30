@@ -28,6 +28,10 @@
     },
     "extra": {
       "updateManifestUrl": "https://miracli99.github.io/vade/app-update.json"
-    }
+    },
+    "plugins": [
+      "expo-sharing",
+      "expo-status-bar"
+    ]
   }
 }

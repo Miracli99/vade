@@ -1439,7 +1439,7 @@ export function CharacterSheetScreen({
             style={styles.editorModalBackdrop}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
           >
-            <Pressable style={StyleSheet.absoluteFillObject} onPress={closeEditor} />
+            <Pressable style={StyleSheet.absoluteFill} onPress={closeEditor} />
             <View style={styles.editorModalWrap}>
               <ScrollView
                 style={styles.editorModalScroll}
@@ -2494,7 +2494,7 @@ export function CharacterSheetScreen({
         >
           <View style={styles.overlayBackdrop}>
             <Pressable
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
               onPress={() => {
                 setActiveOverlayMenu(null);
                 setCreationDraft(null);
