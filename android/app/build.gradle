@@ -14,6 +14,7 @@ def releaseStorePassword = findProperty("VADE_UPLOAD_STORE_PASSWORD") ?: System.
 def releaseKeyAlias = findProperty("VADE_UPLOAD_KEY_ALIAS") ?: System.getenv("VADE_UPLOAD_KEY_ALIAS")
 def releaseKeyPassword = findProperty("VADE_UPLOAD_KEY_PASSWORD") ?: System.getenv("VADE_UPLOAD_KEY_PASSWORD")
 def hasReleaseSigningConfig = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+def signReleaseWithDebugKey = (findProperty("VADE_SIGN_RELEASE_WITH_DEBUG_KEY") ?: System.getenv("VADE_SIGN_RELEASE_WITH_DEBUG_KEY") ?: "false").toBoolean()
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -131,6 +132,8 @@ android {
         release {
             if (hasReleaseSigningConfig) {
                 signingConfig signingConfigs.release
+            } else if (signReleaseWithDebugKey) {
+                signingConfig signingConfigs.debug
             }
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
