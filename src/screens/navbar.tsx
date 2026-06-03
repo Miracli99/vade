@@ -58,7 +58,7 @@ export function AppNavbar({
         { backgroundColor: panelColor, borderColor },
       ]}
     >
-      <View style={styles.appNavbarTopRow}>
+      <View style={[styles.appNavbarTopRow, compact ? styles.appNavbarTopRowCompact : null]}>
         <NavbarBrand
           logo={APP_LOGO}
           title="Vade Retro"
@@ -225,12 +225,12 @@ const styles = StyleSheet.create({
     elevation: 100,
   },
   appNavbarCompact: {
-    minHeight: 0,
+    minHeight: 66,
     flexDirection: "column",
     alignItems: "stretch",
     gap: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   appNavbarTopRow: {
     flex: 1,
@@ -239,6 +239,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+  },
+  appNavbarTopRowCompact: {
+    flex: 0,
+    minHeight: 44,
   },
   appNavbarRight: {
     flexDirection: "row",
@@ -293,9 +297,9 @@ const styles = StyleSheet.create({
   },
   mobileMenuPanel: {
     position: "absolute",
-    top: 58,
-    left: 12,
-    right: 12,
+    top: 66,
+    left: 14,
+    right: 14,
     gap: 8,
     padding: 10,
     borderWidth: 1,
@@ -345,8 +349,8 @@ const styles = StyleSheet.create({
     height: 42,
   },
   navLogoCompact: {
-    width: 34,
-    height: 34,
+    width: 40,
+    height: 40,
   },
   navBrand: {
     fontSize: 28,
@@ -354,7 +358,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   navBrandCompact: {
-    fontSize: 22,
+    fontSize: 24,
+    lineHeight: 29,
   },
   navSubtle: {
     marginTop: 4,
