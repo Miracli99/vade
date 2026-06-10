@@ -74,6 +74,8 @@ export default function App() {
   const latestSyncDirectoryUriRef = useRef<string | null>(syncDirectoryUri);
   const syncInFlightRef = useRef(false);
   const syncQueuedRef = useRef(false);
+  const lastSyncedCharactersRef = useRef<Character[] | null>(null);
+  const lastSyncedDirectoryUriRef = useRef<string | null>(null);
 
   async function flushSyncDirectory() {
     if (syncInFlightRef.current) {
@@ -95,6 +97,8 @@ export default function App() {
         }
 
         await syncCharactersToDirectory(latestSyncCharactersRef.current, directoryUri);
+        lastSyncedCharactersRef.current = latestSyncCharactersRef.current;
+        lastSyncedDirectoryUriRef.current = directoryUri;
       } while (syncQueuedRef.current);
 
       return true;
@@ -132,6 +136,9 @@ export default function App() {
           const initialCharacterId = stored.selectedId ?? normalizedCharacters[0]!.id;
           setSelectedId(initialCharacterId);
         }
+      } catch (error) {
+        const reason = error instanceof Error ? ` ${error.message}` : "";
+        setHomeMessage(`Chargement local impossible.${reason}`);
       } finally {
         if (active) {
           setStorageReady(true);
@@ -159,7 +166,10 @@ export default function App() {
       return;
     }
 
-    void persistCharactersToStorage(characters, safeSelectedId);
+    void persistCharactersToStorage(characters, safeSelectedId).catch((error) => {
+      const reason = error instanceof Error ? ` ${error.message}` : "";
+      setHomeMessage(`Sauvegarde locale impossible.${reason}`);
+    });
   }, [characters, selectedId, storageReady]);
 
   useEffect(() => {
@@ -167,6 +177,13 @@ export default function App() {
     latestSyncDirectoryUriRef.current = syncDirectoryUri;
 
     if (!storageReady || !syncDirectoryUri || Platform.OS !== "android") {
+      return;
+    }
+
+    if (
+      lastSyncedCharactersRef.current === characters &&
+      lastSyncedDirectoryUriRef.current === syncDirectoryUri
+    ) {
       return;
     }
 
@@ -350,17 +367,19 @@ export default function App() {
 
     try {
       setSyncBusy(true);
-      await persistSyncDirectoryUri(directoryUri);
       latestSyncCharactersRef.current = characters;
       latestSyncDirectoryUriRef.current = directoryUri;
+      const result = await syncCharactersToDirectory(characters, directoryUri);
+      lastSyncedCharactersRef.current = characters;
+      lastSyncedDirectoryUriRef.current = directoryUri;
+      await persistSyncDirectoryUri(directoryUri);
       setSyncDirectoryUri(directoryUri);
-      const synced = await flushSyncDirectory();
-
-      if (synced) {
-        setHomeMessage("Sync Android active.");
-      }
-    } catch {
-      setHomeMessage("Impossible d'activer la sync Android sur ce dossier.");
+      setHomeMessage(
+        `Sync Android active: ${result.writtenCount} personnage(s) ecrit(s) dans le dossier.`,
+      );
+    } catch (error) {
+      const reason = error instanceof Error ? ` ${error.message}` : "";
+      setHomeMessage(`Impossible d'activer la sync Android sur ce dossier.${reason}`);
     } finally {
       setSyncBusy(false);
     }

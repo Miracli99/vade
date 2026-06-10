@@ -56,6 +56,7 @@ import {
   stanceLabels,
 } from "../../utils/game";
 import { normalizeCharacter } from "../../utils/characters";
+import { persistCustomImage } from "../../utils/imageStorage";
 import { getResponsiveFlags } from "../../utils/responsive";
 import {
   LOCAL_IMAGE_LIBRARY,
@@ -1329,13 +1330,34 @@ export function CharacterSheetScreen({
       return null;
     }
 
-    return result.assets[0]?.uri ?? null;
+    const asset = result.assets[0];
+
+    return asset?.uri
+      ? {
+          uri: asset.uri,
+          mimeType: asset.mimeType,
+          fileName: asset.fileName,
+        }
+      : null;
   }
 
   async function uploadCustomImage(target: ImageLibraryTarget) {
-    const uri = await pickImageUri();
+    const selectedImage = await pickImageUri();
 
-    if (!uri) {
+    if (!selectedImage) {
+      return;
+    }
+
+    let uri: string;
+
+    try {
+      uri = await persistCustomImage(
+        selectedImage.uri,
+        selectedImage.mimeType,
+        selectedImage.fileName,
+      );
+    } catch {
+      setRosterMessage("Impossible de copier cette image dans le stockage de l'app.");
       return;
     }
 
