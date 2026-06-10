@@ -109,11 +109,16 @@ async function transformCharacterImages(
     const item = character.equipment[index]!;
     equipment.push({
       ...item,
-      imageUrl: await transform(item.imageUrl, `equipment-${item.id || index}`),
+      imageUrl: await transformImage(
+        transform,
+        item.imageUrl,
+        `equipment-${item.id || index}`,
+      ),
       grantedSpell: item.grantedSpell
         ? {
             ...item.grantedSpell,
-            imageUrl: await transform(
+            imageUrl: await transformImage(
+              transform,
               item.grantedSpell.imageUrl,
               `equipment-${item.id || index}-spell-${item.grantedSpell.id}`,
             ),
@@ -126,7 +131,7 @@ async function transformCharacterImages(
     const spell = character.spells[index]!;
     spells.push({
       ...spell,
-      imageUrl: await transform(spell.imageUrl, `spell-${spell.id || index}`),
+      imageUrl: await transformImage(transform, spell.imageUrl, `spell-${spell.id || index}`),
     });
   }
 
@@ -134,17 +139,34 @@ async function transformCharacterImages(
     const item = character.inventory[index]!;
     inventory.push({
       ...item,
-      imageUrl: await transform(item.imageUrl, `inventory-${item.id || index}`),
+      imageUrl: await transformImage(
+        transform,
+        item.imageUrl,
+        `inventory-${item.id || index}`,
+      ),
     });
   }
 
   return {
     ...character,
-    imageUrl: await transform(character.imageUrl, "character"),
+    imageUrl: await transformImage(transform, character.imageUrl, "character"),
     equipment,
     spells,
     inventory,
   };
+}
+
+async function transformImage(
+  transform: ImageTransform,
+  imageUrl: string | undefined,
+  slot: string,
+) {
+  try {
+    return await transform(imageUrl, slot);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`Image ${slot}: ${reason}`);
+  }
 }
 
 async function createDurableImageUri(extension: string) {

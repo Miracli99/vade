@@ -335,8 +335,10 @@ export default function App() {
       }
 
       void applyImportedCharacters(normalizedImportedCharacters, true);
-    } catch {
-      setHomeMessage("Import impossible: JSON invalide.");
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      console.error("Character import failed", error);
+      setHomeMessage(`Import impossible: ${reason}`);
     }
   }
 

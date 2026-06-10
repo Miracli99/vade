@@ -29,6 +29,7 @@ export function AssetVisual({
   onPress,
   active = false,
 }: AssetVisualProps) {
+  const safeLabel = typeof label === "string" && label.trim() ? label : "Visuel";
   const sizeStyle = character
     ? large
       ? styles.characterVisualLarge
@@ -42,19 +43,22 @@ export function AssetVisual({
   const resolvedThumbnailModule =
     safeThumbnailModule ?? (large ? undefined : getThumbnailModuleForImage(safeImageModule));
   const resolvedImageModule =
-    resolvedThumbnailModule ?? safeImageModule ?? (character ? getFallbackCharacterImageModule(label) : undefined);
+    resolvedThumbnailModule ??
+    safeImageModule ??
+    (character ? getFallbackCharacterImageModule(safeLabel) : undefined);
   const content = imageUrl || resolvedImageModule ? (
     <View style={[sizeStyle, styles.imageFrame]}>
       <Image
         source={imageUrl ? { uri: imageUrl } : resolvedImageModule}
         style={styles.imageContent}
         resizeMode={imageResizeMode}
+        resizeMethod={imageUrl ? "resize" : "auto"}
       />
     </View>
   ) : (
     <View style={[sizeStyle, styles.assetFallback, active ? styles.assetFallbackActive : null]}>
       <Text style={small ? styles.assetFallbackSmallText : styles.assetFallbackText}>
-        {icon ?? label.slice(0, 1)}
+        {icon ?? safeLabel.slice(0, 1)}
       </Text>
     </View>
   );

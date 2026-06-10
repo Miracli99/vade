@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
+import { File as ExpoFile, FileMode } from "expo-file-system";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { Platform } from "react-native";
@@ -17,6 +18,7 @@ const CHARACTER_SYNC_PREFIX = "character-";
 const CHARACTER_SYNC_SUFFIX = ".json";
 const JSON_MIME_TYPE = "application/json";
 const VALID_STANCES = new Set(["focus", "combat", "defensif"]);
+const JSON_READ_CHUNK_SIZE = 512 * 1024;
 
 type SyncCharacterFile = {
   version: 1 | 2;
@@ -145,9 +147,7 @@ export async function importCharactersFromDirectory(
 
   for (const entryUri of importUris) {
     try {
-      const text = await FileSystem.readAsStringAsync(entryUri, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
+      const text = readLargeTextFile(entryUri);
 
       const parsed = JSON.parse(text) as unknown;
       const extractedCharacters = extractImportedCharacters(parsed);
@@ -243,9 +243,7 @@ export async function importCharacters(): Promise<Character[] | null> {
     return null;
   }
 
-  const text = await FileSystem.readAsStringAsync(result.assets[0].uri, {
-    encoding: FileSystem.EncodingType.UTF8,
-  });
+  const text = readLargeTextFile(result.assets[0].uri);
 
   return parseImportedCharacters(text);
 }
@@ -318,9 +316,7 @@ async function findExistingSyncCharacterFiles(entryUris: string[]) {
 
   for (const entryUri of entryUris.filter(isPossibleJsonEntry)) {
     try {
-      const text = await FileSystem.readAsStringAsync(entryUri, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
+      const text = readLargeTextFile(entryUri);
       const parsed = JSON.parse(text) as unknown;
 
       if (isSyncCharacterFile(parsed)) {
@@ -354,6 +350,31 @@ function extractImportedCharacters(value: unknown): Character[] {
   }
 
   return candidates;
+}
+
+function readLargeTextFile(uri: string) {
+  const handle = new ExpoFile(uri).open(FileMode.ReadOnly);
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+
+  try {
+    while (handle.size !== null && handle.offset !== null && handle.offset < handle.size) {
+      const bytes = handle.readBytes(
+        Math.min(JSON_READ_CHUNK_SIZE, handle.size - handle.offset),
+      );
+
+      if (!bytes.length) {
+        break;
+      }
+
+      chunks.push(decoder.decode(bytes, { stream: true }));
+    }
+
+    chunks.push(decoder.decode());
+    return chunks.join("");
+  } finally {
+    handle.close();
+  }
 }
 
 function getImportedCharacterCandidates(value: unknown): unknown[] {
