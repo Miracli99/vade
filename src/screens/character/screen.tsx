@@ -841,68 +841,69 @@ export function CharacterSheetScreen({
     }
   }
 
+  function updateDraftImage(
+    target: ImageLibraryTarget,
+    image: { imageModule?: number; imageUrl?: string },
+  ) {
+    setDraftCharacter((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const imagePatch = {
+        imageModule: image.imageModule,
+        imageUrl: image.imageUrl,
+      };
+
+      switch (target.kind) {
+        case "character":
+          return { ...current, ...imagePatch };
+        case "spell":
+          return {
+            ...current,
+            spells: current.spells.map((spell, index) =>
+              index === target.index ? { ...spell, ...imagePatch } : spell,
+            ),
+          };
+        case "equipment":
+          return {
+            ...current,
+            equipment: current.equipment.map((item, index) =>
+              index === target.index ? { ...item, ...imagePatch } : item,
+            ),
+          };
+        case "equipmentSpell":
+          return {
+            ...current,
+            equipment: current.equipment.map((item, index) =>
+              index === target.index && item.grantedSpell
+                ? {
+                    ...item,
+                    grantedSpell: { ...item.grantedSpell, ...imagePatch },
+                  }
+                : item,
+            ),
+          };
+        case "inventory":
+          return {
+            ...current,
+            inventory: current.inventory.map((item, index) =>
+              index === target.index ? { ...item, ...imagePatch } : item,
+            ),
+          };
+      }
+    });
+  }
+
   function applyLocalImage(target: ImageLibraryTarget, option: LocalImageOption) {
-    switch (target.kind) {
-      case "character":
-        setDraftCharacter((current) =>
-          current
-            ? {
-                ...current,
-                imageModule: option.imageModule,
-                imageUrl: undefined,
-              }
-            : current,
-        );
-        break;
-      case "spell":
-        updateDraftSpell(target.index, { imageModule: option.imageModule, imageUrl: undefined });
-        break;
-      case "equipment":
-        updateDraftEquipment(target.index, {
-          imageModule: option.imageModule,
-          imageUrl: undefined,
-        });
-        break;
-      case "equipmentSpell":
-        updateDraftEquipmentGrantedSpell(target.index, {
-          imageModule: option.imageModule,
-          imageUrl: undefined,
-        });
-        break;
-      case "inventory":
-        updateDraftInventory(target.index, {
-          imageModule: option.imageModule,
-          imageUrl: undefined,
-        });
-        break;
-    }
+    updateDraftImage(target, { imageModule: option.imageModule, imageUrl: undefined });
 
     setImageLibraryTarget(null);
     setImageLibraryQuery("");
   }
 
   function clearImageSelection(target: ImageLibraryTarget) {
-    switch (target.kind) {
-      case "character":
-        updateDraftField("imageModule", undefined);
-        updateDraftField("imageUrl", undefined);
-        break;
-      case "spell":
-        updateDraftSpell(target.index, { imageModule: undefined, imageUrl: undefined });
-        break;
-      case "equipment":
-        updateDraftEquipment(target.index, { imageModule: undefined, imageUrl: undefined });
-        break;
-      case "equipmentSpell":
-        updateDraftEquipmentGrantedSpell(target.index, {
-          imageModule: undefined,
-          imageUrl: undefined,
-        });
-        break;
-      case "inventory":
-        updateDraftInventory(target.index, { imageModule: undefined, imageUrl: undefined });
-        break;
-    }
+    updateDraftImage(target, { imageModule: undefined, imageUrl: undefined });
 
     setImageLibraryTarget(null);
     setImageLibraryQuery("");
@@ -1368,34 +1369,7 @@ export function CharacterSheetScreen({
       return;
     }
 
-    switch (target.kind) {
-      case "character":
-        setDraftCharacter((current) =>
-          current
-            ? {
-                ...current,
-                imageUrl: uri,
-                imageModule: undefined,
-              }
-            : current,
-        );
-        break;
-      case "spell":
-        updateDraftSpell(target.index, { imageUrl: uri, imageModule: undefined });
-        break;
-      case "equipment":
-        updateDraftEquipment(target.index, { imageUrl: uri, imageModule: undefined });
-        break;
-      case "equipmentSpell":
-        updateDraftEquipmentGrantedSpell(target.index, {
-          imageUrl: uri,
-          imageModule: undefined,
-        });
-        break;
-      case "inventory":
-        updateDraftInventory(target.index, { imageUrl: uri, imageModule: undefined });
-        break;
-    }
+    updateDraftImage(target, { imageUrl: uri, imageModule: undefined });
 
     setImageLibraryTarget(null);
     setImageLibraryQuery("");
