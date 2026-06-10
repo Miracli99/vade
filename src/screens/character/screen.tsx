@@ -844,8 +844,15 @@ export function CharacterSheetScreen({
   function applyLocalImage(target: ImageLibraryTarget, option: LocalImageOption) {
     switch (target.kind) {
       case "character":
-        updateDraftField("imageModule", option.imageModule);
-        updateDraftField("imageUrl", undefined);
+        setDraftCharacter((current) =>
+          current
+            ? {
+                ...current,
+                imageModule: option.imageModule,
+                imageUrl: undefined,
+              }
+            : current,
+        );
         break;
       case "spell":
         updateDraftSpell(target.index, { imageModule: option.imageModule, imageUrl: undefined });
@@ -1363,8 +1370,15 @@ export function CharacterSheetScreen({
 
     switch (target.kind) {
       case "character":
-        updateDraftField("imageUrl", uri);
-        updateDraftField("imageModule", undefined);
+        setDraftCharacter((current) =>
+          current
+            ? {
+                ...current,
+                imageUrl: uri,
+                imageModule: undefined,
+              }
+            : current,
+        );
         break;
       case "spell":
         updateDraftSpell(target.index, { imageUrl: uri, imageModule: undefined });

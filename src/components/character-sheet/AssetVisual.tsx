@@ -46,9 +46,11 @@ export function AssetVisual({
     resolvedThumbnailModule ??
     safeImageModule ??
     (character ? getFallbackCharacterImageModule(safeLabel) : undefined);
+  const imageKey = imageUrl ?? `module-${resolvedImageModule ?? "fallback"}`;
   const content = imageUrl || resolvedImageModule ? (
     <View style={[sizeStyle, styles.imageFrame]}>
       <Image
+        key={imageKey}
         source={imageUrl ? { uri: imageUrl } : resolvedImageModule}
         style={styles.imageContent}
         resizeMode={imageResizeMode}
