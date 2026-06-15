@@ -74,6 +74,7 @@ export default function App() {
   const latestSyncDirectoryUriRef = useRef<string | null>(syncDirectoryUri);
   const syncInFlightRef = useRef(false);
   const syncQueuedRef = useRef(false);
+  const refreshInFlightRef = useRef(false);
   const lastSyncedCharactersRef = useRef<Character[] | null>(null);
   const lastSyncedDirectoryUriRef = useRef<string | null>(null);
 
@@ -92,12 +93,31 @@ export default function App() {
 
         const directoryUri = latestSyncDirectoryUriRef.current;
 
-        if (!storageReady || !directoryUri || Platform.OS !== "android") {
+        if (
+          !storageReady ||
+          !directoryUri ||
+          Platform.OS !== "android" ||
+          refreshInFlightRef.current
+        ) {
           return false;
         }
 
-        await syncCharactersToDirectory(latestSyncCharactersRef.current, directoryUri);
-        lastSyncedCharactersRef.current = latestSyncCharactersRef.current;
+        const syncCharacters = latestSyncCharactersRef.current;
+        const previousCharacters =
+          lastSyncedDirectoryUriRef.current === directoryUri
+            ? lastSyncedCharactersRef.current
+            : null;
+        const previousById = new Map(
+          (previousCharacters ?? []).map((character) => [character.id, character]),
+        );
+        const changedCharacterIds = new Set(
+          syncCharacters
+            .filter((character) => previousById.get(character.id) !== character)
+            .map((character) => character.id),
+        );
+
+        await syncCharactersToDirectory(syncCharacters, directoryUri, changedCharacterIds);
+        lastSyncedCharactersRef.current = syncCharacters;
         lastSyncedDirectoryUriRef.current = directoryUri;
       } while (syncQueuedRef.current);
 
@@ -176,7 +196,12 @@ export default function App() {
     latestSyncCharactersRef.current = characters;
     latestSyncDirectoryUriRef.current = syncDirectoryUri;
 
-    if (!storageReady || !syncDirectoryUri || Platform.OS !== "android") {
+    if (
+      !storageReady ||
+      !syncDirectoryUri ||
+      Platform.OS !== "android" ||
+      refreshInFlightRef.current
+    ) {
       return;
     }
 
@@ -187,7 +212,11 @@ export default function App() {
       return;
     }
 
-    void flushSyncDirectory();
+    const timeout = setTimeout(() => {
+      void flushSyncDirectory();
+    }, 350);
+
+    return () => clearTimeout(timeout);
   }, [characters, storageReady, syncDirectoryUri]);
 
   useEffect(() => {
@@ -355,8 +384,8 @@ export default function App() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
 
-    await exportCharacters([selectedCharacter], `vade-retro-${safeName || "personnage"}.json`);
-    setHomeMessage(`Export JSON pret pour ${selectedCharacter.name}.`);
+    await exportCharacters([selectedCharacter], `vade-retro-${safeName || "personnage"}.zip`);
+    setHomeMessage(`Export ZIP pret pour ${selectedCharacter.name}.`);
   }
 
   async function handlePickSyncDirectory() {
@@ -407,6 +436,7 @@ export default function App() {
     }
 
     try {
+      refreshInFlightRef.current = true;
       setRefreshBusy(true);
       const importResult = await importCharactersFromDirectory(syncDirectoryUri);
       const normalizedImportedCharacters = Array.from(
@@ -431,6 +461,9 @@ export default function App() {
         normalizedCharacters.find((character) => character.id === selectedId)?.id ??
         normalizedCharacters[0]!.id;
 
+      latestSyncCharactersRef.current = normalizedCharacters;
+      lastSyncedCharactersRef.current = normalizedCharacters;
+      lastSyncedDirectoryUriRef.current = syncDirectoryUri;
       setCharacters(normalizedCharacters);
       setSelectedId(nextSelectedId);
       setRoute("home");
@@ -445,6 +478,7 @@ export default function App() {
     } catch (error) {
       setHomeMessage(error instanceof Error ? `Refresh impossible. ${error.message}` : "Refresh impossible.");
     } finally {
+      refreshInFlightRef.current = false;
       setRefreshBusy(false);
     }
   }

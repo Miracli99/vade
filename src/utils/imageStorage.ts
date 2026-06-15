@@ -14,6 +14,16 @@ type ImageTransform = (
   slot: string,
 ) => Promise<string | undefined>;
 
+export type CharacterArchiveAsset = {
+  path: string;
+  base64: string;
+};
+
+export type CharacterArchivePayload = {
+  character: Character;
+  assets: CharacterArchiveAsset[];
+};
+
 export async function persistCustomImage(
   uri: string,
   mimeType?: string | null,
@@ -46,6 +56,10 @@ export async function materializeCharacterImages(
         return undefined;
       }
 
+      if (sourceUri.startsWith("data:image/")) {
+        return materializeDataImage(sourceUri);
+      }
+
       return persistCustomImage(sourceUri, getMimeType(fileName), fileName);
     }
 
@@ -59,19 +73,32 @@ export async function materializeCharacterImages(
         : compressWebImage(imageUrl);
     }
 
-    const parsed = parseImageDataUrl(imageUrl);
+    return materializeDataImage(imageUrl);
+  });
+}
 
-    if (!parsed) {
+export async function makeCharacterArchivePayload(
+  character: Character,
+  assetRoot = "",
+): Promise<CharacterArchivePayload> {
+  const assets: CharacterArchiveAsset[] = [];
+  const portableCharacter = await transformCharacterImages(character, async (imageUrl, slot) => {
+    if (!imageUrl || isRemoteImage(imageUrl)) {
+      return imageUrl;
+    }
+
+    const image = await readImageAsBase64(imageUrl);
+
+    if (!image) {
       return undefined;
     }
 
-    const extension = getImageExtension(parsed.mimeType);
-    const destination = await createDurableImageUri(extension);
-    await FileSystem.writeAsStringAsync(destination, parsed.base64, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    return destination;
+    const path = `${assetRoot}images/${sanitizeArchiveSlot(slot)}.${getImageExtension(image.mimeType)}`;
+    assets.push({ path, base64: image.base64 });
+    return `${SYNC_ASSET_PREFIX}${encodeURIComponent(path)}`;
   });
+
+  return { character: portableCharacter, assets };
 }
 
 export async function makeCharacterPortable(character: Character) {
@@ -179,6 +206,27 @@ async function createDurableImageUri(extension: string) {
   return `${directoryUri}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${extension}`;
 }
 
+async function materializeDataImage(imageUrl: string) {
+  const parsed = parseImageDataUrl(imageUrl);
+
+  if (!parsed) {
+    return undefined;
+  }
+
+  if (Platform.OS === "web") {
+    return imageUrl.length <= MAX_COMPACT_DATA_URL_LENGTH
+      ? imageUrl
+      : compressWebImage(imageUrl);
+  }
+
+  const extension = getImageExtension(parsed.mimeType);
+  const destination = await createDurableImageUri(extension);
+  await FileSystem.writeAsStringAsync(destination, parsed.base64, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  return destination;
+}
+
 async function readImageAsBase64(imageUrl: string) {
   const dataImage = parseImageDataUrl(imageUrl);
 
@@ -234,6 +282,10 @@ function getImageExtension(mimeType?: string | null, value = "") {
 
 function isRemoteImage(value: string) {
   return value.startsWith("http://") || value.startsWith("https://");
+}
+
+function sanitizeArchiveSlot(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]+/g, "-");
 }
 
 function compressWebImage(uri: string) {

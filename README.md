@@ -53,4 +53,4 @@ npx expo prebuild --platform android
 - persistance locale des personnages
 - creation / edition d'un personnage
 - fiche de combat complete avec jets, effets temporaires et historique
-- export / import JSON pour partager une fiche
+- export / import ZIP autonome (`character.json` + images), avec import des anciens JSON

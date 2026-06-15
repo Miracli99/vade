@@ -1,15 +1,16 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { LOCAL_IMAGE_LIBRARY } from "../../data/image-library";
-import { isKnownImageModule } from "../../utils/assets";
+import { ImageModule } from "../../types/game";
+import { getImageModuleKey, isKnownImageModule } from "../../utils/assets";
 import { modernColors, modernRadii } from "../ui/design";
 
 type AssetVisualProps = {
   label: string;
   icon?: string;
   imageUrl?: string;
-  imageModule?: number;
-  thumbnailModule?: number;
+  imageModule?: ImageModule;
+  thumbnailModule?: ImageModule;
   small?: boolean;
   character?: boolean;
   large?: boolean;
@@ -46,7 +47,7 @@ export function AssetVisual({
     resolvedThumbnailModule ??
     safeImageModule ??
     (character ? getFallbackCharacterImageModule(safeLabel) : undefined);
-  const imageKey = imageUrl ?? `module-${resolvedImageModule ?? "fallback"}`;
+  const imageKey = `${imageUrl ?? "local"}-${getImageModuleKey(resolvedImageModule)}`;
   const content = imageUrl || resolvedImageModule ? (
     <View style={[sizeStyle, styles.imageFrame]}>
       <Image
@@ -76,13 +77,13 @@ export function AssetVisual({
   return content;
 }
 
-const thumbnailByImageModule = new Map<number, number>();
-const fallbackCharacterImageByName = new Map<string, number>();
+const thumbnailByImageModule = new Map<string, ImageModule>();
+const fallbackCharacterImageByName = new Map<string, ImageModule>();
 
 Object.values(LOCAL_IMAGE_LIBRARY).forEach((options) => {
   options.forEach((option) => {
     if (option.thumbnailModule) {
-      thumbnailByImageModule.set(option.imageModule, option.thumbnailModule);
+      thumbnailByImageModule.set(getImageModuleKey(option.imageModule), option.thumbnailModule);
     }
   });
 });
@@ -97,8 +98,10 @@ LOCAL_IMAGE_LIBRARY.character.forEach((option) => {
   }
 });
 
-function getThumbnailModuleForImage(imageModule?: number) {
-  return imageModule ? thumbnailByImageModule.get(imageModule) : undefined;
+function getThumbnailModuleForImage(imageModule?: ImageModule) {
+  return imageModule
+    ? thumbnailByImageModule.get(getImageModuleKey(imageModule))
+    : undefined;
 }
 
 function getFallbackCharacterImageModule(label: string) {

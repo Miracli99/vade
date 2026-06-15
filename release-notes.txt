@@ -1,1 +1,6 @@
-- Correction crash import
+- Correction de la sauvegarde et du refresh des personnages
+- Suppression correcte des fichiers de personnages effaces
+- Amelioration de la stabilite apres plusieurs modifications
+- Mise a jour immediate des images sans recharger la page
+- Import, export et synchronisation Android au format ZIP avec images integrees
+- Compatibilite conservee avec les anciens imports JSON

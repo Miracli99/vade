@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   Image,
@@ -38,6 +38,7 @@ import {
   CombatStance,
   CharacterTheme,
   EquipmentItem,
+  ImageModule,
   InventoryItem,
   ResistanceProfile,
   ResistanceType,
@@ -119,6 +120,7 @@ export function CharacterSheetScreen({
   const [deleteCharacterConfirm, setDeleteCharacterConfirm] = useState(false);
   const [imageLibraryTarget, setImageLibraryTarget] = useState<ImageLibraryTarget | null>(null);
   const [imageLibraryQuery, setImageLibraryQuery] = useState("");
+  const suppressEditorOpenUntilRef = useRef(0);
 
   const selectedCharacter =
     characters.find((character) => character.id === selectedId) ?? characters[0];
@@ -740,6 +742,10 @@ export function CharacterSheetScreen({
   }
 
   function openEditor() {
+    if (Date.now() < suppressEditorOpenUntilRef.current) {
+      return;
+    }
+
     setEditorSection("all");
     setDraftCharacter(cloneTemplate(selectedCharacter!));
     setDeleteCharacterConfirm(false);
@@ -748,6 +754,10 @@ export function CharacterSheetScreen({
   }
 
   function openSectionEditor(section: EditorSection) {
+    if (Date.now() < suppressEditorOpenUntilRef.current) {
+      return;
+    }
+
     setEditorSection(section);
     setDraftCharacter(cloneTemplate(selectedCharacter!));
     setDeleteCharacterConfirm(false);
@@ -756,6 +766,7 @@ export function CharacterSheetScreen({
   }
 
   function closeEditor() {
+    suppressEditorOpenUntilRef.current = Date.now() + 400;
     setActiveOverlayMenu(null);
     setEditorSection("all");
     setDraftCharacter(null);
@@ -772,9 +783,12 @@ export function CharacterSheetScreen({
       return;
     }
 
+    const savedCharacter = normalizeCharacter(cloneTemplate(draftCharacter));
+
+    suppressEditorOpenUntilRef.current = Date.now() + 400;
     setCharacters((currentCharacters) =>
       currentCharacters.map((character) =>
-        character.id === draftCharacter.id ? draftCharacter : character,
+        character.id === savedCharacter.id ? savedCharacter : character,
       ),
     );
     setActiveOverlayMenu(null);
@@ -843,7 +857,7 @@ export function CharacterSheetScreen({
 
   function updateDraftImage(
     target: ImageLibraryTarget,
-    image: { imageModule?: number; imageUrl?: string },
+    image: { imageModule?: ImageModule; imageUrl?: string },
   ) {
     setDraftCharacter((current) => {
       if (!current) {

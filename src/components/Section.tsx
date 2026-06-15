@@ -1,6 +1,5 @@
 import { PropsWithChildren, ReactNode } from "react";
 import {
-  Image,
   ImageBackground,
   ImageSourcePropType,
   Platform,
@@ -50,24 +49,6 @@ export function Section({ title, subtitle, rightSlot, children, theme }: Section
   ];
 
   if (theme?.cardBackgroundImage) {
-    if (Platform.OS === "web") {
-      const source = Image.resolveAssetSource(theme.cardBackgroundImage);
-
-      return (
-        <View
-          style={[
-            sectionStyle,
-            styles.webCardBackground,
-            {
-              backgroundImage: `url("${source.uri}")`,
-            } as object,
-          ]}
-        >
-          {content}
-        </View>
-      );
-    }
-
     return (
       <ImageBackground
         source={theme.cardBackgroundImage}
@@ -110,10 +91,6 @@ const styles = StyleSheet.create({
   cardBackground: {
     borderRadius: modernRadii.md,
   },
-  webCardBackground: {
-    backgroundRepeat: "repeat",
-    backgroundSize: "auto",
-  } as object,
   textureOverlay: {
     position: "absolute",
     top: 0,

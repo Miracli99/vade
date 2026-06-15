@@ -1,3 +1,7 @@
+import type { ImageSourcePropType } from "react-native";
+
+export type ImageModule = ImageSourcePropType;
+
 export type CombatStance = "focus" | "combat" | "defensif";
 export type CharacterTheme =
   | "vide"
@@ -72,7 +76,7 @@ export type EquipmentItem = {
   category: string;
   icon?: string;
   imageUrl?: string;
-  imageModule?: number;
+  imageModule?: ImageModule;
   notes?: string;
   armorBonus?: number;
   usableLabel?: string;
@@ -89,7 +93,7 @@ export type Spell = {
   name: string;
   icon?: string;
   imageUrl?: string;
-  imageModule?: number;
+  imageModule?: ImageModule;
   basePsyCost: number;
   armorBonus?: number;
   damageBonus?: number;
@@ -106,7 +110,7 @@ export type InventoryItem = {
   name: string;
   icon?: string;
   imageUrl?: string;
-  imageModule?: number;
+  imageModule?: ImageModule;
   quantity: number;
   notes?: string;
   tags: string[];
@@ -120,7 +124,7 @@ export type Character = {
   specialization?: string;
   bio?: string;
   imageUrl?: string;
-  imageModule?: number;
+  imageModule?: ImageModule;
   theme: CharacterTheme;
   cardBackgroundsEnabled?: boolean;
   level?: number;

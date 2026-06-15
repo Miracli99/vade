@@ -3,11 +3,13 @@ import * as DocumentPicker from "expo-document-picker";
 import { File as ExpoFile, FileMode } from "expo-file-system";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import JSZip from "jszip";
 import { Platform } from "react-native";
 
 import { Character } from "../types/game";
 import {
-  makeCharacterPortable,
+  getSyncAssetFileName,
+  makeCharacterArchivePayload,
   materializeCharacterImages,
 } from "./imageStorage";
 
@@ -15,15 +17,34 @@ const STORAGE_KEY = "vade-retro.characters.v1";
 const SELECTION_KEY = "vade-retro.selected-character.v1";
 const SYNC_DIRECTORY_URI_KEY = "vade-retro.sync-directory-uri.v1";
 const CHARACTER_SYNC_PREFIX = "character-";
-const CHARACTER_SYNC_SUFFIX = ".json";
+const CHARACTER_SYNC_JSON_SUFFIX = ".json";
+const CHARACTER_SYNC_ZIP_SUFFIX = ".zip";
 const JSON_MIME_TYPE = "application/json";
+const ZIP_MIME_TYPE = "application/zip";
+const ARCHIVE_MANIFEST_PATH = "character.json";
 const VALID_STANCES = new Set(["focus", "combat", "defensif"]);
-const JSON_READ_CHUNK_SIZE = 512 * 1024;
+const FILE_READ_CHUNK_SIZE = 512 * 1024;
+const MAX_IMPORT_FILE_SIZE = 100 * 1024 * 1024;
+const MAX_ARCHIVE_ASSET_COUNT = 100;
+const MAX_ARCHIVE_ASSET_BASE64_SIZE = 140 * 1024 * 1024;
+
+let storageWriteQueue: Promise<void> = Promise.resolve();
 
 type SyncCharacterFile = {
   version: 1 | 2;
   exportedAt: string;
   character: Character;
+};
+
+type CharacterArchiveFile = {
+  version: 3;
+  exportedAt: string;
+  characters: Character[];
+};
+
+type ExistingSyncFile = {
+  uri: string;
+  format: "json" | "zip";
 };
 
 export type DirectoryImportResult = {
@@ -52,10 +73,18 @@ export async function persistCharactersToStorage(
   characters: Character[],
   selectedId: string,
 ) {
-  await AsyncStorage.multiSet([
-    [STORAGE_KEY, JSON.stringify(characters)],
-    [SELECTION_KEY, selectedId],
-  ]);
+  const serializedCharacters = JSON.stringify(characters);
+
+  storageWriteQueue = storageWriteQueue
+    .catch(() => undefined)
+    .then(() =>
+      AsyncStorage.multiSet([
+        [STORAGE_KEY, serializedCharacters],
+        [SELECTION_KEY, selectedId],
+      ]),
+    );
+
+  await storageWriteQueue;
 }
 
 export async function loadSyncDirectoryUri() {
@@ -85,37 +114,42 @@ export async function pickSyncDirectory(): Promise<string | null> {
   return permissions.directoryUri;
 }
 
-export async function syncCharactersToDirectory(characters: Character[], directoryUri: string) {
+export async function syncCharactersToDirectory(
+  characters: Character[],
+  directoryUri: string,
+  characterIdsToWrite?: ReadonlySet<string>,
+) {
   if (Platform.OS !== "android") {
     throw new Error("La sync par dossier est disponible uniquement sur Android.");
   }
 
   const existingEntries = await FileSystem.StorageAccessFramework.readDirectoryAsync(directoryUri);
   const existingCharacterFiles = await findExistingSyncCharacterFiles(existingEntries);
+  const activeCharacterIds = new Set(characters.map((character) => character.id));
   let writtenCount = 0;
+  let deletedCount = 0;
 
   for (const character of characters) {
     const fileName = getCharacterSyncFileName(character.id);
-    let fileUri = existingCharacterFiles.get(character.id);
+    const existingFiles = existingCharacterFiles.get(character.id) ?? [];
+    let fileUri = existingFiles.find((file) => file.format === "zip")?.uri;
+    const shouldWrite = !fileUri || !characterIdsToWrite || characterIdsToWrite.has(character.id);
+
+    if (!shouldWrite) {
+      continue;
+    }
 
     if (!fileUri) {
       fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
         directoryUri,
         stripFileExtension(fileName),
-        JSON_MIME_TYPE,
+        ZIP_MIME_TYPE,
       );
     }
 
-    const payload: SyncCharacterFile = {
-      version: 2,
-      exportedAt: new Date().toISOString(),
-      // A sync file must be autonomous: cloud providers expose opaque child URIs,
-      // so sibling image files cannot be resolved reliably on another device.
-      character: await makeCharacterPortable(character),
-    };
-
-    await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(payload, null, 2), {
-      encoding: FileSystem.EncodingType.UTF8,
+    const archiveBase64 = await createCharacterArchive([character], "base64");
+    await FileSystem.writeAsStringAsync(fileUri, archiveBase64, {
+      encoding: FileSystem.EncodingType.Base64,
     });
 
     const writtenFile = await FileSystem.getInfoAsync(fileUri);
@@ -124,11 +158,28 @@ export async function syncCharactersToDirectory(characters: Character[], directo
       throw new Error(`Le fichier de ${character.name} n'a pas ete cree.`);
     }
 
-    existingCharacterFiles.set(character.id, fileUri);
+    for (const oldFile of existingFiles) {
+      if (oldFile.uri !== fileUri) {
+        await FileSystem.StorageAccessFramework.deleteAsync(oldFile.uri, { idempotent: true });
+      }
+    }
+
+    existingCharacterFiles.set(character.id, [{ uri: fileUri, format: "zip" }]);
     writtenCount += 1;
   }
 
-  return { writtenCount };
+  for (const [characterId, files] of existingCharacterFiles) {
+    if (activeCharacterIds.has(characterId)) {
+      continue;
+    }
+
+    for (const file of files) {
+      await FileSystem.StorageAccessFramework.deleteAsync(file.uri, { idempotent: true });
+      deletedCount += 1;
+    }
+  }
+
+  return { writtenCount, deletedCount };
 }
 
 export async function importCharactersFromDirectory(
@@ -140,24 +191,14 @@ export async function importCharactersFromDirectory(
 
   const entryUris = await FileSystem.StorageAccessFramework.readDirectoryAsync(directoryUri);
   // Cloud document providers can expose opaque URIs without the display name.
-  // Try every non-image entry and identify JSON files from their contents.
-  const importUris = entryUris.filter(isPossibleJsonEntry);
+  // Try every non-image entry and identify ZIP/JSON files from their contents.
+  const importUris = entryUris.filter(isPossibleCharacterEntry);
   const importedCharacters: Character[] = [];
   const skippedFiles: DirectoryImportResult["skippedFiles"] = [];
 
   for (const entryUri of importUris) {
     try {
-      const text = readLargeTextFile(entryUri);
-
-      const parsed = JSON.parse(text) as unknown;
-      const extractedCharacters = extractImportedCharacters(parsed);
-      const entriesByName = new Map(entryUris.map((uri) => [getUriFileName(uri), uri]));
-      importedCharacters.push(
-        ...(await materializeCharacters(
-          extractedCharacters,
-          (fileName) => entriesByName.get(fileName) ?? null,
-        )),
-      );
+      importedCharacters.push(...(await parseCharacterFile(readBinaryFile(entryUri))));
     } catch {
       const fileName = getUriFileName(entryUri);
       skippedFiles.push({
@@ -170,13 +211,13 @@ export async function importCharactersFromDirectory(
   if (!importedCharacters.length) {
     if (skippedFiles.length) {
       throw new Error(
-        `Aucun JSON lisible dans le dossier. Fichier(s) ignore(s): ${formatFileList(
+        `Aucun ZIP ou JSON lisible dans le dossier. Fichier(s) ignore(s): ${formatFileList(
           skippedFiles.map((file) => file.fileName),
         )}.`,
       );
     }
 
-    throw new Error("Aucun fichier JSON trouve dans le dossier.");
+    throw new Error("Aucun fichier ZIP ou JSON trouve dans le dossier.");
   }
 
   return {
@@ -185,39 +226,28 @@ export async function importCharactersFromDirectory(
   };
 }
 
-export async function exportCharacters(characters: Character[], fileName = "vade-retro-characters.json") {
-  const portableCharacters =
-    Platform.OS === "web"
-      ? characters
-      : await makeCharactersPortable(characters);
-  const payload = JSON.stringify(
-    {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      characters: portableCharacters,
-    },
-    null,
-    2,
-  );
+export async function exportCharacters(characters: Character[], fileName = "vade-retro-characters.zip") {
+  const safeFileName = replaceFileExtension(fileName, CHARACTER_SYNC_ZIP_SUFFIX);
 
   if (Platform.OS === "web") {
-    const blob = new Blob([payload], { type: "application/json" });
+    const blob = await createCharacterArchive(characters, "blob");
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = fileName;
+    link.download = safeFileName;
     link.click();
     URL.revokeObjectURL(url);
     return;
   }
 
-  const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-  await FileSystem.writeAsStringAsync(fileUri, payload, {
-    encoding: FileSystem.EncodingType.UTF8,
+  const fileUri = `${FileSystem.cacheDirectory}${safeFileName}`;
+  const archiveBase64 = await createCharacterArchive(characters, "base64");
+  await FileSystem.writeAsStringAsync(fileUri, archiveBase64, {
+    encoding: FileSystem.EncodingType.Base64,
   });
 
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(fileUri);
+    await Sharing.shareAsync(fileUri, { mimeType: ZIP_MIME_TYPE });
   }
 }
 
@@ -229,12 +259,11 @@ export async function importCharacters(): Promise<Character[] | null> {
       return null;
     }
 
-    const text = await file.text();
-    return parseImportedCharacters(text);
+    return parseCharacterFile(new Uint8Array(await file.arrayBuffer()));
   }
 
   const result = await DocumentPicker.getDocumentAsync({
-    type: "application/json",
+    type: [ZIP_MIME_TYPE, JSON_MIME_TYPE, "application/octet-stream"],
     copyToCacheDirectory: true,
     multiple: false,
   });
@@ -243,14 +272,91 @@ export async function importCharacters(): Promise<Character[] | null> {
     return null;
   }
 
-  const text = readLargeTextFile(result.assets[0].uri);
-
-  return parseImportedCharacters(text);
+  return parseCharacterFile(readBinaryFile(result.assets[0].uri));
 }
 
-async function parseImportedCharacters(text: string) {
-  const parsed = JSON.parse(text) as unknown;
-  return materializeCharacters(extractImportedCharacters(parsed));
+async function parseCharacterFile(bytes: Uint8Array) {
+  if (!isZipBytes(bytes)) {
+    const parsed = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+    return materializeCharacters(extractImportedCharacters(parsed));
+  }
+
+  const zip = await JSZip.loadAsync(bytes);
+  const manifestEntry = zip.file(ARCHIVE_MANIFEST_PATH);
+
+  if (!manifestEntry) {
+    throw new Error("Archive invalide: character.json est absent.");
+  }
+
+  const manifest = JSON.parse(await manifestEntry.async("string")) as unknown;
+
+  if (!isCharacterArchiveFile(manifest)) {
+    throw new Error("Archive de personnage invalide.");
+  }
+
+  const assets = new Map<string, string>();
+  const referencedAssets = collectArchiveAssetPaths(manifest.characters);
+  let totalAssetBase64Size = 0;
+
+  if (referencedAssets.size > MAX_ARCHIVE_ASSET_COUNT) {
+    throw new Error("Archive refusee: trop d'images.");
+  }
+
+  for (const assetPath of referencedAssets) {
+    const assetEntry = zip.file(assetPath);
+
+    if (!assetEntry) {
+      throw new Error(`Archive incomplete: image absente (${assetPath}).`);
+    }
+
+    const base64 = await assetEntry.async("base64");
+    totalAssetBase64Size += base64.length;
+
+    if (totalAssetBase64Size > MAX_ARCHIVE_ASSET_BASE64_SIZE) {
+      throw new Error("Archive refusee: images trop volumineuses.");
+    }
+
+    assets.set(assetPath, `data:${getArchiveMimeType(assetPath)};base64,${base64}`);
+  }
+
+  return materializeCharacters(
+    manifest.characters,
+    (fileName) => assets.get(fileName) ?? null,
+  );
+}
+
+async function createCharacterArchive(
+  characters: Character[],
+  type: "base64",
+): Promise<string>;
+async function createCharacterArchive(
+  characters: Character[],
+  type: "blob",
+): Promise<Blob>;
+async function createCharacterArchive(characters: Character[], type: "base64" | "blob") {
+  const zip = new JSZip();
+  const archivedCharacters: Character[] = [];
+
+  for (const character of characters) {
+    const assetRoot = characters.length > 1 ? `characters/${sanitizePathSegment(character.id)}/` : "";
+    const archived = await makeCharacterArchivePayload(character, assetRoot);
+    archivedCharacters.push(archived.character);
+
+    for (const asset of archived.assets) {
+      zip.file(asset.path, asset.base64, { base64: true });
+    }
+  }
+
+  const manifest: CharacterArchiveFile = {
+    version: 3,
+    exportedAt: new Date().toISOString(),
+    characters: archivedCharacters,
+  };
+  zip.file(ARCHIVE_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+
+  return type === "blob"
+    ? zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } })
+    : zip.generateAsync({ type: "base64", compression: "DEFLATE", compressionOptions: { level: 6 } });
 }
 
 async function materializeCharacters(
@@ -266,21 +372,11 @@ async function materializeCharacters(
   return materializedCharacters;
 }
 
-async function makeCharactersPortable(characters: Character[]) {
-  const portableCharacters: Character[] = [];
-
-  for (const character of characters) {
-    portableCharacters.push(await makeCharacterPortable(character));
-  }
-
-  return portableCharacters;
-}
-
 function pickWebFile() {
   return new Promise<File | null>((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "application/json";
+    input.accept = ".zip,.json,application/zip,application/json";
     input.onchange = () => resolve(input.files?.[0] ?? null);
     input.click();
   });
@@ -288,42 +384,45 @@ function pickWebFile() {
 
 function getCharacterSyncFileName(characterId: string) {
   // Keep the sync file name tied to the stable id so renaming a character does not create duplicates.
-  return `${CHARACTER_SYNC_PREFIX}${characterId}${CHARACTER_SYNC_SUFFIX}`;
+  return `${CHARACTER_SYNC_PREFIX}${characterId}${CHARACTER_SYNC_ZIP_SUFFIX}`;
 }
 
 function getCharacterIdFromSyncFileName(fileName: string) {
-  if (!fileName.startsWith(CHARACTER_SYNC_PREFIX) || !fileName.endsWith(CHARACTER_SYNC_SUFFIX)) {
+  const suffix = fileName.endsWith(CHARACTER_SYNC_ZIP_SUFFIX)
+    ? CHARACTER_SYNC_ZIP_SUFFIX
+    : fileName.endsWith(CHARACTER_SYNC_JSON_SUFFIX)
+      ? CHARACTER_SYNC_JSON_SUFFIX
+      : null;
+
+  if (!fileName.startsWith(CHARACTER_SYNC_PREFIX) || !suffix) {
     return null;
   }
 
   return fileName.slice(
     CHARACTER_SYNC_PREFIX.length,
-    fileName.length - CHARACTER_SYNC_SUFFIX.length,
+    fileName.length - suffix.length,
   );
 }
 
-function isJsonEntry(entryUri: string) {
-  return getUriFileName(entryUri).endsWith(CHARACTER_SYNC_SUFFIX);
-}
-
-function isPossibleJsonEntry(entryUri: string) {
+function isPossibleCharacterEntry(entryUri: string) {
   const fileName = getUriFileName(entryUri).toLowerCase();
-  return isJsonEntry(entryUri) || !/\.(png|jpe?g|webp|gif)$/.test(fileName);
+  return !/\.(png|jpe?g|webp|gif)$/.test(fileName);
 }
 
 async function findExistingSyncCharacterFiles(entryUris: string[]) {
-  const filesByCharacterId = new Map<string, string>();
+  const filesByCharacterId = new Map<string, ExistingSyncFile[]>();
 
-  for (const entryUri of entryUris.filter(isPossibleJsonEntry)) {
+  for (const entryUri of entryUris.filter(isPossibleCharacterEntry)) {
     try {
-      const text = readLargeTextFile(entryUri);
-      const parsed = JSON.parse(text) as unknown;
+      const inspected = await inspectCharacterFile(readBinaryFile(entryUri));
 
-      if (isSyncCharacterFile(parsed)) {
-        filesByCharacterId.set(parsed.character.id, entryUri);
+      for (const characterId of inspected.characterIds) {
+        const currentFiles = filesByCharacterId.get(characterId) ?? [];
+        currentFiles.push({ uri: entryUri, format: inspected.format });
+        filesByCharacterId.set(characterId, currentFiles);
       }
     } catch {
-      // Non-JSON files are allowed in the selected directory.
+      // Unrelated files are allowed in the selected directory.
     }
   }
 
@@ -331,9 +430,7 @@ async function findExistingSyncCharacterFiles(entryUris: string[]) {
 }
 
 function stripFileExtension(fileName: string) {
-  return fileName.endsWith(CHARACTER_SYNC_SUFFIX)
-    ? fileName.slice(0, -CHARACTER_SYNC_SUFFIX.length)
-    : fileName;
+  return replaceFileExtension(fileName, "");
 }
 
 function getUriFileName(entryUri: string) {
@@ -352,29 +449,128 @@ function extractImportedCharacters(value: unknown): Character[] {
   return candidates;
 }
 
-function readLargeTextFile(uri: string) {
+function readBinaryFile(uri: string) {
   const handle = new ExpoFile(uri).open(FileMode.ReadOnly);
-  const decoder = new TextDecoder();
-  const chunks: string[] = [];
+  const chunks: Uint8Array[] = [];
+  let totalLength = 0;
 
   try {
+    if (handle.size !== null && handle.size > MAX_IMPORT_FILE_SIZE) {
+      throw new Error("Fichier refuse: taille superieure a 100 Mo.");
+    }
+
     while (handle.size !== null && handle.offset !== null && handle.offset < handle.size) {
       const bytes = handle.readBytes(
-        Math.min(JSON_READ_CHUNK_SIZE, handle.size - handle.offset),
+        Math.min(FILE_READ_CHUNK_SIZE, handle.size - handle.offset),
       );
 
       if (!bytes.length) {
         break;
       }
 
-      chunks.push(decoder.decode(bytes, { stream: true }));
+      chunks.push(bytes);
+      totalLength += bytes.length;
     }
 
-    chunks.push(decoder.decode());
-    return chunks.join("");
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return result;
   } finally {
     handle.close();
   }
+}
+
+async function inspectCharacterFile(bytes: Uint8Array) {
+  if (isZipBytes(bytes)) {
+    const zip = await JSZip.loadAsync(bytes);
+    const manifestEntry = zip.file(ARCHIVE_MANIFEST_PATH);
+
+    if (!manifestEntry) {
+      throw new Error("Manifest ZIP absent.");
+    }
+
+    const manifest = JSON.parse(await manifestEntry.async("string")) as unknown;
+
+    if (!isCharacterArchiveFile(manifest)) {
+      throw new Error("Manifest ZIP invalide.");
+    }
+
+    return {
+      characterIds: manifest.characters.map((character) => character.id),
+      format: "zip" as const,
+    };
+  }
+
+  const parsed = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+  const characters = extractImportedCharacters(parsed);
+  return {
+    characterIds: characters.map((character) => character.id),
+    format: "json" as const,
+  };
+}
+
+function isZipBytes(bytes: Uint8Array) {
+  return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b;
+}
+
+function isCharacterArchiveFile(value: unknown): value is CharacterArchiveFile {
+  return (
+    isRecord(value) &&
+    value.version === 3 &&
+    Array.isArray(value.characters) &&
+    value.characters.length > 0 &&
+    value.characters.length <= 100 &&
+    value.characters.every(isImportableCharacter)
+  );
+}
+
+function collectArchiveAssetPaths(characters: Character[]) {
+  const paths = new Set<string>();
+
+  function visit(value: unknown) {
+    if (typeof value === "string") {
+      const fileName = getSyncAssetFileName(value);
+
+      if (fileName) {
+        paths.add(fileName);
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+
+    if (isRecord(value)) {
+      Object.values(value).forEach(visit);
+    }
+  }
+
+  characters.forEach(visit);
+  return paths;
+}
+
+function getArchiveMimeType(fileName: string) {
+  const normalized = fileName.toLowerCase();
+  if (normalized.endsWith(".png")) return "image/png";
+  if (normalized.endsWith(".webp")) return "image/webp";
+  if (normalized.endsWith(".gif")) return "image/gif";
+  return "image/jpeg";
+}
+
+function sanitizePathSegment(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]+/g, "-");
+}
+
+function replaceFileExtension(fileName: string, extension: string) {
+  return `${fileName.replace(/\.(json|zip)$/i, "")}${extension}`;
 }
 
 function getImportedCharacterCandidates(value: unknown): unknown[] {
