@@ -21,6 +21,13 @@ const CHARACTER_SYNC_JSON_SUFFIX = ".json";
 const CHARACTER_SYNC_ZIP_SUFFIX = ".zip";
 const JSON_MIME_TYPE = "application/json";
 const ZIP_MIME_TYPE = "application/zip";
+const ZIP_MIME_TYPES = [
+  ZIP_MIME_TYPE,
+  "application/x-zip",
+  "application/x-zip-compressed",
+  "multipart/x-zip",
+  "application/octet-stream",
+];
 const ARCHIVE_MANIFEST_PATH = "character.json";
 const VALID_STANCES = new Set(["focus", "combat", "defensif"]);
 const FILE_READ_CHUNK_SIZE = 512 * 1024;
@@ -263,7 +270,7 @@ export async function importCharacters(): Promise<Character[] | null> {
   }
 
   const result = await DocumentPicker.getDocumentAsync({
-    type: [ZIP_MIME_TYPE, JSON_MIME_TYPE, "application/octet-stream"],
+    type: Platform.OS === "android" ? "*/*" : [JSON_MIME_TYPE, ...ZIP_MIME_TYPES],
     copyToCacheDirectory: true,
     multiple: false,
   });

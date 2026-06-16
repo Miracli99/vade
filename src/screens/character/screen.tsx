@@ -87,6 +87,8 @@ import {
   RecoveryDraft,
 } from "./types";
 
+const EDITOR_REOPEN_SUPPRESSION_MS = Platform.OS === "android" ? 1200 : 450;
+
 export type CharacterSheetScreenProps = {
   characters: Character[];
   setCharacters: Dispatch<SetStateAction<Character[]>>;
@@ -742,7 +744,7 @@ export function CharacterSheetScreen({
   }
 
   function openEditor() {
-    if (Date.now() < suppressEditorOpenUntilRef.current) {
+    if (Date.now() < suppressEditorOpenUntilRef.current || draftCharacter) {
       return;
     }
 
@@ -754,7 +756,7 @@ export function CharacterSheetScreen({
   }
 
   function openSectionEditor(section: EditorSection) {
-    if (Date.now() < suppressEditorOpenUntilRef.current) {
+    if (Date.now() < suppressEditorOpenUntilRef.current || draftCharacter) {
       return;
     }
 
@@ -766,7 +768,7 @@ export function CharacterSheetScreen({
   }
 
   function closeEditor() {
-    suppressEditorOpenUntilRef.current = Date.now() + 400;
+    suppressEditorOpenUntilRef.current = Date.now() + EDITOR_REOPEN_SUPPRESSION_MS;
     setActiveOverlayMenu(null);
     setEditorSection("all");
     setDraftCharacter(null);
@@ -785,7 +787,7 @@ export function CharacterSheetScreen({
 
     const savedCharacter = normalizeCharacter(cloneTemplate(draftCharacter));
 
-    suppressEditorOpenUntilRef.current = Date.now() + 400;
+    suppressEditorOpenUntilRef.current = Date.now() + EDITOR_REOPEN_SUPPRESSION_MS;
     setCharacters((currentCharacters) =>
       currentCharacters.map((character) =>
         character.id === savedCharacter.id ? savedCharacter : character,
@@ -816,6 +818,7 @@ export function CharacterSheetScreen({
 
     setCharacters(remainingCharacters);
     setSelectedId(remainingCharacters[0]!.id);
+    suppressEditorOpenUntilRef.current = Date.now() + EDITOR_REOPEN_SUPPRESSION_MS;
     setDraftCharacter(null);
     setDeleteCharacterConfirm(false);
     setImageLibraryTarget(null);
