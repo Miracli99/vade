@@ -767,8 +767,12 @@ export function CharacterSheetScreen({
     setActiveOverlayMenu(null);
   }
 
-  function closeEditor() {
+  function suppressEditorReopen() {
     suppressEditorOpenUntilRef.current = Date.now() + EDITOR_REOPEN_SUPPRESSION_MS;
+  }
+
+  function closeEditor() {
+    suppressEditorReopen();
     setActiveOverlayMenu(null);
     setEditorSection("all");
     setDraftCharacter(null);
@@ -787,7 +791,7 @@ export function CharacterSheetScreen({
 
     const savedCharacter = normalizeCharacter(cloneTemplate(draftCharacter));
 
-    suppressEditorOpenUntilRef.current = Date.now() + EDITOR_REOPEN_SUPPRESSION_MS;
+    suppressEditorReopen();
     setCharacters((currentCharacters) =>
       currentCharacters.map((character) =>
         character.id === savedCharacter.id ? savedCharacter : character,
@@ -818,7 +822,7 @@ export function CharacterSheetScreen({
 
     setCharacters(remainingCharacters);
     setSelectedId(remainingCharacters[0]!.id);
-    suppressEditorOpenUntilRef.current = Date.now() + EDITOR_REOPEN_SUPPRESSION_MS;
+    suppressEditorReopen();
     setDraftCharacter(null);
     setDeleteCharacterConfirm(false);
     setImageLibraryTarget(null);
@@ -967,6 +971,12 @@ export function CharacterSheetScreen({
           }
         : current,
     );
+  }
+
+  function updateDraftAttackBonus(rawValue: string) {
+    const nextValue = Math.max(0, Number.parseInt(rawValue || "0", 10) || 0);
+
+    updateDraftField("attackBonus", nextValue);
   }
 
   function updateDraftSkill(index: number, patch: Partial<Skill>) {
@@ -1464,15 +1474,20 @@ export function CharacterSheetScreen({
         >
           <KeyboardAvoidingView
             style={styles.editorModalBackdrop}
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            enabled={Platform.OS === "ios"}
           >
-            <Pressable style={StyleSheet.absoluteFill} onPress={closeEditor} />
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPressIn={suppressEditorReopen}
+              onPress={closeEditor}
+            />
             <View style={styles.editorModalWrap}>
               <ScrollView
                 style={styles.editorModalScroll}
                 contentContainerStyle={styles.editorModalContent}
                 showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
+                keyboardShouldPersistTaps="always"
               >
         <EditorFieldThemeProvider
           value={{
@@ -1495,10 +1510,18 @@ export function CharacterSheetScreen({
           }}
           rightSlot={
             <View style={styles.editorActions}>
-              <Pressable onPress={closeEditor} style={editorGhostButtonStyle}>
+              <Pressable
+                onPressIn={suppressEditorReopen}
+                onPress={closeEditor}
+                style={editorGhostButtonStyle}
+              >
                 <Text style={editorGhostButtonLabelStyle}>Annuler</Text>
               </Pressable>
-              <Pressable onPress={saveEditor} style={editorPrimaryButtonStyle}>
+              <Pressable
+                onPressIn={suppressEditorReopen}
+                onPress={saveEditor}
+                style={editorPrimaryButtonStyle}
+              >
                 <Text style={editorPrimaryButtonLabelStyle}>Sauvegarder</Text>
               </Pressable>
             </View>
@@ -1737,6 +1760,19 @@ export function CharacterSheetScreen({
                 </View>
               </View>
             ))}
+            <View style={styles.editorResourceBlock}>
+              <Text style={[styles.editorResourceTitle, { color: activeTheme.accent }]}>
+                Attaque
+              </Text>
+              <View style={styles.editorGrid}>
+                <EditorField
+                  label="Bonus d'attaque"
+                  value={String(draftCharacter.attackBonus)}
+                  keyboardType="numeric"
+                  onChangeText={updateDraftAttackBonus}
+                />
+              </View>
+            </View>
           </View>
           ) : null}
 
