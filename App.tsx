@@ -44,6 +44,8 @@ const APP_CONFIG = require("./app.json") as {
 const APP_VERSION = APP_CONFIG.expo?.version ?? "0.0.0";
 const UPDATE_MANIFEST_URL = APP_CONFIG.expo?.extra?.updateManifestUrl ?? "";
 const ANDROID_APK_MIME_TYPE = "application/vnd.android.package-archive";
+const HOME_MESSAGE_DISPLAY_MS = 2500;
+const HOME_ERROR_MESSAGE_DISPLAY_MS = 8000;
 
 type AppRoute = "home" | "character" | "history";
 
@@ -55,6 +57,12 @@ type PendingImport = {
     importedName: string;
   }>;
 };
+
+function getHomeMessageDisplayDuration(message: string) {
+  return /\b(impossible|aucun|failed|erreur|error)\b/i.test(message)
+    ? HOME_ERROR_MESSAGE_DISPLAY_MS
+    : HOME_MESSAGE_DISPLAY_MS;
+}
 
 export default function App() {
   const [route, setRoute] = useState<AppRoute>("home");
@@ -224,7 +232,10 @@ export default function App() {
       return;
     }
 
-    const timeout = setTimeout(() => setHomeMessage(null), 2000);
+    const timeout = setTimeout(
+      () => setHomeMessage(null),
+      getHomeMessageDisplayDuration(homeMessage),
+    );
 
     return () => clearTimeout(timeout);
   }, [homeMessage]);

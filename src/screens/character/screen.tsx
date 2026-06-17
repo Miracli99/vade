@@ -88,6 +88,14 @@ import {
 } from "./types";
 
 const EDITOR_REOPEN_SUPPRESSION_MS = Platform.OS === "android" ? 1200 : 450;
+const ROSTER_MESSAGE_DISPLAY_MS = 2500;
+const ROSTER_ERROR_MESSAGE_DISPLAY_MS = 8000;
+
+function getRosterMessageDisplayDuration(message: string) {
+  return /\b(impossible|insuffisante|aucun|failed|erreur|error)\b/i.test(message)
+    ? ROSTER_ERROR_MESSAGE_DISPLAY_MS
+    : ROSTER_MESSAGE_DISPLAY_MS;
+}
 
 export type CharacterSheetScreenProps = {
   characters: Character[];
@@ -210,7 +218,10 @@ export function CharacterSheetScreen({
       return;
     }
 
-    const timeout = setTimeout(() => setRosterMessage(null), 2000);
+    const timeout = setTimeout(
+      () => setRosterMessage(null),
+      getRosterMessageDisplayDuration(rosterMessage),
+    );
 
     return () => clearTimeout(timeout);
   }, [rosterMessage]);
