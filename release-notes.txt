@@ -1,3 +1,4 @@
-- changement de zip à folder pour le sync
-- chargement plus rapide
-- fix modal bloqué
+- Ajout d'une section Buffs / Debuffs sur la fiche personnage.
+- Les buffs actifs peuvent modifier l'attaque bonus, l'armure, les PV max et le bouclier.
+- Les debuffs acceptent des valeurs negatives et sont pris en compte dans les stats affichees.
+- Ajout du rang personnage de 5 a 1, avec le rang S comme rang le plus fort.
