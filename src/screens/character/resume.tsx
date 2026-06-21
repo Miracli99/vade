@@ -75,6 +75,9 @@ export function CharacterResume({
 
         <View style={styles.heroChipRow}>
           <View style={[styles.heroChip, { backgroundColor: theme.chipBg, borderColor: theme.border }]}>
+            <Text style={[styles.heroChipLabel, { color: theme.title }]}>Rang {character.rank ?? "5"}</Text>
+          </View>
+          <View style={[styles.heroChip, { backgroundColor: theme.chipBg, borderColor: theme.border }]}>
             <Text style={[styles.heroChipLabel, { color: theme.title }]}>Niveau {character.level ?? 0}</Text>
           </View>
           <View style={[styles.heroChip, { backgroundColor: theme.chipBg, borderColor: theme.border }]}>

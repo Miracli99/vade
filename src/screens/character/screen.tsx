@@ -35,6 +35,7 @@ import { DonEditorSection } from "./don";
 import {
   ArchetypeId,
   Character,
+  CharacterRank,
   CombatStance,
   CharacterTheme,
   EquipmentItem,
@@ -92,6 +93,7 @@ const EDITOR_REOPEN_SUPPRESSION_MS = Platform.OS === "android" ? 1200 : 450;
 const ROSTER_MESSAGE_DISPLAY_MS = 2500;
 const ROSTER_ERROR_MESSAGE_DISPLAY_MS = 8000;
 type StatusEffectBonusKey = keyof NonNullable<StatusEffect["bonuses"]>;
+const CHARACTER_RANKS: CharacterRank[] = ["5", "4", "3", "2", "1", "S"];
 
 function getRosterMessageDisplayDuration(message: string) {
   return /\b(impossible|insuffisante|aucun|failed|erreur|error)\b/i.test(message)
@@ -1661,6 +1663,31 @@ export function CharacterSheetScreen({
             />
           </View>
           <View style={styles.editorGroup}>
+            <View style={styles.editorToggleRow}>
+              <Text style={editorSectionTitleStyle}>Rang</Text>
+              <View style={styles.editorToggleGroup}>
+                {CHARACTER_RANKS.map((rank) => {
+                  const active = (draftCharacter.rank ?? "5") === rank;
+
+                  return (
+                    <Pressable
+                      key={rank}
+                      onPress={() => updateDraftField("rank", rank)}
+                      style={getEditorToggleButtonStyle(active)}
+                    >
+                      <Text style={getEditorToggleButtonLabelStyle(active)}>
+                        {rank}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+            <Text style={editorHintStyle}>
+              Le rang 5 est le plus bas; S est au-dessus du rang 1.
+            </Text>
+          </View>
+          <View style={styles.editorGroup}>
             <Text style={editorSectionTitleStyle}>Theme</Text>
             <View style={styles.editorThemeControlRow}>
               <View style={[styles.editorDropdownWrap, styles.editorThemeDropdownWrap]}>
@@ -2944,6 +2971,7 @@ export function CharacterSheetScreen({
                           style={[styles.overlayOptionDescription, { color: activeTheme.subtitle }]}
                         >
                           {character.archetype}
+                          {` · Rang ${character.rank ?? "5"}`}
                           {character.level ? ` · Niv ${character.level}` : ""}
                         </Text>
                       </Pressable>

@@ -1,4 +1,4 @@
-import { Character, ResourcePool, Spell, StatusEffect } from "../types/game";
+import { Character, CharacterRank, ResourcePool, Spell, StatusEffect } from "../types/game";
 import { normalizeImageModule } from "./assets";
 
 const DEFAULT_RESOURCE: ResourcePool = {
@@ -19,6 +19,22 @@ function normalizeNumber(value: unknown, fallback = 0) {
 
 function normalizeSignedNumber(value: unknown, fallback = 0) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeRank(value: unknown): CharacterRank {
+  if (value === "S") {
+    return "S";
+  }
+
+  if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5) {
+    return String(value) as CharacterRank;
+  }
+
+  if (value === "1" || value === "2" || value === "3" || value === "4" || value === "5") {
+    return value;
+  }
+
+  return "5";
 }
 
 function normalizeResource(resource: ResourcePool | undefined, forceBonus?: number): ResourcePool {
@@ -88,6 +104,7 @@ export function normalizeCharacter(character: Character): Character {
     theme: character.theme ?? "humain",
     cardBackgroundsEnabled: character.cardBackgroundsEnabled ?? true,
     level: character.level,
+    rank: normalizeRank(character.rank),
     pv: normalizeResource(character.pv ?? DEFAULT_RESOURCE),
     psy: normalizeResource(character.psy ?? DEFAULT_RESOURCE, 0),
     armor: normalizeResource(character.armor ?? DEFAULT_RESOURCE),

@@ -28,6 +28,7 @@ export type ArchetypeId =
   | "libre";
 
 export type PercentStatKey = "physique" | "mentale" | "sociale";
+export type CharacterRank = "5" | "4" | "3" | "2" | "1" | "S";
 
 export type ResourcePool = {
   current: number;
@@ -135,6 +136,7 @@ export type Character = {
   theme: CharacterTheme;
   cardBackgroundsEnabled?: boolean;
   level?: number;
+  rank?: CharacterRank;
   pv: ResourcePool;
   psy: ResourcePool;
   armor: ResourcePool;

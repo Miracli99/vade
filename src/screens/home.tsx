@@ -214,7 +214,7 @@ export function HomeScreen({
                   <Text style={styles.characterBio} numberOfLines={3}>
                     {getCharacterBioPreview(character.bio)}
                   </Text>
-                  <Text style={styles.characterCta}>Niveau {character.level ?? 0} · {character.spells.length} dons · {character.equipment.length} equipements</Text>
+                  <Text style={styles.characterCta}>Rang {character.rank ?? "5"} · Niveau {character.level ?? 0} · {character.spells.length} dons · {character.equipment.length} equipements</Text>
                 </View>
               </Pressable>
               );

@@ -589,6 +589,7 @@ export function createTemplateCharacter(
     imageUrl: "",
     imageModule: undefined,
     level: 1,
+    rank: "5",
     attackBonus: 0,
     activeSpellIds: [],
     inventory: [],
