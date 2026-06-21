@@ -1,4 +1,4 @@
-import { Character, ResourcePool, Spell } from "../types/game";
+import { Character, ResourcePool, Spell, StatusEffect } from "../types/game";
 import { normalizeImageModule } from "./assets";
 
 const DEFAULT_RESOURCE: ResourcePool = {
@@ -14,6 +14,10 @@ const DEFAULT_STATS: Character["stats"] = {
 };
 
 function normalizeNumber(value: unknown, fallback = 0) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeSignedNumber(value: unknown, fallback = 0) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
@@ -48,6 +52,25 @@ function normalizeSpell(spell: Spell): Spell {
     tags: spell.tags ?? [],
     activeEffects: spell.activeEffects ?? [],
     passiveEffects: spell.passiveEffects ?? [],
+  };
+}
+
+function normalizeStatusEffect(effect: StatusEffect): StatusEffect {
+  const rawBonuses = effect.bonuses ?? {};
+
+  return {
+    ...effect,
+    category: effect.category ?? "neutral",
+    source: effect.source ?? "",
+    durationTurns: effect.durationTurns ?? null,
+    active: effect.active ?? true,
+    tags: effect.tags ?? [],
+    bonuses: {
+      attackBonus: normalizeSignedNumber(rawBonuses.attackBonus),
+      armorBonus: normalizeSignedNumber(rawBonuses.armorBonus),
+      pvBonus: normalizeSignedNumber(rawBonuses.pvBonus),
+      shieldBonus: normalizeSignedNumber(rawBonuses.shieldBonus),
+    },
   };
 }
 
@@ -105,7 +128,7 @@ export function normalizeCharacter(character: Character): Character {
       imageModule: normalizeImageModule(item.imageModule),
       tags: item.tags ?? [],
     })),
-    statusEffects: character.statusEffects ?? [],
+    statusEffects: (character.statusEffects ?? []).map(normalizeStatusEffect),
     resistances: character.resistances ?? [],
   };
 }

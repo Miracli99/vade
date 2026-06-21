@@ -55,10 +55,17 @@ export type StatusEffect = {
   id: string;
   name: string;
   description: string;
+  category?: "buff" | "debuff" | "neutral";
   source?: string;
   durationTurns: number | null;
   active: boolean;
   tags: string[];
+  bonuses?: {
+    attackBonus?: number;
+    armorBonus?: number;
+    pvBonus?: number;
+    shieldBonus?: number;
+  };
 };
 
 export type ResistanceType = "resistance" | "faiblesse" | "immunite";

@@ -1016,6 +1016,12 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+  editorToggleGroup: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
   editorMediaRow: {
     flexDirection: "row",
     alignItems: "center",

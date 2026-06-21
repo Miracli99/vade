@@ -49,6 +49,7 @@ import {
 } from "../../types/game";
 import {
   clampValue,
+  getActiveStatusEffectBonuses,
   getEffectiveArmorResource,
   getReducibleCost,
   getScaledSpellCost,
@@ -90,6 +91,7 @@ import {
 const EDITOR_REOPEN_SUPPRESSION_MS = Platform.OS === "android" ? 1200 : 450;
 const ROSTER_MESSAGE_DISPLAY_MS = 2500;
 const ROSTER_ERROR_MESSAGE_DISPLAY_MS = 8000;
+type StatusEffectBonusKey = keyof NonNullable<StatusEffect["bonuses"]>;
 
 function getRosterMessageDisplayDuration(message: string) {
   return /\b(impossible|insuffisante|aucun|failed|erreur|error)\b/i.test(message)
@@ -485,10 +487,14 @@ export function CharacterSheetScreen({
       let pvAbsorbed = 0;
 
       const nextPv = { ...character.pv };
+      const statusShieldBonus = Math.max(
+        0,
+        getActiveStatusEffectBonuses(character).shieldBonus,
+      );
 
       if (remaining > 0) {
-        shieldAbsorbed = Math.min(nextPv.bonus, remaining);
-        nextPv.bonus -= shieldAbsorbed;
+        shieldAbsorbed = Math.min(nextPv.bonus + statusShieldBonus, remaining);
+        nextPv.bonus = Math.max(0, nextPv.bonus - shieldAbsorbed);
         remaining -= shieldAbsorbed;
       }
 
@@ -990,6 +996,10 @@ export function CharacterSheetScreen({
     updateDraftField("attackBonus", nextValue);
   }
 
+  function parseSignedDraftNumber(rawValue: string) {
+    return Number.parseInt(rawValue || "0", 10) || 0;
+  }
+
   function updateDraftSkill(index: number, patch: Partial<Skill>) {
     setDraftCharacter((current) =>
       current
@@ -1125,6 +1135,35 @@ export function CharacterSheetScreen({
     );
   }
 
+  function updateDraftStatusEffectBonus(
+    index: number,
+    bonusKey: StatusEffectBonusKey,
+    rawValue: string,
+  ) {
+    setDraftCharacter((current) =>
+      current
+        ? {
+            ...current,
+            statusEffects: current.statusEffects.map((effect, effectIndex) =>
+              effectIndex === index
+                ? {
+                    ...effect,
+                    bonuses: {
+                      attackBonus: 0,
+                      armorBonus: 0,
+                      pvBonus: 0,
+                      shieldBonus: 0,
+                      ...effect.bonuses,
+                      [bonusKey]: parseSignedDraftNumber(rawValue),
+                    },
+                  }
+                : effect,
+            ),
+          }
+        : current,
+    );
+  }
+
   function addDraftStatusEffect() {
     setDraftCharacter((current) =>
       current
@@ -1134,12 +1173,19 @@ export function CharacterSheetScreen({
               ...current.statusEffects,
               {
                 id: makeId("status"),
-                name: "Nouvel effet",
+                name: "Nouveau buff",
                 description: "",
+                category: "buff",
                 source: "",
                 durationTurns: 1,
                 active: true,
                 tags: [],
+                bonuses: {
+                  attackBonus: 0,
+                  armorBonus: 0,
+                  pvBonus: 0,
+                  shieldBonus: 0,
+                },
               },
             ],
           }
@@ -1818,7 +1864,13 @@ export function CharacterSheetScreen({
               {draftCharacter.statusEffects.map((effect, index) => (
                 <View key={effect.id} style={editorCardStyle}>
                   <View style={styles.editorCardHeader}>
-                    <Text style={editorCardTitleStyle}>Effet</Text>
+                    <Text style={editorCardTitleStyle}>
+                      {effect.category === "debuff"
+                        ? "Debuff"
+                        : effect.category === "buff"
+                          ? "Buff"
+                          : "Effet"}
+                    </Text>
                     <Pressable
                       onPress={() => removeDraftStatusEffect(index)}
                       style={getEditorRemoveButtonStyle()}
@@ -1859,6 +1911,32 @@ export function CharacterSheetScreen({
                     />
                   </View>
                   <View style={styles.editorToggleRow}>
+                    <Text style={editorInlineLabelStyle}>Type</Text>
+                    <View style={styles.editorToggleGroup}>
+                      {(["buff", "debuff", "neutral"] as const).map((category) => (
+                        <Pressable
+                          key={category}
+                          onPress={() => updateDraftStatusEffect(index, { category })}
+                          style={getEditorToggleButtonStyle(
+                            (effect.category ?? "neutral") === category,
+                          )}
+                        >
+                          <Text
+                            style={getEditorToggleButtonLabelStyle(
+                              (effect.category ?? "neutral") === category,
+                            )}
+                          >
+                            {category === "buff"
+                              ? "Buff"
+                              : category === "debuff"
+                                ? "Debuff"
+                                : "Effet"}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                  <View style={styles.editorToggleRow}>
                     <Text style={editorInlineLabelStyle}>Effet actif</Text>
                     <Pressable
                       onPress={() =>
@@ -1870,6 +1948,45 @@ export function CharacterSheetScreen({
                         {effect.active ? "Actif" : "Inactif"}
                       </Text>
                     </Pressable>
+                  </View>
+                  <View style={styles.editorResourceBlock}>
+                    <Text style={[styles.editorResourceTitle, { color: activeTheme.accent }]}>
+                      Bonus de stats
+                    </Text>
+                    <View style={styles.editorGrid}>
+                      <EditorField
+                        label="Attaque bonus"
+                        value={String(effect.bonuses?.attackBonus ?? 0)}
+                        onChangeText={(value) =>
+                          updateDraftStatusEffectBonus(index, "attackBonus", value)
+                        }
+                      />
+                      <EditorField
+                        label="Armure"
+                        value={String(effect.bonuses?.armorBonus ?? 0)}
+                        onChangeText={(value) =>
+                          updateDraftStatusEffectBonus(index, "armorBonus", value)
+                        }
+                      />
+                      <EditorField
+                        label="PV"
+                        value={String(effect.bonuses?.pvBonus ?? 0)}
+                        onChangeText={(value) =>
+                          updateDraftStatusEffectBonus(index, "pvBonus", value)
+                        }
+                      />
+                      <EditorField
+                        label="Bouclier"
+                        value={String(effect.bonuses?.shieldBonus ?? 0)}
+                        onChangeText={(value) =>
+                          updateDraftStatusEffectBonus(index, "shieldBonus", value)
+                        }
+                      />
+                    </View>
+                    <Text style={editorHintStyle}>
+                      PV modifie le maximum; bouclier ajoute une protection active. Utilise des
+                      valeurs negatives pour un debuff.
+                    </Text>
                   </View>
                   <TextInput
                     value={effect.description}
@@ -2963,6 +3080,7 @@ export function CharacterSheetScreen({
         }
         onAdjustAttackBonus={(delta) => updateAttackBonus(selectedCharacter.id, delta)}
         onEditEquipment={() => openSectionEditor("equipment")}
+        onEditEffects={() => openSectionEditor("effects")}
         onEditInventory={() => openSectionEditor("inventory")}
         onEditResistances={() => openSectionEditor("resistances")}
         onEditResources={() => openSectionEditor("resources")}

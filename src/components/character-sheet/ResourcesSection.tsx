@@ -4,7 +4,9 @@ import { Character } from "../../types/game";
 import {
   getActiveSpellArmorBonus,
   getActiveSpellDamageBonus,
+  getActiveStatusEffectBonuses,
   getEffectiveArmorResource,
+  getEffectivePvResource,
 } from "../../utils/game";
 import { getResponsiveFlags } from "../../utils/responsive";
 import { Section } from "../Section";
@@ -31,9 +33,11 @@ export function ResourcesSection({
 }: ResourcesSectionProps) {
   const { width } = useWindowDimensions();
   const { isPhone, isTablet } = getResponsiveFlags(width);
+  const effectivePv = getEffectivePvResource(character);
   const effectiveArmor = getEffectiveArmorResource(character);
   const activeSpellArmorBonus = getActiveSpellArmorBonus(character);
   const activeSpellDamageBonus = getActiveSpellDamageBonus(character);
+  const statusBonuses = getActiveStatusEffectBonuses(character);
 
   return (
     <Section
@@ -54,8 +58,22 @@ export function ResourcesSection({
             label="PV"
             glyph="♥"
             accent="#ef4444"
-            resource={character.pv}
+            resource={effectivePv}
             bonusLabel="Bouclier"
+            bonusDetail={
+              statusBonuses.pvBonus !== 0 || statusBonuses.shieldBonus !== 0
+                ? [
+                    statusBonuses.pvBonus !== 0
+                      ? `PV ${statusBonuses.pvBonus > 0 ? "+" : ""}${statusBonuses.pvBonus}`
+                      : null,
+                    statusBonuses.shieldBonus !== 0
+                      ? `bouclier ${statusBonuses.shieldBonus > 0 ? "+" : ""}${statusBonuses.shieldBonus}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : undefined
+            }
             overlayBonus
             theme={theme}
             onAdjust={(delta) => onAdjustResource("pv", delta)}
@@ -80,8 +98,15 @@ export function ResourcesSection({
             resource={effectiveArmor}
             bonusLabel="Bonus"
             bonusDetail={
-              activeSpellArmorBonus > 0
-                ? `Augmentee par don actif +${activeSpellArmorBonus}`
+              activeSpellArmorBonus > 0 || statusBonuses.armorBonus !== 0
+                ? [
+                    activeSpellArmorBonus > 0 ? `don actif +${activeSpellArmorBonus}` : null,
+                    statusBonuses.armorBonus !== 0
+                      ? `buff/debuff ${statusBonuses.armorBonus > 0 ? "+" : ""}${statusBonuses.armorBonus}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
                 : undefined
             }
             theme={theme}
@@ -93,6 +118,7 @@ export function ResourcesSection({
           <AttackBonusCard
             value={character.attackBonus}
             activeSpellDamageBonus={activeSpellDamageBonus}
+            statusAttackBonus={statusBonuses.attackBonus}
             theme={theme}
             onAdjust={onAdjustAttackBonus}
           />

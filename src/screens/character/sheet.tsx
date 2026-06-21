@@ -20,6 +20,7 @@ type CharacterPanelsProps = {
   onAdjustResource: (resourceKey: "pv" | "psy" | "armor", delta: number) => void;
   onAdjustResourceBonus: (resourceKey: "pv" | "psy" | "armor", delta: number) => void;
   onEditEquipment: () => void;
+  onEditEffects: () => void;
   onEditInventory: () => void;
   onEditResistances: () => void;
   onEditResources: () => void;
@@ -38,6 +39,7 @@ export function CharacterPanels({
   onAdjustResource,
   onAdjustResourceBonus,
   onEditEquipment,
+  onEditEffects,
   onEditInventory,
   onEditResistances,
   onEditResources,
@@ -68,6 +70,7 @@ export function CharacterPanels({
     <StatusSections
       character={character}
       theme={theme}
+      onEditEffects={onEditEffects}
       onEditResistances={onEditResistances}
     />
   );

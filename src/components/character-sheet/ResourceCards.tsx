@@ -4,6 +4,10 @@ import { ResourcePool } from "../../types/game";
 import { getResponsiveFlags } from "../../utils/responsive";
 import { modernColors, modernRadii } from "../ui/design";
 
+function formatSigned(value: number) {
+  return value >= 0 ? `+${value}` : `${value}`;
+}
+
 type ThemeTokens = {
   chipBg: string;
   panelBg?: string;
@@ -58,7 +62,7 @@ export function ResourceMeter({
             {label}
           </Text>
           <Text style={[styles.subtle, { color: theme.subtitle }]}>
-            {onAdjustBonus ? `${bonusLabel} +${resource.bonus}` : "Reserve active"}
+            {onAdjustBonus ? `${bonusLabel} ${formatSigned(resource.bonus)}` : "Reserve active"}
           </Text>
           {bonusDetail ? (
             <Text style={[styles.subtle, styles.detailText, { color: theme.subtitle }]}>
@@ -123,6 +127,7 @@ export function ResourceMeter({
 type AttackBonusCardProps = {
   value: number;
   activeSpellDamageBonus?: number;
+  statusAttackBonus?: number;
   theme: ThemeTokens & { accent: string };
   onAdjust: (delta: number) => void;
 };
@@ -130,12 +135,13 @@ type AttackBonusCardProps = {
 export function AttackBonusCard({
   value,
   activeSpellDamageBonus = 0,
+  statusAttackBonus = 0,
   theme,
   onAdjust,
 }: AttackBonusCardProps) {
   const { width } = useWindowDimensions();
   const isPhone = getResponsiveFlags(width).isPhone;
-  const effectiveValue = value + activeSpellDamageBonus;
+  const effectiveValue = value + activeSpellDamageBonus + statusAttackBonus;
 
   return (
     <View style={[styles.card, isPhone ? styles.cardPhone : null, { backgroundColor: theme.chipBg, borderColor: theme.border }]}>
@@ -150,9 +156,16 @@ export function AttackBonusCard({
               Augmente par don actif +{activeSpellDamageBonus} degats
             </Text>
           ) : null}
+          {statusAttackBonus !== 0 ? (
+            <Text style={[styles.subtle, styles.detailText, { color: theme.subtitle }]}>
+              Modifie par buff/debuff {formatSigned(statusAttackBonus)}
+            </Text>
+          ) : null}
         </View>
         <View style={[styles.countPill, { borderColor: theme.border }]}>
-          <Text style={[styles.count, isPhone ? styles.countPhone : null, { color: theme.title }]}>+{effectiveValue}</Text>
+          <Text style={[styles.count, isPhone ? styles.countPhone : null, { color: theme.title }]}>
+            {formatSigned(effectiveValue)}
+          </Text>
         </View>
       </View>
 
@@ -162,7 +175,7 @@ export function AttackBonusCard({
         </View>
         <View style={styles.attackSummary}>
           <Text style={[styles.attackValue, isPhone ? styles.attackValuePhone : null, { color: theme.title }]}>
-            +{effectiveValue}
+            {formatSigned(effectiveValue)}
           </Text>
           <Text style={[styles.subtle, { color: theme.subtitle }]}>Ajoute ce bonus aux actions offensives</Text>
         </View>
