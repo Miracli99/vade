@@ -33,7 +33,7 @@ export function CharacterResume({
         { backgroundColor: theme.panelBg, borderColor: theme.border },
       ]}
     >
-      <View pointerEvents="none" style={[styles.heroAccentBar, { backgroundColor: theme.accent }]} />
+      <View style={[styles.heroAccentBar, { backgroundColor: theme.accent }]} />
       <View style={[styles.heroVisualCard, isPhone ? styles.heroVisualCardPhone : null]}>
         <AssetVisual
           label={character.name}

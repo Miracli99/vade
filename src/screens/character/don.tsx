@@ -3,12 +3,26 @@ import { Pressable, Text, TextInput, View } from "react-native";
 import { AssetVisual } from "../../components/character-sheet/AssetVisual";
 import { EditorField, TagEditorField } from "../../components/character-sheet/EditorField";
 import { Character, Spell } from "../../types/game";
+import { EditorCollapsibleCard } from "./EditorCollapsibleCard";
 import { CharacterThemePreset } from "./presets";
 import { styles } from "./styles";
 import { ImageLibraryTarget } from "./types";
 
 export { SpellsSection as CharacterDon } from "../../components/character-sheet/SpellsSection";
 export { SpellsSection } from "../../components/character-sheet/SpellsSection";
+
+function compactText(value: string | undefined, fallback: string) {
+  const normalized = value?.replace(/\s+/g, " ").trim();
+  return normalized || fallback;
+}
+
+function formatEditorTags(tags: string[] = []) {
+  if (!tags.length) {
+    return "";
+  }
+
+  return tags.slice(0, 3).join(", ") + (tags.length > 3 ? "..." : "");
+}
 
 type DonEditorSectionProps = {
   draftCharacter: Character;
@@ -24,9 +38,12 @@ type DonEditorSectionProps = {
   getEditorRemoveButtonStyle: () => object;
   getEditorToggleButtonLabelStyle: (isActive: boolean) => object;
   getEditorToggleButtonStyle: (isActive: boolean) => object;
+  getEditorCardId: (kind: string, id: string) => string;
+  isEditorCardExpanded: (cardId: string) => boolean;
   onAddDraftSpell: () => void;
   onRemoveDraftSpell: (index: number) => void;
   onSetImageLibraryTarget: (target: ImageLibraryTarget) => void;
+  onToggleEditorCard: (cardId: string) => void;
   onUpdateDraftSpell: (index: number, patch: Partial<Spell>) => void;
   theme: CharacterThemePreset;
 };
@@ -45,9 +62,12 @@ export function DonEditorSection({
   getEditorRemoveButtonStyle,
   getEditorToggleButtonLabelStyle,
   getEditorToggleButtonStyle,
+  getEditorCardId,
+  isEditorCardExpanded,
   onAddDraftSpell,
   onRemoveDraftSpell,
   onSetImageLibraryTarget,
+  onToggleEditorCard,
   onUpdateDraftSpell,
   theme,
 }: DonEditorSectionProps) {
@@ -60,14 +80,31 @@ export function DonEditorSection({
         </Pressable>
       </View>
       <View style={styles.editorList}>
-        {draftCharacter.spells.map((spell, index) => (
-          <View key={spell.id} style={editorCardStyle}>
-            <View style={styles.editorCardHeader}>
-              <Text style={editorCardTitleStyle}>Don</Text>
-              <Pressable onPress={() => onRemoveDraftSpell(index)} style={getEditorRemoveButtonStyle()}>
-                <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
-              </Pressable>
-            </View>
+        {draftCharacter.spells.map((spell, index) => {
+          const cardId = getEditorCardId("spell", spell.id);
+          const expanded = isEditorCardExpanded(cardId);
+          const tags = formatEditorTags(spell.tags);
+
+          return (
+          <EditorCollapsibleCard
+            key={spell.id}
+            title={compactText(spell.name, "Don sans nom")}
+            subtitle={[
+              `${spell.basePsyCost} PSY`,
+              spell.armorBonus ? `Armure +${spell.armorBonus}` : null,
+              spell.damageBonus ? `Degats +${spell.damageBonus}` : null,
+              tags,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+            expanded={expanded}
+            cardStyle={editorCardStyle}
+            titleStyle={editorCardTitleStyle}
+            removeButtonStyle={getEditorRemoveButtonStyle()}
+            removeButtonLabelStyle={getEditorRemoveButtonLabelStyle()}
+            onRemove={() => onRemoveDraftSpell(index)}
+            onToggle={() => onToggleEditorCard(cardId)}
+          >
             <View style={styles.editorGrid}>
               <EditorField
                 label="Nom"
@@ -167,8 +204,9 @@ export function DonEditorSection({
               Si un don est augmentable, l'action rapide permettra d'injecter du PSY
               supplementaire selon la reserve restante du personnage.
             </Text>
-          </View>
-        ))}
+          </EditorCollapsibleCard>
+          );
+        })}
       </View>
     </View>
   );

@@ -14,7 +14,6 @@ import {
   useWindowDimensions,
 } from "react-native";
 
-import { Section } from "../../components/Section";
 import { AssetVisual } from "../../components/character-sheet/AssetVisual";
 import { CharacterSheetBackdrop } from "../../components/character-sheet/CharacterSheetBackdrop";
 import {
@@ -67,6 +66,7 @@ import {
   LocalImageOption,
 } from "../../data/image-library";
 import { AppNavbar } from "../navbar";
+import { EditorCollapsibleCard } from "./EditorCollapsibleCard";
 import {
   ARCHETYPE_OPTIONS,
   RESISTANCE_LABELS,
@@ -101,6 +101,96 @@ function getRosterMessageDisplayDuration(message: string) {
     : ROSTER_MESSAGE_DISPLAY_MS;
 }
 
+function getEditorSectionTitle(section: EditorSection) {
+  switch (section) {
+    case "identity":
+      return "Identite du personnage";
+    case "resources":
+      return "Ressources et combat";
+    case "stats":
+      return "Stats";
+    case "effects":
+      return "Buffs et debuffs";
+    case "resistances":
+      return "Affinites";
+    case "skills":
+      return "Competences";
+    case "spells":
+      return "Dons";
+    case "equipment":
+      return "Equipements";
+    case "inventory":
+      return "Inventaire";
+    default:
+      return "Edition complete";
+  }
+}
+
+function getEditorSectionSubtitle(section: EditorSection) {
+  switch (section) {
+    case "all":
+      return "Modifie les informations du personnage, puis sauvegarde une fois les changements termines.";
+    case "effects":
+      return "Ajoute, active ou retire les effets qui changent les stats pendant la partie.";
+    case "resources":
+      return "Ajuste PV, PSY, armure, bouclier et attaque bonus.";
+    case "identity":
+      return "Nom, archetype, rang, theme, bio et portrait.";
+    default:
+      return "Edition ciblee de la section ouverte sur la fiche.";
+  }
+}
+
+function compactText(value: string | undefined, fallback: string) {
+  const normalized = value?.replace(/\s+/g, " ").trim();
+  return normalized || fallback;
+}
+
+function formatEditorTags(tags: string[] = []) {
+  if (!tags.length) {
+    return "";
+  }
+
+  return tags.slice(0, 3).join(", ") + (tags.length > 3 ? "..." : "");
+}
+
+function formatSignedEditorValue(value: number | undefined) {
+  const safeValue = value ?? 0;
+  return safeValue > 0 ? `+${safeValue}` : String(safeValue);
+}
+
+function getStatusEffectKindLabel(effect: StatusEffect) {
+  if (effect.category === "buff") {
+    return "Buff";
+  }
+
+  if (effect.category === "debuff") {
+    return "Debuff";
+  }
+
+  return "Effet";
+}
+
+function getStatusEffectSummary(effect: StatusEffect) {
+  const bonuses = [
+    effect.bonuses?.attackBonus ? `Atk ${formatSignedEditorValue(effect.bonuses.attackBonus)}` : null,
+    effect.bonuses?.armorBonus ? `Arm ${formatSignedEditorValue(effect.bonuses.armorBonus)}` : null,
+    effect.bonuses?.pvBonus ? `PV ${formatSignedEditorValue(effect.bonuses.pvBonus)}` : null,
+    effect.bonuses?.shieldBonus
+      ? `Bouclier ${formatSignedEditorValue(effect.bonuses.shieldBonus)}`
+      : null,
+  ].filter(Boolean);
+
+  return [
+    effect.active ? "Actif" : "Inactif",
+    effect.durationTurns === null ? "Duree libre" : `${effect.durationTurns} tour(s)`,
+    effect.source ? `Source: ${effect.source}` : null,
+    bonuses.length ? bonuses.join(" · ") : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export type CharacterSheetScreenProps = {
   characters: Character[];
   setCharacters: Dispatch<SetStateAction<Character[]>>;
@@ -129,6 +219,9 @@ export function CharacterSheetScreen({
   const [recoveryDraft, setRecoveryDraft] = useState<RecoveryDraft | null>(null);
   const [quickCastDraft, setQuickCastDraft] = useState<QuickCastDraft | null>(null);
   const [draftCharacter, setDraftCharacter] = useState<Character | null>(null);
+  const [expandedEditorCardIds, setExpandedEditorCardIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [editorSection, setEditorSection] = useState<EditorSection>("all");
   const [rosterMessage, setRosterMessage] = useState<string | null>(null);
   const [deleteCharacterConfirm, setDeleteCharacterConfirm] = useState(false);
@@ -321,6 +414,36 @@ export function CharacterSheetScreen({
       styles.editorToggleButtonLabel,
       { color: isActive ? activeTheme.buttonText : activeTheme.title },
     ];
+  }
+
+  function getEditorCardId(kind: string, id: string) {
+    return `${kind}:${id}`;
+  }
+
+  function isEditorCardExpanded(cardId: string) {
+    return expandedEditorCardIds.has(cardId);
+  }
+
+  function toggleEditorCard(cardId: string) {
+    setExpandedEditorCardIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(cardId)) {
+        next.delete(cardId);
+      } else {
+        next.add(cardId);
+      }
+
+      return next;
+    });
+  }
+
+  function expandEditorCard(cardId: string) {
+    setExpandedEditorCardIds((current) => {
+      const next = new Set(current);
+      next.add(cardId);
+      return next;
+    });
   }
 
   function updateCharacter(
@@ -768,6 +891,7 @@ export function CharacterSheetScreen({
     }
 
     setEditorSection("all");
+    setExpandedEditorCardIds(new Set());
     setDraftCharacter(cloneTemplate(selectedCharacter!));
     setDeleteCharacterConfirm(false);
     setQuickCastDraft(null);
@@ -780,6 +904,7 @@ export function CharacterSheetScreen({
     }
 
     setEditorSection(section);
+    setExpandedEditorCardIds(new Set());
     setDraftCharacter(cloneTemplate(selectedCharacter!));
     setDeleteCharacterConfirm(false);
     setQuickCastDraft(null);
@@ -794,6 +919,7 @@ export function CharacterSheetScreen({
     suppressEditorReopen();
     setActiveOverlayMenu(null);
     setEditorSection("all");
+    setExpandedEditorCardIds(new Set());
     setDraftCharacter(null);
     setDeleteCharacterConfirm(false);
     setImageLibraryTarget(null);
@@ -818,6 +944,7 @@ export function CharacterSheetScreen({
     );
     setActiveOverlayMenu(null);
     setEditorSection("all");
+    setExpandedEditorCardIds(new Set());
     setDraftCharacter(null);
     setDeleteCharacterConfirm(false);
     setImageLibraryTarget(null);
@@ -848,6 +975,7 @@ export function CharacterSheetScreen({
     setImageLibraryQuery("");
     setActiveOverlayMenu(null);
     setEditorSection("all");
+    setExpandedEditorCardIds(new Set());
     setQuickCastDraft(null);
     setRosterMessage(`${draftCharacter.name} a ete supprime.`);
   }
@@ -1016,17 +1144,20 @@ export function CharacterSheetScreen({
   }
 
   function addDraftSkill() {
+    const id = makeId("skill");
+
     setDraftCharacter((current) =>
       current
         ? {
             ...current,
             skills: [
               ...current.skills,
-              { id: makeId("skill"), name: "Nouvelle competence", value: 0 },
+              { id, name: "Nouvelle competence", value: 0 },
             ],
           }
         : current,
     );
+    expandEditorCard(getEditorCardId("skill", id));
   }
 
   function removeDraftSkill(index: number) {
@@ -1087,13 +1218,15 @@ export function CharacterSheetScreen({
   }
 
   function addDraftSpell() {
+    const id = makeId("spell");
+
     setDraftCharacter((current) =>
       current
         ? {
             ...current,
             spells: [
               {
-                id: makeId("spell"),
+                id,
                 name: "Nouveau don",
                 icon: "✦",
                 basePsyCost: 0,
@@ -1111,6 +1244,7 @@ export function CharacterSheetScreen({
           }
         : current,
     );
+    expandEditorCard(getEditorCardId("spell", id));
   }
 
   function removeDraftSpell(index: number) {
@@ -1167,6 +1301,8 @@ export function CharacterSheetScreen({
   }
 
   function addDraftStatusEffect() {
+    const id = makeId("status");
+
     setDraftCharacter((current) =>
       current
         ? {
@@ -1174,7 +1310,7 @@ export function CharacterSheetScreen({
             statusEffects: [
               ...current.statusEffects,
               {
-                id: makeId("status"),
+                id,
                 name: "Nouveau buff",
                 description: "",
                 category: "buff",
@@ -1193,6 +1329,7 @@ export function CharacterSheetScreen({
           }
         : current,
     );
+    expandEditorCard(getEditorCardId("effect", id));
   }
 
   function removeDraftStatusEffect(index: number) {
@@ -1220,6 +1357,8 @@ export function CharacterSheetScreen({
   }
 
   function addDraftResistance() {
+    const id = makeId("resistance");
+
     setDraftCharacter((current) =>
       current
         ? {
@@ -1227,7 +1366,7 @@ export function CharacterSheetScreen({
             resistances: [
               ...current.resistances,
               {
-                id: makeId("resistance"),
+                id,
                 label: "Nouvelle affinite",
                 type: "resistance",
                 notes: "",
@@ -1236,6 +1375,7 @@ export function CharacterSheetScreen({
           }
         : current,
     );
+    expandEditorCard(getEditorCardId("resistance", id));
   }
 
   function removeDraftResistance(index: number) {
@@ -1263,13 +1403,15 @@ export function CharacterSheetScreen({
   }
 
   function addDraftInventoryItem() {
+    const id = makeId("item");
+
     setDraftCharacter((current) =>
       current
         ? {
             ...current,
             inventory: [
               {
-                id: makeId("item"),
+                id,
                 name: "Nouvel item",
                 icon: "📦",
                 quantity: 1,
@@ -1281,6 +1423,7 @@ export function CharacterSheetScreen({
           }
         : current,
     );
+    expandEditorCard(getEditorCardId("inventory", id));
   }
 
   function removeDraftInventoryItem(index: number) {
@@ -1370,13 +1513,15 @@ export function CharacterSheetScreen({
   }
 
   function addDraftEquipment() {
+    const id = makeId("equipment");
+
     setDraftCharacter((current) =>
       current
         ? {
             ...current,
             equipment: [
               {
-                id: makeId("equipment"),
+                id,
                 name: "Nouvel equipement",
                 category: "Objet",
                 icon: "🧰",
@@ -1392,6 +1537,7 @@ export function CharacterSheetScreen({
           }
         : current,
     );
+    expandEditorCard(getEditorCardId("equipment", id));
   }
 
   function removeDraftEquipment(index: number) {
@@ -1542,6 +1688,40 @@ export function CharacterSheetScreen({
               onPress={closeEditor}
             />
             <View style={styles.editorModalWrap}>
+              <View
+                style={[
+                  styles.editorModalHeader,
+                  { backgroundColor: activeTheme.panelBg, borderBottomColor: activeTheme.border },
+                ]}
+              >
+                <View style={styles.editorModalHeaderText}>
+                  <Text style={[styles.editorModalEyebrow, { color: activeTheme.accent }]}>
+                    {draftCharacter.name}
+                  </Text>
+                  <Text style={[styles.editorModalTitle, { color: activeTheme.title }]}>
+                    {getEditorSectionTitle(editorSection)}
+                  </Text>
+                  <Text style={[styles.editorModalSubtitle, { color: activeTheme.subtitle }]}>
+                    {getEditorSectionSubtitle(editorSection)}
+                  </Text>
+                </View>
+                <View style={styles.editorActions}>
+                  <Pressable
+                    onPressIn={suppressEditorReopen}
+                    onPress={closeEditor}
+                    style={editorGhostButtonStyle}
+                  >
+                    <Text style={editorGhostButtonLabelStyle}>Annuler</Text>
+                  </Pressable>
+                  <Pressable
+                    onPressIn={suppressEditorReopen}
+                    onPress={saveEditor}
+                    style={editorPrimaryButtonStyle}
+                  >
+                    <Text style={editorPrimaryButtonLabelStyle}>Sauvegarder</Text>
+                  </Pressable>
+                </View>
+              </View>
               <ScrollView
                 style={styles.editorModalScroll}
                 contentContainerStyle={styles.editorModalContent}
@@ -1557,35 +1737,7 @@ export function CharacterSheetScreen({
             placeholder: activeTheme.subtitle,
           }}
         >
-        <Section
-          title="Edition ciblee"
-          subtitle="Modifie uniquement la card ouverte puis sauvegarde."
-          theme={{
-            sectionBg: activeTheme.panelBg,
-            sectionBorder: activeTheme.border,
-            title: activeTheme.title,
-            subtitle: activeTheme.subtitle,
-            cardBackgroundImage: sectionTheme.cardBackgroundImage,
-          }}
-          rightSlot={
-            <View style={styles.editorActions}>
-              <Pressable
-                onPressIn={suppressEditorReopen}
-                onPress={closeEditor}
-                style={editorGhostButtonStyle}
-              >
-                <Text style={editorGhostButtonLabelStyle}>Annuler</Text>
-              </Pressable>
-              <Pressable
-                onPressIn={suppressEditorReopen}
-                onPress={saveEditor}
-                style={editorPrimaryButtonStyle}
-              >
-                <Text style={editorPrimaryButtonLabelStyle}>Sauvegarder</Text>
-              </Pressable>
-            </View>
-          }
-        >
+        <View style={styles.editorFormSurface}>
           {editingAll || editorSection === "identity" ? (
           <>
           <View style={styles.editorGrid}>
@@ -1888,23 +2040,23 @@ export function CharacterSheetScreen({
               </Pressable>
             </View>
             <View style={styles.editorList}>
-              {draftCharacter.statusEffects.map((effect, index) => (
-                <View key={effect.id} style={editorCardStyle}>
-                  <View style={styles.editorCardHeader}>
-                    <Text style={editorCardTitleStyle}>
-                      {effect.category === "debuff"
-                        ? "Debuff"
-                        : effect.category === "buff"
-                          ? "Buff"
-                          : "Effet"}
-                    </Text>
-                    <Pressable
-                      onPress={() => removeDraftStatusEffect(index)}
-                      style={getEditorRemoveButtonStyle()}
-                    >
-                      <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
-                    </Pressable>
-                  </View>
+              {draftCharacter.statusEffects.map((effect, index) => {
+                const cardId = getEditorCardId("effect", effect.id);
+                const expanded = isEditorCardExpanded(cardId);
+
+                return (
+                <EditorCollapsibleCard
+                  key={effect.id}
+                  title={`${getStatusEffectKindLabel(effect)} · ${compactText(effect.name, "Sans nom")}`}
+                  subtitle={getStatusEffectSummary(effect)}
+                  expanded={expanded}
+                  cardStyle={editorCardStyle}
+                  titleStyle={editorCardTitleStyle}
+                  removeButtonStyle={getEditorRemoveButtonStyle()}
+                  removeButtonLabelStyle={getEditorRemoveButtonLabelStyle()}
+                  onRemove={() => removeDraftStatusEffect(index)}
+                  onToggle={() => toggleEditorCard(cardId)}
+                >
                   <View style={styles.editorGrid}>
                     <EditorField
                       label="Nom"
@@ -2033,8 +2185,9 @@ export function CharacterSheetScreen({
                     placeholder="Description de l'effet"
                     placeholderTextColor={activeTheme.subtitle}
                   />
-                </View>
-              ))}
+                </EditorCollapsibleCard>
+                );
+              })}
             </View>
           </View>
           ) : null}
@@ -2048,17 +2201,28 @@ export function CharacterSheetScreen({
               </Pressable>
             </View>
             <View style={styles.editorList}>
-              {draftCharacter.resistances.map((entry, index) => (
-                <View key={entry.id} style={editorCardStyle}>
-                  <View style={styles.editorCardHeader}>
-                    <Text style={editorCardTitleStyle}>Affinite</Text>
-                    <Pressable
-                      onPress={() => removeDraftResistance(index)}
-                      style={getEditorRemoveButtonStyle()}
-                    >
-                      <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
-                    </Pressable>
-                  </View>
+              {draftCharacter.resistances.map((entry, index) => {
+                const cardId = getEditorCardId("resistance", entry.id);
+                const expanded = isEditorCardExpanded(cardId);
+
+                return (
+                <EditorCollapsibleCard
+                  key={entry.id}
+                  title={compactText(entry.label, "Affinite sans nom")}
+                  subtitle={[
+                    RESISTANCE_LABELS[entry.type],
+                    compactText(entry.notes, ""),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  expanded={expanded}
+                  cardStyle={editorCardStyle}
+                  titleStyle={editorCardTitleStyle}
+                  removeButtonStyle={getEditorRemoveButtonStyle()}
+                  removeButtonLabelStyle={getEditorRemoveButtonLabelStyle()}
+                  onRemove={() => removeDraftResistance(index)}
+                  onToggle={() => toggleEditorCard(cardId)}
+                >
                   <View style={styles.editorGrid}>
                     <EditorField
                       label="Libelle"
@@ -2118,8 +2282,9 @@ export function CharacterSheetScreen({
                     placeholder="Notes sur l'affinite"
                     placeholderTextColor={activeTheme.subtitle}
                   />
-                </View>
-              ))}
+                </EditorCollapsibleCard>
+                );
+              })}
             </View>
           </View>
           ) : null}
@@ -2133,17 +2298,23 @@ export function CharacterSheetScreen({
               </Pressable>
             </View>
             <View style={styles.editorList}>
-              {draftCharacter.skills.map((skill, index) => (
-                <View key={skill.id} style={editorCardStyle}>
-                  <View style={styles.editorCardHeader}>
-                    <Text style={editorCardTitleStyle}>Competence</Text>
-                    <Pressable
-                      onPress={() => removeDraftSkill(index)}
-                      style={getEditorRemoveButtonStyle()}
-                    >
-                      <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
-                    </Pressable>
-                  </View>
+              {draftCharacter.skills.map((skill, index) => {
+                const cardId = getEditorCardId("skill", skill.id);
+                const expanded = isEditorCardExpanded(cardId);
+
+                return (
+                <EditorCollapsibleCard
+                  key={skill.id}
+                  title={compactText(skill.name, "Competence sans nom")}
+                  subtitle={`Bonus +${skill.value}%`}
+                  expanded={expanded}
+                  cardStyle={editorCardStyle}
+                  titleStyle={editorCardTitleStyle}
+                  removeButtonStyle={getEditorRemoveButtonStyle()}
+                  removeButtonLabelStyle={getEditorRemoveButtonLabelStyle()}
+                  onRemove={() => removeDraftSkill(index)}
+                  onToggle={() => toggleEditorCard(cardId)}
+                >
                   <View style={styles.editorGrid}>
                     <EditorField
                       label="Nom"
@@ -2161,8 +2332,9 @@ export function CharacterSheetScreen({
                       }
                     />
                   </View>
-                </View>
-              ))}
+                </EditorCollapsibleCard>
+                );
+              })}
             </View>
           </View>
           ) : null}
@@ -2182,9 +2354,12 @@ export function CharacterSheetScreen({
               getEditorRemoveButtonStyle={getEditorRemoveButtonStyle}
               getEditorToggleButtonLabelStyle={getEditorToggleButtonLabelStyle}
               getEditorToggleButtonStyle={getEditorToggleButtonStyle}
+              getEditorCardId={getEditorCardId}
+              isEditorCardExpanded={isEditorCardExpanded}
               onAddDraftSpell={addDraftSpell}
               onRemoveDraftSpell={removeDraftSpell}
               onSetImageLibraryTarget={setImageLibraryTarget}
+              onToggleEditorCard={toggleEditorCard}
               onUpdateDraftSpell={updateDraftSpell}
               theme={activeTheme}
             />
@@ -2199,17 +2374,31 @@ export function CharacterSheetScreen({
               </Pressable>
             </View>
             <View style={styles.editorList}>
-              {draftCharacter.equipment.map((item, index) => (
-                <View key={item.id} style={editorCardStyle}>
-                  <View style={styles.editorCardHeader}>
-                    <Text style={editorCardTitleStyle}>Equipement</Text>
-                    <Pressable
-                      onPress={() => removeDraftEquipment(index)}
-                      style={getEditorRemoveButtonStyle()}
-                    >
-                      <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
-                    </Pressable>
-                  </View>
+              {draftCharacter.equipment.map((item, index) => {
+                const cardId = getEditorCardId("equipment", item.id);
+                const expanded = isEditorCardExpanded(cardId);
+                const tags = formatEditorTags(item.tags);
+
+                return (
+                <EditorCollapsibleCard
+                  key={item.id}
+                  title={compactText(item.name, "Equipement sans nom")}
+                  subtitle={[
+                    compactText(item.category, "Objet"),
+                    item.armorBonus ? `Armure +${item.armorBonus}` : null,
+                    item.grantedSpell ? `Don: ${item.grantedSpell.name}` : null,
+                    tags,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  expanded={expanded}
+                  cardStyle={editorCardStyle}
+                  titleStyle={editorCardTitleStyle}
+                  removeButtonStyle={getEditorRemoveButtonStyle()}
+                  removeButtonLabelStyle={getEditorRemoveButtonLabelStyle()}
+                  onRemove={() => removeDraftEquipment(index)}
+                  onToggle={() => toggleEditorCard(cardId)}
+                >
                   <View style={styles.editorGrid}>
                     <EditorField
                       label="Nom"
@@ -2430,8 +2619,9 @@ export function CharacterSheetScreen({
                     placeholder="Notes de l'equipement"
                     placeholderTextColor={activeTheme.subtitle}
                   />
-                </View>
-              ))}
+                </EditorCollapsibleCard>
+                );
+              })}
             </View>
           </View>
           ) : null}
@@ -2445,17 +2635,24 @@ export function CharacterSheetScreen({
               </Pressable>
             </View>
             <View style={styles.editorList}>
-              {draftCharacter.inventory.map((item, index) => (
-                <View key={item.id} style={editorCardStyle}>
-                  <View style={styles.editorCardHeader}>
-                    <Text style={editorCardTitleStyle}>Item</Text>
-                    <Pressable
-                      onPress={() => removeDraftInventoryItem(index)}
-                      style={getEditorRemoveButtonStyle()}
-                    >
-                      <Text style={getEditorRemoveButtonLabelStyle()}>Supprimer</Text>
-                    </Pressable>
-                  </View>
+              {draftCharacter.inventory.map((item, index) => {
+                const cardId = getEditorCardId("inventory", item.id);
+                const expanded = isEditorCardExpanded(cardId);
+                const tags = formatEditorTags(item.tags);
+
+                return (
+                <EditorCollapsibleCard
+                  key={item.id}
+                  title={compactText(item.name, "Item sans nom")}
+                  subtitle={[`Quantite ${item.quantity}`, tags].filter(Boolean).join(" · ")}
+                  expanded={expanded}
+                  cardStyle={editorCardStyle}
+                  titleStyle={editorCardTitleStyle}
+                  removeButtonStyle={getEditorRemoveButtonStyle()}
+                  removeButtonLabelStyle={getEditorRemoveButtonLabelStyle()}
+                  onRemove={() => removeDraftInventoryItem(index)}
+                  onToggle={() => toggleEditorCard(cardId)}
+                >
                   <View style={styles.editorGrid}>
                     <EditorField
                       label="Nom"
@@ -2515,12 +2712,13 @@ export function CharacterSheetScreen({
                     placeholder="Commentaire d'inventaire"
                     placeholderTextColor={activeTheme.subtitle}
                   />
-                </View>
-              ))}
+                </EditorCollapsibleCard>
+                );
+              })}
             </View>
           </View>
           ) : null}
-        </Section>
+        </View>
         </EditorFieldThemeProvider>
               </ScrollView>
             </View>
@@ -3120,7 +3318,6 @@ export function CharacterSheetScreen({
     </ScrollView>
     {rosterMessage ? (
       <View
-        pointerEvents="none"
         style={[
           styles.toast,
           { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },

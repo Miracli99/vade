@@ -329,7 +329,7 @@ export function HomeScreen({
       </Modal>
     </ScrollView>
     {message ? (
-      <View pointerEvents="none" style={styles.toast}>
+      <View style={styles.toast}>
         <Text style={styles.toastText}>{message}</Text>
       </View>
     ) : null}
@@ -795,6 +795,7 @@ const styles = StyleSheet.create({
     color: modernColors.emerald,
   },
   toast: {
+    pointerEvents: "none",
     position: "absolute",
     top: 14,
     left: 16,

@@ -144,23 +144,25 @@ function formatTagInput(tags: string[]) {
 const styles = StyleSheet.create({
   editorField: {
     flexGrow: 1,
-    flexBasis: 180,
-    gap: 6,
+    flexBasis: 210,
+    gap: 7,
   },
   editorFieldLabel: {
     color: "#9caec8",
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: "900",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 0.9,
   },
   editorInput: {
-    minHeight: 44,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
+    minHeight: 48,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    borderRadius: 10,
     backgroundColor: "#0d1426",
     borderWidth: 1,
     borderColor: "rgba(148, 163, 184, 0.14)",
     color: "#f8fafc",
+    fontSize: 15,
   },
 });
