@@ -38,6 +38,25 @@ export function getSpellCost(spell: Spell, stance: CombatStance) {
   return getReducibleCost(spell.basePsyCost, spell.reducible, stance);
 }
 
+export function isConfiguredSpell(spell: Spell | null | undefined): spell is Spell {
+  if (!spell?.id || !spell.name?.trim()) {
+    return false;
+  }
+
+  return Boolean(
+    spell.basePsyCost > 0 ||
+      (spell.armorBonus ?? 0) > 0 ||
+      (spell.damageBonus ?? 0) > 0 ||
+      spell.description?.trim() ||
+      spell.tags?.length ||
+      spell.activeEffects?.length ||
+      spell.passiveEffects?.length ||
+      spell.icon ||
+      spell.imageUrl ||
+      spell.imageModule,
+  );
+}
+
 export function getScaledSpellCost(
   spell: Spell,
   stance: CombatStance,
@@ -51,6 +70,22 @@ export function getEquipmentArmorBonus(equipment: Character["equipment"] = []) {
     (total, item) => total + Math.max(0, item.armorBonus ?? 0),
     0,
   );
+}
+
+export function getEquipmentGrantedSpells(item: Character["equipment"][number]) {
+  const spells = [...(item.grantedSpells ?? [])];
+  const legacyGrantedSpell = (item as Character["equipment"][number] & {
+    grantedSpell?: Spell;
+  }).grantedSpell;
+
+  if (
+    legacyGrantedSpell &&
+    !spells.some((spell) => spell.id === legacyGrantedSpell.id)
+  ) {
+    spells.push(legacyGrantedSpell);
+  }
+
+  return spells.filter(isConfiguredSpell);
 }
 
 export function getActiveSpellArmorBonus(character: Character) {
@@ -108,9 +143,7 @@ export function getEffectiveAttackBonus(character: Character) {
 
 function getActiveSpells(character: Character) {
   const activeSpellIds = new Set(character.activeSpellIds ?? []);
-  const equipmentSpells = (character.equipment ?? [])
-    .map((item) => item.grantedSpell)
-    .filter((spell): spell is Spell => Boolean(spell));
+  const equipmentSpells = (character.equipment ?? []).flatMap(getEquipmentGrantedSpells);
   return [...(character.spells ?? []), ...equipmentSpells].filter((spell) =>
     activeSpellIds.has(spell.id),
   );

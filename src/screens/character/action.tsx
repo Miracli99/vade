@@ -4,7 +4,11 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { AssetVisual } from "../../components/character-sheet/AssetVisual";
 export { AdjustButton, AttackBonusCard, ResourceMeter } from "../../components/character-sheet/ResourceCards";
 import { Character, EquipmentItem, Spell } from "../../types/game";
-import { getReducibleCost, getScaledSpellCost, getSpellCost } from "../../utils/game";
+import {
+  getEquipmentGrantedSpells,
+  getScaledSpellCost,
+  getSpellCost,
+} from "../../utils/game";
 import { CharacterThemePreset } from "./presets";
 import { styles as sheetStyles } from "./styles";
 import { DamageDraft, QuickCastDraft, RecoveryDraft } from "./types";
@@ -144,7 +148,6 @@ type CharacterActionModalsProps = {
   recoveryDraft: RecoveryDraft | null;
   quickCastDraft: QuickCastDraft | null;
   quickCastVisible: boolean;
-  selectedQuickCastEquipment: EquipmentItem | null;
   selectedQuickCastEquipmentSpell: Spell | null;
   selectedQuickCastEquipmentSpellSource: EquipmentItem | null;
   selectedQuickCastSpell: Spell | null;
@@ -156,7 +159,6 @@ type CharacterActionModalsProps = {
   onCloseQuickCast: () => void;
   onCloseRecovery: () => void;
   onConfirmQuickCast: () => void;
-  onSelectQuickCastEquipment: (equipmentId: string) => void;
   onSelectQuickCastEquipmentSpell: (equipmentId: string, spellId: string) => void;
   onSelectQuickCastSpell: (spellId: string) => void;
   setDamageDraft: Dispatch<SetStateAction<DamageDraft | null>>;
@@ -170,7 +172,6 @@ export function CharacterActionModals({
   recoveryDraft,
   quickCastDraft,
   quickCastVisible,
-  selectedQuickCastEquipment,
   selectedQuickCastEquipmentSpell,
   selectedQuickCastEquipmentSpellSource,
   selectedQuickCastSpell,
@@ -182,7 +183,6 @@ export function CharacterActionModals({
   onCloseQuickCast,
   onCloseRecovery,
   onConfirmQuickCast,
-  onSelectQuickCastEquipment,
   onSelectQuickCastEquipmentSpell,
   onSelectQuickCastSpell,
   setDamageDraft,
@@ -247,7 +247,6 @@ export function CharacterActionModals({
               <QuickCastModalContent
                 character={character}
                 quickCastDraft={quickCastDraft}
-                selectedEquipment={selectedQuickCastEquipment}
                 selectedEquipmentSpell={selectedQuickCastEquipmentSpell}
                 selectedEquipmentSpellSource={selectedQuickCastEquipmentSpellSource}
                 selectedSpell={selectedQuickCastSpell}
@@ -255,7 +254,6 @@ export function CharacterActionModals({
                 onAdjustExtra={onAdjustQuickCastExtra}
                 onClose={onCloseQuickCast}
                 onConfirm={onConfirmQuickCast}
-                onSelectEquipment={onSelectQuickCastEquipment}
                 onSelectEquipmentSpell={onSelectQuickCastEquipmentSpell}
                 onSelectSpell={onSelectQuickCastSpell}
                 setQuickCastDraft={setQuickCastDraft}
@@ -419,7 +417,6 @@ function RecoveryModalContent({
 function QuickCastModalContent({
   character,
   quickCastDraft,
-  selectedEquipment,
   selectedEquipmentSpell,
   selectedEquipmentSpellSource,
   selectedSpell,
@@ -427,14 +424,12 @@ function QuickCastModalContent({
   onAdjustExtra,
   onClose,
   onConfirm,
-  onSelectEquipment,
   onSelectEquipmentSpell,
   onSelectSpell,
   setQuickCastDraft,
 }: {
   character: Character;
   quickCastDraft: QuickCastDraft | null;
-  selectedEquipment: EquipmentItem | null;
   selectedEquipmentSpell: Spell | null;
   selectedEquipmentSpellSource: EquipmentItem | null;
   selectedSpell: Spell | null;
@@ -442,7 +437,6 @@ function QuickCastModalContent({
   onAdjustExtra: (delta: number) => void;
   onClose: () => void;
   onConfirm: () => void;
-  onSelectEquipment: (equipmentId: string) => void;
   onSelectEquipmentSpell: (equipmentId: string, spellId: string) => void;
   onSelectSpell: (spellId: string) => void;
   setQuickCastDraft: Dispatch<SetStateAction<QuickCastDraft | null>>;
@@ -450,8 +444,8 @@ function QuickCastModalContent({
   return (
     <>
       <ActionOverlayHeader
-        title="Lancer un sort"
-        subtitle="Dons et equipements utilisables qui consomment du PSY."
+        title="Dons PSY"
+        subtitle="Dons du personnage et dons ajoutes aux equipements."
         theme={theme}
         onClose={onClose}
       />
@@ -467,23 +461,8 @@ function QuickCastModalContent({
           />
         ))}
         {character.equipment
-          .filter((item) => (item.usePsyCost ?? 0) > 0)
-          .map((item) => (
-            <QuickCastEquipmentOption
-              key={item.id}
-              active={quickCastDraft?.kind === "equipment" && quickCastDraft.id === item.id}
-              item={item}
-              stance={character.stance}
-              theme={theme}
-              onPress={() => onSelectEquipment(item.id)}
-            />
-          ))}
-        {character.equipment
-          .filter((item) => item.grantedSpell)
-          .map((item) => {
-            const spell = item.grantedSpell!;
-
-            return (
+          .flatMap((item) => {
+            return getEquipmentGrantedSpells(item).map((spell) => (
               <QuickCastSpellOption
                 key={`${item.id}-${spell.id}`}
                 active={
@@ -497,7 +476,7 @@ function QuickCastModalContent({
                 theme={theme}
                 onPress={() => onSelectEquipmentSpell(item.id, spell.id)}
               />
-            );
+            ));
           })}
       </View>
       {selectedSpell ? (
@@ -523,15 +502,6 @@ function QuickCastModalContent({
           onAdjustExtra={onAdjustExtra}
           onConfirm={onConfirm}
           onBack={() => setQuickCastDraft(null)}
-        />
-      ) : null}
-      {selectedEquipment ? (
-        <QuickCastEquipmentDetail
-          character={character}
-          equipment={selectedEquipment}
-          theme={theme}
-          onBack={() => setQuickCastDraft(null)}
-          onConfirm={onConfirm}
         />
       ) : null}
     </>
@@ -591,45 +561,6 @@ function QuickCastSpellOption({
           ) : null}
         </View>
       </View>
-    </Pressable>
-  );
-}
-
-function QuickCastEquipmentOption({
-  active,
-  item,
-  stance,
-  theme,
-  onPress,
-}: {
-  active: boolean;
-  item: EquipmentItem;
-  stance: Character["stance"];
-  theme: CharacterThemePreset;
-  onPress: () => void;
-}) {
-  const cost = getReducibleCost(item.usePsyCost ?? 0, item.reducible ?? false, stance);
-  const reduced = (item.reducible ?? false) && cost < (item.usePsyCost ?? 0);
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        sheetStyles.overlayOptionCard,
-        { backgroundColor: theme.chipBg, borderColor: active ? theme.accent : theme.border },
-      ]}
-    >
-      <View style={sheetStyles.quickCastHeader}>
-        <Text style={[sheetStyles.overlayOptionTitle, { color: theme.title }]}>
-          {item.usableLabel ?? item.name}
-        </Text>
-        <Text style={[sheetStyles.quickCastCost, reduced ? sheetStyles.quickCastCostReduced : null]}>
-          {cost} PSY
-        </Text>
-      </View>
-      <Text style={[sheetStyles.overlayOptionDescription, { color: theme.subtitle }]}>
-        Equipement · {item.name}
-      </Text>
     </Pressable>
   );
 }
@@ -711,41 +642,6 @@ function QuickCastSpellDetail({
         </Text>
       )}
       <ActionModalButtons theme={theme} onCancel={onBack} onConfirm={onConfirm} cancelLabel="Retour" confirmLabel="Lancer" />
-    </View>
-  );
-}
-
-function QuickCastEquipmentDetail({
-  character,
-  equipment,
-  theme,
-  onBack,
-  onConfirm,
-}: {
-  character: Character;
-  equipment: EquipmentItem;
-  theme: CharacterThemePreset;
-  onBack: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <View
-      style={[
-        sheetStyles.quickCastDetailCard,
-        { backgroundColor: theme.chipBg, borderColor: theme.border },
-      ]}
-    >
-      <Text style={[sheetStyles.quickCastDetailTitle, { color: theme.title }]}>
-        Utiliser l'equipement · {equipment.usableLabel ?? equipment.name}
-      </Text>
-      <Text style={[sheetStyles.quickCastDetailText, { color: theme.subtitle }]}>
-        Cout total:{" "}
-        {getReducibleCost(equipment.usePsyCost ?? 0, equipment.reducible ?? false, character.stance)} PSY
-      </Text>
-      <Text style={[sheetStyles.quickCastDetailText, { color: theme.subtitle }]}>
-        Equipement source · {equipment.name}
-      </Text>
-      <ActionModalButtons theme={theme} onCancel={onBack} onConfirm={onConfirm} cancelLabel="Retour" confirmLabel="Utiliser" />
     </View>
   );
 }

@@ -58,9 +58,6 @@ export const sampleCharacters: Character[] = [
         icon: "🗡️",
         imageModule: AGNES_WEAPON,
         notes: "Au combat, inflige toujours les degats maximums en posture combat.",
-        usableLabel: "Liberation du sceau",
-        usePsyCost: 2,
-        reducible: true,
         tags: ["ange", "sceau", "corps-a-corps"],
         activeEffects: [
           {
@@ -102,9 +99,6 @@ export const sampleCharacters: Character[] = [
         category: "Catalyseur",
         imageModule: AGNES_TOME,
         notes: "Recueil de versets chantés, annotations et notations de terrain.",
-        usableLabel: "Cantique de garde",
-        usePsyCost: 2,
-        reducible: true,
         tags: ["verset", "rituel", "support"],
         activeEffects: [
           {
@@ -267,9 +261,6 @@ export const sampleCharacters: Character[] = [
         category: "Arme",
         icon: "🏹",
         imageModule: MARCO_WEAPON,
-        usableLabel: "Trait consacre",
-        usePsyCost: 3,
-        reducible: false,
         tags: ["distance", "rituel"],
         activeEffects: [
           {
@@ -304,9 +295,6 @@ export const sampleCharacters: Character[] = [
         category: "Outil rituel",
         imageModule: MARCO_LANTERN,
         notes: "Projette une lueur faible utile pour lire les traces et marquer un cercle.",
-        usableLabel: "Revelation des marques",
-        usePsyCost: 1,
-        reducible: true,
         tags: ["rituel", "survie", "lumiere"],
         activeEffects: [
           {

@@ -1,5 +1,6 @@
 import { Character, CharacterRank, ResourcePool, Spell, StatusEffect } from "../types/game";
 import { normalizeImageModule } from "./assets";
+import { getEquipmentGrantedSpells } from "./game";
 
 const DEFAULT_RESOURCE: ResourcePool = {
   current: 0,
@@ -95,6 +96,51 @@ export function normalizeCharacter(character: Character): Character {
   const spells = character.spells ?? [];
   const inventory = character.inventory ?? [];
   const skills = character.skills ?? [];
+  const normalizedEquipment = equipment.map((item) => {
+    const {
+      grantedSpell: legacyGrantedSpell,
+      reducible: _legacyReducible,
+      usableLabel: _legacyUsableLabel,
+      usePsyCost: _legacyUsePsyCost,
+      ...itemWithoutLegacyAction
+    } = item as Character["equipment"][number] & {
+      grantedSpell?: Spell;
+      reducible?: boolean;
+      usableLabel?: string;
+      usePsyCost?: number;
+    };
+    const grantedSpells = (item.grantedSpells ?? []).map(normalizeSpell);
+    const normalizedLegacyGrantedSpell = legacyGrantedSpell
+      ? normalizeSpell(legacyGrantedSpell)
+      : undefined;
+
+    if (
+      normalizedLegacyGrantedSpell &&
+      !grantedSpells.some((spell) => spell.id === normalizedLegacyGrantedSpell.id)
+    ) {
+      grantedSpells.push(normalizedLegacyGrantedSpell);
+    }
+
+    return {
+      ...itemWithoutLegacyAction,
+      armorBonus:
+        item.armorBonus === undefined
+          ? undefined
+          : Math.max(0, normalizeNumber(item.armorBonus)),
+      imageModule: normalizeImageModule(item.imageModule),
+      grantedSpells,
+      tags: item.tags ?? [],
+      activeEffects: item.activeEffects ?? [],
+      passiveEffects: item.passiveEffects ?? [],
+    };
+  });
+  const normalizedSpells = spells.map(normalizeSpell);
+  const knownSpellIds = new Set([
+    ...normalizedSpells.map((spell) => spell.id),
+    ...normalizedEquipment
+      .flatMap(getEquipmentGrantedSpells)
+      .map((spell) => spell.id),
+  ]);
 
   return {
     ...character,
@@ -121,24 +167,9 @@ export function normalizeCharacter(character: Character): Character {
       ...skill,
       value: Math.max(0, normalizeNumber(skill.value)),
     })),
-    equipment: equipment.map((item) => ({
-      ...item,
-      armorBonus:
-        item.armorBonus === undefined
-          ? undefined
-          : Math.max(0, normalizeNumber(item.armorBonus)),
-      usePsyCost:
-        item.usePsyCost === undefined
-          ? undefined
-          : Math.max(0, normalizeNumber(item.usePsyCost)),
-      imageModule: normalizeImageModule(item.imageModule),
-      grantedSpell: item.grantedSpell ? normalizeSpell(item.grantedSpell) : undefined,
-      tags: item.tags ?? [],
-      activeEffects: item.activeEffects ?? [],
-      passiveEffects: item.passiveEffects ?? [],
-    })),
-    spells: spells.map(normalizeSpell),
-    activeSpellIds: character.activeSpellIds ?? [],
+    equipment: normalizedEquipment,
+    spells: normalizedSpells,
+    activeSpellIds: (character.activeSpellIds ?? []).filter((id) => knownSpellIds.has(id)),
     inventory: inventory.map((item) => ({
       ...item,
       quantity: Math.max(0, normalizeNumber(item.quantity)),

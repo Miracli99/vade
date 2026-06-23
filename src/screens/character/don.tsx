@@ -4,25 +4,13 @@ import { AssetVisual } from "../../components/character-sheet/AssetVisual";
 import { EditorField, TagEditorField } from "../../components/character-sheet/EditorField";
 import { Character, Spell } from "../../types/game";
 import { EditorCollapsibleCard } from "./EditorCollapsibleCard";
+import { compactText, formatEditorTags } from "./editorHelpers";
 import { CharacterThemePreset } from "./presets";
 import { styles } from "./styles";
 import { ImageLibraryTarget } from "./types";
 
 export { SpellsSection as CharacterDon } from "../../components/character-sheet/SpellsSection";
 export { SpellsSection } from "../../components/character-sheet/SpellsSection";
-
-function compactText(value: string | undefined, fallback: string) {
-  const normalized = value?.replace(/\s+/g, " ").trim();
-  return normalized || fallback;
-}
-
-function formatEditorTags(tags: string[] = []) {
-  if (!tags.length) {
-    return "";
-  }
-
-  return tags.slice(0, 3).join(", ") + (tags.length > 3 ? "..." : "");
-}
 
 type DonEditorSectionProps = {
   draftCharacter: Character;

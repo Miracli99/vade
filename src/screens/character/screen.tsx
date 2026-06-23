@@ -2,7 +2,6 @@ import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   Image,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -32,6 +31,11 @@ import { CharacterResume } from "./resume";
 import { CharacterPanels } from "./sheet";
 import { DonEditorSection } from "./don";
 import {
+  ResistancesEditorSection,
+  SkillsEditorSection,
+  StatusEffectsEditorSection,
+} from "./SimpleEditorSections";
+import {
   ArchetypeId,
   Character,
   CharacterRank,
@@ -41,7 +45,6 @@ import {
   ImageModule,
   InventoryItem,
   ResistanceProfile,
-  ResistanceType,
   ResourcePool,
   Skill,
   Spell,
@@ -51,7 +54,7 @@ import {
   clampValue,
   getActiveStatusEffectBonuses,
   getEffectiveArmorResource,
-  getReducibleCost,
+  getEquipmentGrantedSpells,
   getScaledSpellCost,
   getSpellCost,
   stanceDescriptions,
@@ -67,9 +70,13 @@ import {
 } from "../../data/image-library";
 import { AppNavbar } from "../navbar";
 import { EditorCollapsibleCard } from "./EditorCollapsibleCard";
+import { EditorModal } from "./EditorModal";
+import {
+  compactText,
+  formatEditorTags,
+} from "./editorHelpers";
 import {
   ARCHETYPE_OPTIONS,
-  RESISTANCE_LABELS,
   STANCES,
   THEME_DESCRIPTIONS,
   THEME_LABELS,
@@ -99,96 +106,6 @@ function getRosterMessageDisplayDuration(message: string) {
   return /\b(impossible|insuffisante|aucun|failed|erreur|error)\b/i.test(message)
     ? ROSTER_ERROR_MESSAGE_DISPLAY_MS
     : ROSTER_MESSAGE_DISPLAY_MS;
-}
-
-function getEditorSectionTitle(section: EditorSection) {
-  switch (section) {
-    case "identity":
-      return "Identite du personnage";
-    case "resources":
-      return "Ressources et combat";
-    case "stats":
-      return "Stats";
-    case "effects":
-      return "Buffs et debuffs";
-    case "resistances":
-      return "Affinites";
-    case "skills":
-      return "Competences";
-    case "spells":
-      return "Dons";
-    case "equipment":
-      return "Equipements";
-    case "inventory":
-      return "Inventaire";
-    default:
-      return "Edition complete";
-  }
-}
-
-function getEditorSectionSubtitle(section: EditorSection) {
-  switch (section) {
-    case "all":
-      return "Modifie les informations du personnage, puis sauvegarde une fois les changements termines.";
-    case "effects":
-      return "Ajoute, active ou retire les effets qui changent les stats pendant la partie.";
-    case "resources":
-      return "Ajuste PV, PSY, armure, bouclier et attaque bonus.";
-    case "identity":
-      return "Nom, archetype, rang, theme, bio et portrait.";
-    default:
-      return "Edition ciblee de la section ouverte sur la fiche.";
-  }
-}
-
-function compactText(value: string | undefined, fallback: string) {
-  const normalized = value?.replace(/\s+/g, " ").trim();
-  return normalized || fallback;
-}
-
-function formatEditorTags(tags: string[] = []) {
-  if (!tags.length) {
-    return "";
-  }
-
-  return tags.slice(0, 3).join(", ") + (tags.length > 3 ? "..." : "");
-}
-
-function formatSignedEditorValue(value: number | undefined) {
-  const safeValue = value ?? 0;
-  return safeValue > 0 ? `+${safeValue}` : String(safeValue);
-}
-
-function getStatusEffectKindLabel(effect: StatusEffect) {
-  if (effect.category === "buff") {
-    return "Buff";
-  }
-
-  if (effect.category === "debuff") {
-    return "Debuff";
-  }
-
-  return "Effet";
-}
-
-function getStatusEffectSummary(effect: StatusEffect) {
-  const bonuses = [
-    effect.bonuses?.attackBonus ? `Atk ${formatSignedEditorValue(effect.bonuses.attackBonus)}` : null,
-    effect.bonuses?.armorBonus ? `Arm ${formatSignedEditorValue(effect.bonuses.armorBonus)}` : null,
-    effect.bonuses?.pvBonus ? `PV ${formatSignedEditorValue(effect.bonuses.pvBonus)}` : null,
-    effect.bonuses?.shieldBonus
-      ? `Bouclier ${formatSignedEditorValue(effect.bonuses.shieldBonus)}`
-      : null,
-  ].filter(Boolean);
-
-  return [
-    effect.active ? "Actif" : "Inactif",
-    effect.durationTurns === null ? "Duree libre" : `${effect.durationTurns} tour(s)`,
-    effect.source ? `Source: ${effect.source}` : null,
-    bonuses.length ? bonuses.join(" · ") : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
 }
 
 export type CharacterSheetScreenProps = {
@@ -252,13 +169,11 @@ export function CharacterSheetScreen({
       : null;
   const selectedQuickCastEquipmentSpell =
     quickCastDraft?.kind === "equipmentSpell"
-      ? selectedQuickCastEquipmentSpellSource?.grantedSpell?.id === quickCastDraft.id
-        ? selectedQuickCastEquipmentSpellSource.grantedSpell
+      ? selectedQuickCastEquipmentSpellSource
+        ? getEquipmentGrantedSpells(selectedQuickCastEquipmentSpellSource).find(
+            (spell) => spell.id === quickCastDraft.id,
+          ) ?? null
         : null
-      : null;
-  const selectedQuickCastEquipment =
-    quickCastDraft?.kind === "equipment"
-      ? selectedCharacter.equipment.find((item) => item.id === quickCastDraft.id) ?? null
       : null;
   const selectedArchetypeOption =
     (draftCharacter
@@ -657,10 +572,6 @@ export function CharacterSheetScreen({
     setQuickCastDraft({ kind: "spell", id: spellId, extraPsy: 0 });
   }
 
-  function selectQuickCastEquipment(equipmentId: string) {
-    setQuickCastDraft({ kind: "equipment", id: equipmentId, extraPsy: 0 });
-  }
-
   function selectQuickCastEquipmentSpell(equipmentId: string, spellId: string) {
     setQuickCastDraft({
       kind: "equipmentSpell",
@@ -710,8 +621,8 @@ export function CharacterSheetScreen({
     },
     {
       id: "cast",
-      title: "Lancer un sort",
-      description: "Choisit un don ou un equipement qui consomme du PSY.",
+      title: "Lancer un don",
+      description: "Choisit un don du personnage ou un don ajoute a un equipement.",
       icon: "◌",
       tone: "secondary" as const,
       onPress: openQuickCastDialog,
@@ -753,11 +664,18 @@ export function CharacterSheetScreen({
 
     updateCharacter(selectedCharacter.id, (character) => {
       if (quickCastDraft.kind === "spell" || quickCastDraft.kind === "equipmentSpell") {
+        const sourceEquipment =
+          quickCastDraft.kind === "equipmentSpell"
+            ? character.equipment.find((entry) => entry.id === quickCastDraft.sourceEquipmentId)
+            : null;
         const spell =
           quickCastDraft.kind === "spell"
             ? character.spells.find((entry) => entry.id === quickCastDraft.id)
-            : character.equipment.find((entry) => entry.id === quickCastDraft.sourceEquipmentId)
-                ?.grantedSpell;
+            : sourceEquipment
+              ? getEquipmentGrantedSpells(sourceEquipment).find(
+                  (entry) => entry.id === quickCastDraft.id,
+                )
+              : undefined;
 
         if (!spell) {
           return character;
@@ -800,32 +718,7 @@ export function CharacterSheetScreen({
         };
       }
 
-      const item = character.equipment.find((entry) => entry.id === quickCastDraft.id);
-
-      if (!item?.usePsyCost) {
-        return character;
-      }
-
-      const cost = getReducibleCost(
-        item.usePsyCost,
-        item.reducible ?? false,
-        character.stance,
-      );
-
-      if (character.psy.current < cost) {
-        setRosterMessage(`PSY insuffisante pour ${item.name}.`);
-        return character;
-      }
-
-      setRosterMessage(`${item.usableLabel ?? item.name} active · -${cost} PSY.`);
-
-      return {
-        ...character,
-        psy: {
-          ...character.psy,
-          current: character.psy.current - cost,
-        },
-      };
+      return character;
     });
 
     setQuickCastDraft(null);
@@ -1044,10 +937,12 @@ export function CharacterSheetScreen({
           return {
             ...current,
             equipment: current.equipment.map((item, index) =>
-              index === target.index && item.grantedSpell
+              index === target.index && item.grantedSpells?.[target.spellIndex]
                 ? {
                     ...item,
-                    grantedSpell: { ...item.grantedSpell, ...imagePatch },
+                    grantedSpells: item.grantedSpells.map((spell, spellIndex) =>
+                      spellIndex === target.spellIndex ? { ...spell, ...imagePatch } : spell,
+                    ),
                   }
                 : item,
             ),
@@ -1450,30 +1345,11 @@ export function CharacterSheetScreen({
     );
   }
 
-  function updateDraftEquipmentGrantedSpell(index: number, patch: Partial<Spell>) {
-    setDraftCharacter((current) =>
-      current
-        ? {
-            ...current,
-            equipment: current.equipment.map((item, itemIndex) => {
-              if (itemIndex !== index || !item.grantedSpell) {
-                return item;
-              }
-
-              return {
-                ...item,
-                grantedSpell: {
-                  ...item.grantedSpell,
-                  ...patch,
-                },
-              };
-            }),
-          }
-        : current,
-    );
-  }
-
-  function toggleDraftEquipmentGrantedSpell(index: number) {
+  function updateDraftEquipmentGrantedSpell(
+    index: number,
+    spellIndex: number,
+    patch: Partial<Spell>,
+  ) {
     setDraftCharacter((current) =>
       current
         ? {
@@ -1483,30 +1359,71 @@ export function CharacterSheetScreen({
                 return item;
               }
 
-              if (item.grantedSpell) {
-                return {
-                  ...item,
-                  grantedSpell: undefined,
-                };
+              return {
+                ...item,
+                grantedSpells: (item.grantedSpells ?? []).map((spell, currentSpellIndex) =>
+                  currentSpellIndex === spellIndex ? { ...spell, ...patch } : spell,
+                ),
+              };
+            }),
+          }
+        : current,
+    );
+  }
+
+  function addDraftEquipmentGrantedSpell(index: number) {
+    const id = makeId("equipment-spell");
+
+    setDraftCharacter((current) =>
+      current
+        ? {
+            ...current,
+            equipment: current.equipment.map((item, itemIndex) => {
+              if (itemIndex !== index) {
+                return item;
               }
 
               return {
                 ...item,
-                grantedSpell: {
-                  id: makeId("equipment-spell"),
-                  name: `Don de ${item.name}`,
-                  basePsyCost: 0,
-                  armorBonus: 0,
-                  damageBonus: 0,
-                  reducible: true,
-                  augmentable: false,
-                  description: "",
-                  tags: [],
-                  activeEffects: [],
-                  passiveEffects: [],
-                },
+                grantedSpells: [
+                  {
+                    id,
+                    name: `Don de ${item.name}`,
+                    basePsyCost: 0,
+                    armorBonus: 0,
+                    damageBonus: 0,
+                    reducible: true,
+                    augmentable: false,
+                    description: "",
+                    tags: [],
+                    activeEffects: [],
+                    passiveEffects: [],
+                  },
+                  ...(item.grantedSpells ?? []),
+                ],
               };
             }),
+          }
+        : current,
+    );
+    expandEditorCard(getEditorCardId("equipmentSpell", id));
+  }
+
+  function removeDraftEquipmentGrantedSpell(index: number, spellIndex: number) {
+    setDraftCharacter((current) =>
+      current
+        ? {
+            ...current,
+            equipment: current.equipment.map((item, itemIndex) =>
+              itemIndex === index
+                ? {
+                    ...item,
+                    grantedSpells: (item.grantedSpells ?? []).filter(
+                      (_, currentSpellIndex) => currentSpellIndex !== spellIndex,
+                    ),
+                  }
+                : item,
+            ),
           }
         : current,
     );
@@ -1530,7 +1447,7 @@ export function CharacterSheetScreen({
                 tags: [],
                 activeEffects: [],
                 passiveEffects: [],
-                grantedSpell: undefined,
+                grantedSpells: [],
               },
               ...current.equipment,
             ],
@@ -1671,63 +1588,19 @@ export function CharacterSheetScreen({
       />
 
       {draftCharacter ? (
-        <Modal
-          visible
-          transparent
-          animationType="fade"
+        <EditorModal
+          characterName={draftCharacter.name}
+          editorSection={editorSection}
+          ghostButtonLabelStyle={editorGhostButtonLabelStyle}
+          ghostButtonStyle={editorGhostButtonStyle}
+          primaryButtonLabelStyle={editorPrimaryButtonLabelStyle}
+          primaryButtonStyle={editorPrimaryButtonStyle}
+          theme={activeTheme}
+          onCancel={closeEditor}
           onRequestClose={closeEditor}
+          onSave={saveEditor}
+          onSuppressReopen={suppressEditorReopen}
         >
-          <KeyboardAvoidingView
-            style={styles.editorModalBackdrop}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            enabled={Platform.OS === "ios"}
-          >
-            <Pressable
-              style={StyleSheet.absoluteFill}
-              onPressIn={suppressEditorReopen}
-              onPress={closeEditor}
-            />
-            <View style={styles.editorModalWrap}>
-              <View
-                style={[
-                  styles.editorModalHeader,
-                  { backgroundColor: activeTheme.panelBg, borderBottomColor: activeTheme.border },
-                ]}
-              >
-                <View style={styles.editorModalHeaderText}>
-                  <Text style={[styles.editorModalEyebrow, { color: activeTheme.accent }]}>
-                    {draftCharacter.name}
-                  </Text>
-                  <Text style={[styles.editorModalTitle, { color: activeTheme.title }]}>
-                    {getEditorSectionTitle(editorSection)}
-                  </Text>
-                  <Text style={[styles.editorModalSubtitle, { color: activeTheme.subtitle }]}>
-                    {getEditorSectionSubtitle(editorSection)}
-                  </Text>
-                </View>
-                <View style={styles.editorActions}>
-                  <Pressable
-                    onPressIn={suppressEditorReopen}
-                    onPress={closeEditor}
-                    style={editorGhostButtonStyle}
-                  >
-                    <Text style={editorGhostButtonLabelStyle}>Annuler</Text>
-                  </Pressable>
-                  <Pressable
-                    onPressIn={suppressEditorReopen}
-                    onPress={saveEditor}
-                    style={editorPrimaryButtonStyle}
-                  >
-                    <Text style={editorPrimaryButtonLabelStyle}>Sauvegarder</Text>
-                  </Pressable>
-                </View>
-              </View>
-              <ScrollView
-                style={styles.editorModalScroll}
-                contentContainerStyle={styles.editorModalContent}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="always"
-              >
         <EditorFieldThemeProvider
           value={{
             label: activeTheme.subtitle,
@@ -2032,311 +1905,68 @@ export function CharacterSheetScreen({
           ) : null}
 
           {editingAll || editorSection === "effects" ? (
-          <View style={styles.editorGroup}>
-            <View style={styles.editorGroupHeader}>
-              <Text style={editorSectionTitleStyle}>Effets persistants</Text>
-              <Pressable onPress={addDraftStatusEffect} style={editorAddButtonStyle}>
-                <Text style={editorAddButtonLabelStyle}>Ajouter</Text>
-              </Pressable>
-            </View>
-            <View style={styles.editorList}>
-              {draftCharacter.statusEffects.map((effect, index) => {
-                const cardId = getEditorCardId("effect", effect.id);
-                const expanded = isEditorCardExpanded(cardId);
-
-                return (
-                <EditorCollapsibleCard
-                  key={effect.id}
-                  title={`${getStatusEffectKindLabel(effect)} · ${compactText(effect.name, "Sans nom")}`}
-                  subtitle={getStatusEffectSummary(effect)}
-                  expanded={expanded}
-                  cardStyle={editorCardStyle}
-                  titleStyle={editorCardTitleStyle}
-                  removeButtonStyle={getEditorRemoveButtonStyle()}
-                  removeButtonLabelStyle={getEditorRemoveButtonLabelStyle()}
-                  onRemove={() => removeDraftStatusEffect(index)}
-                  onToggle={() => toggleEditorCard(cardId)}
-                >
-                  <View style={styles.editorGrid}>
-                    <EditorField
-                      label="Nom"
-                      value={effect.name}
-                      onChangeText={(value) =>
-                        updateDraftStatusEffect(index, { name: value })
-                      }
-                    />
-                    <EditorField
-                      label="Source"
-                      value={effect.source ?? ""}
-                      onChangeText={(value) =>
-                        updateDraftStatusEffect(index, { source: value })
-                      }
-                    />
-                    <EditorField
-                      label="Tours"
-                      value={effect.durationTurns === null ? "" : String(effect.durationTurns)}
-                      keyboardType="numeric"
-                      onChangeText={(value) =>
-                        updateDraftStatusEffect(index, {
-                          durationTurns: value.trim() === ""
-                            ? null
-                            : Math.max(0, Number.parseInt(value || "0", 10) || 0),
-                        })
-                      }
-                    />
-                    <TagEditorField
-                      tags={effect.tags}
-                      onChangeTags={(tags) => updateDraftStatusEffect(index, { tags })}
-                    />
-                  </View>
-                  <View style={styles.editorToggleRow}>
-                    <Text style={editorInlineLabelStyle}>Type</Text>
-                    <View style={styles.editorToggleGroup}>
-                      {(["buff", "debuff", "neutral"] as const).map((category) => (
-                        <Pressable
-                          key={category}
-                          onPress={() => updateDraftStatusEffect(index, { category })}
-                          style={getEditorToggleButtonStyle(
-                            (effect.category ?? "neutral") === category,
-                          )}
-                        >
-                          <Text
-                            style={getEditorToggleButtonLabelStyle(
-                              (effect.category ?? "neutral") === category,
-                            )}
-                          >
-                            {category === "buff"
-                              ? "Buff"
-                              : category === "debuff"
-                                ? "Debuff"
-                                : "Effet"}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </View>
-                  <View style={styles.editorToggleRow}>
-                    <Text style={editorInlineLabelStyle}>Effet actif</Text>
-                    <Pressable
-                      onPress={() =>
-                        updateDraftStatusEffect(index, { active: !effect.active })
-                      }
-                      style={getEditorToggleButtonStyle(effect.active)}
-                    >
-                      <Text style={getEditorToggleButtonLabelStyle(effect.active)}>
-                        {effect.active ? "Actif" : "Inactif"}
-                      </Text>
-                    </Pressable>
-                  </View>
-                  <View style={styles.editorResourceBlock}>
-                    <Text style={[styles.editorResourceTitle, { color: activeTheme.accent }]}>
-                      Bonus de stats
-                    </Text>
-                    <View style={styles.editorGrid}>
-                      <EditorField
-                        label="Attaque bonus"
-                        value={String(effect.bonuses?.attackBonus ?? 0)}
-                        onChangeText={(value) =>
-                          updateDraftStatusEffectBonus(index, "attackBonus", value)
-                        }
-                      />
-                      <EditorField
-                        label="Armure"
-                        value={String(effect.bonuses?.armorBonus ?? 0)}
-                        onChangeText={(value) =>
-                          updateDraftStatusEffectBonus(index, "armorBonus", value)
-                        }
-                      />
-                      <EditorField
-                        label="PV"
-                        value={String(effect.bonuses?.pvBonus ?? 0)}
-                        onChangeText={(value) =>
-                          updateDraftStatusEffectBonus(index, "pvBonus", value)
-                        }
-                      />
-                      <EditorField
-                        label="Bouclier"
-                        value={String(effect.bonuses?.shieldBonus ?? 0)}
-                        onChangeText={(value) =>
-                          updateDraftStatusEffectBonus(index, "shieldBonus", value)
-                        }
-                      />
-                    </View>
-                    <Text style={editorHintStyle}>
-                      PV modifie le maximum; bouclier ajoute une protection active. Utilise des
-                      valeurs negatives pour un debuff.
-                    </Text>
-                  </View>
-                  <TextInput
-                    value={effect.description}
-                    onChangeText={(value) =>
-                      updateDraftStatusEffect(index, { description: value })
-                    }
-                    style={[
-                      styles.editorInput,
-                      styles.editorTextArea,
-                      {
-                        backgroundColor: activeTheme.chipBg,
-                        borderColor: activeTheme.border,
-                        color: activeTheme.title,
-                      },
-                    ]}
-                    multiline
-                    placeholder="Description de l'effet"
-                    placeholderTextColor={activeTheme.subtitle}
-                  />
-                </EditorCollapsibleCard>
-                );
-              })}
-            </View>
-          </View>
+            <StatusEffectsEditorSection
+              statusEffects={draftCharacter.statusEffects}
+              editorAddButtonLabelStyle={editorAddButtonLabelStyle}
+              editorAddButtonStyle={editorAddButtonStyle}
+              editorCardStyle={editorCardStyle}
+              editorCardTitleStyle={editorCardTitleStyle}
+              editorHintStyle={editorHintStyle}
+              editorInlineLabelStyle={editorInlineLabelStyle}
+              editorSectionTitleStyle={editorSectionTitleStyle}
+              getEditorCardId={getEditorCardId}
+              getEditorRemoveButtonLabelStyle={getEditorRemoveButtonLabelStyle}
+              getEditorRemoveButtonStyle={getEditorRemoveButtonStyle}
+              getEditorToggleButtonLabelStyle={getEditorToggleButtonLabelStyle}
+              getEditorToggleButtonStyle={getEditorToggleButtonStyle}
+              isEditorCardExpanded={isEditorCardExpanded}
+              onAdd={addDraftStatusEffect}
+              onRemove={removeDraftStatusEffect}
+              onToggleEditorCard={toggleEditorCard}
+              onUpdate={updateDraftStatusEffect}
+              onUpdateBonus={updateDraftStatusEffectBonus}
+              theme={activeTheme}
+            />
           ) : null}
 
           {editingAll || editorSection === "resistances" ? (
-          <View style={styles.editorGroup}>
-            <View style={styles.editorGroupHeader}>
-              <Text style={editorSectionTitleStyle}>Affinites</Text>
-              <Pressable onPress={addDraftResistance} style={editorAddButtonStyle}>
-                <Text style={editorAddButtonLabelStyle}>Ajouter</Text>
-              </Pressable>
-            </View>
-            <View style={styles.editorList}>
-              {draftCharacter.resistances.map((entry, index) => {
-                const cardId = getEditorCardId("resistance", entry.id);
-                const expanded = isEditorCardExpanded(cardId);
-
-                return (
-                <EditorCollapsibleCard
-                  key={entry.id}
-                  title={compactText(entry.label, "Affinite sans nom")}
-                  subtitle={[
-                    RESISTANCE_LABELS[entry.type],
-                    compactText(entry.notes, ""),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                  expanded={expanded}
-                  cardStyle={editorCardStyle}
-                  titleStyle={editorCardTitleStyle}
-                  removeButtonStyle={getEditorRemoveButtonStyle()}
-                  removeButtonLabelStyle={getEditorRemoveButtonLabelStyle()}
-                  onRemove={() => removeDraftResistance(index)}
-                  onToggle={() => toggleEditorCard(cardId)}
-                >
-                  <View style={styles.editorGrid}>
-                    <EditorField
-                      label="Libelle"
-                      value={entry.label}
-                      onChangeText={(value) =>
-                        updateDraftResistance(index, { label: value })
-                      }
-                    />
-                    <View style={styles.editorField}>
-                      <Text style={[styles.editorFieldLabel, { color: activeTheme.subtitle }]}>
-                        Type
-                      </Text>
-                      <View style={styles.themePicker}>
-                        {(Object.keys(RESISTANCE_LABELS) as ResistanceType[]).map((type) => (
-                          <Pressable
-                            key={type}
-                            onPress={() => updateDraftResistance(index, { type })}
-                            style={[
-                              styles.themeOption,
-                              {
-                                backgroundColor:
-                                  entry.type === type ? activeTheme.chipBg : "rgba(15, 23, 42, 0.78)",
-                                borderColor:
-                                  entry.type === type ? activeTheme.accent : activeTheme.border,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.themeOptionLabel,
-                                {
-                                  color:
-                                    entry.type === type ? activeTheme.title : activeTheme.subtitle,
-                                },
-                              ]}
-                            >
-                              {RESISTANCE_LABELS[type]}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
-                    </View>
-                  </View>
-                  <TextInput
-                    value={entry.notes ?? ""}
-                    onChangeText={(value) => updateDraftResistance(index, { notes: value })}
-                    style={[
-                      styles.editorInput,
-                      styles.editorTextArea,
-                      {
-                        backgroundColor: activeTheme.chipBg,
-                        borderColor: activeTheme.border,
-                        color: activeTheme.title,
-                      },
-                    ]}
-                    multiline
-                    placeholder="Notes sur l'affinite"
-                    placeholderTextColor={activeTheme.subtitle}
-                  />
-                </EditorCollapsibleCard>
-                );
-              })}
-            </View>
-          </View>
+            <ResistancesEditorSection
+              resistances={draftCharacter.resistances}
+              editorAddButtonLabelStyle={editorAddButtonLabelStyle}
+              editorAddButtonStyle={editorAddButtonStyle}
+              editorCardStyle={editorCardStyle}
+              editorCardTitleStyle={editorCardTitleStyle}
+              editorSectionTitleStyle={editorSectionTitleStyle}
+              getEditorCardId={getEditorCardId}
+              getEditorRemoveButtonLabelStyle={getEditorRemoveButtonLabelStyle}
+              getEditorRemoveButtonStyle={getEditorRemoveButtonStyle}
+              isEditorCardExpanded={isEditorCardExpanded}
+              onAdd={addDraftResistance}
+              onRemove={removeDraftResistance}
+              onToggleEditorCard={toggleEditorCard}
+              onUpdate={updateDraftResistance}
+              theme={activeTheme}
+            />
           ) : null}
 
           {editingAll || editorSection === "skills" ? (
-          <View style={styles.editorGroup}>
-            <View style={styles.editorGroupHeader}>
-              <Text style={editorSectionTitleStyle}>Competences</Text>
-              <Pressable onPress={addDraftSkill} style={editorAddButtonStyle}>
-                <Text style={editorAddButtonLabelStyle}>Ajouter</Text>
-              </Pressable>
-            </View>
-            <View style={styles.editorList}>
-              {draftCharacter.skills.map((skill, index) => {
-                const cardId = getEditorCardId("skill", skill.id);
-                const expanded = isEditorCardExpanded(cardId);
-
-                return (
-                <EditorCollapsibleCard
-                  key={skill.id}
-                  title={compactText(skill.name, "Competence sans nom")}
-                  subtitle={`Bonus +${skill.value}%`}
-                  expanded={expanded}
-                  cardStyle={editorCardStyle}
-                  titleStyle={editorCardTitleStyle}
-                  removeButtonStyle={getEditorRemoveButtonStyle()}
-                  removeButtonLabelStyle={getEditorRemoveButtonLabelStyle()}
-                  onRemove={() => removeDraftSkill(index)}
-                  onToggle={() => toggleEditorCard(cardId)}
-                >
-                  <View style={styles.editorGrid}>
-                    <EditorField
-                      label="Nom"
-                      value={skill.name}
-                      onChangeText={(value) => updateDraftSkill(index, { name: value })}
-                    />
-                    <EditorField
-                      label="Bonus %"
-                      value={String(skill.value)}
-                      keyboardType="numeric"
-                      onChangeText={(value) =>
-                        updateDraftSkill(index, {
-                          value: Math.max(0, Number.parseInt(value || "0", 10) || 0),
-                        })
-                      }
-                    />
-                  </View>
-                </EditorCollapsibleCard>
-                );
-              })}
-            </View>
-          </View>
+            <SkillsEditorSection
+              skills={draftCharacter.skills}
+              editorAddButtonLabelStyle={editorAddButtonLabelStyle}
+              editorAddButtonStyle={editorAddButtonStyle}
+              editorCardStyle={editorCardStyle}
+              editorCardTitleStyle={editorCardTitleStyle}
+              editorSectionTitleStyle={editorSectionTitleStyle}
+              getEditorCardId={getEditorCardId}
+              getEditorRemoveButtonLabelStyle={getEditorRemoveButtonLabelStyle}
+              getEditorRemoveButtonStyle={getEditorRemoveButtonStyle}
+              isEditorCardExpanded={isEditorCardExpanded}
+              onAdd={addDraftSkill}
+              onRemove={removeDraftSkill}
+              onToggleEditorCard={toggleEditorCard}
+              onUpdate={updateDraftSkill}
+              theme={activeTheme}
+            />
           ) : null}
 
           {editingAll || editorSection === "spells" ? (
@@ -2378,6 +2008,7 @@ export function CharacterSheetScreen({
                 const cardId = getEditorCardId("equipment", item.id);
                 const expanded = isEditorCardExpanded(cardId);
                 const tags = formatEditorTags(item.tags);
+                const equipmentGrantedSpells = item.grantedSpells ?? [];
 
                 return (
                 <EditorCollapsibleCard
@@ -2386,7 +2017,12 @@ export function CharacterSheetScreen({
                   subtitle={[
                     compactText(item.category, "Objet"),
                     item.armorBonus ? `Armure +${item.armorBonus}` : null,
-                    item.grantedSpell ? `Don: ${item.grantedSpell.name}` : null,
+                    equipmentGrantedSpells.length
+                      ? `Dons: ${equipmentGrantedSpells
+                          .slice(0, 2)
+                          .map((spell) => compactText(spell.name, "Sans nom"))
+                          .join(", ")}${equipmentGrantedSpells.length > 2 ? "..." : ""}`
+                      : null,
                     tags,
                   ]
                     .filter(Boolean)
@@ -2447,50 +2083,70 @@ export function CharacterSheetScreen({
                       </Text>
                     </Pressable>
                   </View>
-                  <View style={styles.editorToggleRow}>
-                    <Text style={editorInlineLabelStyle}>Don associe</Text>
-                    <Pressable
-                      onPress={() => toggleDraftEquipmentGrantedSpell(index)}
-                      style={getEditorToggleButtonStyle(Boolean(item.grantedSpell))}
-                    >
-                      <Text style={getEditorToggleButtonLabelStyle(Boolean(item.grantedSpell))}>
-                        {item.grantedSpell ? "Oui" : "Non"}
+                  <View style={styles.editorResourceBlock}>
+                    <View style={styles.editorGroupHeader}>
+                      <Text style={[styles.editorResourceTitle, { color: activeTheme.accent }]}>
+                        Dons associes
                       </Text>
-                    </Pressable>
-                  </View>
-                  {item.grantedSpell ? (
-                    <View
-                      style={[
-                        styles.editorCard,
-                        {
-                          backgroundColor: activeTheme.panelBg,
-                          borderColor: activeTheme.border,
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.editorCardTitle, { color: activeTheme.title }]}>
-                        Don de l'equipement
-                      </Text>
+                      <Pressable
+                        onPress={() => addDraftEquipmentGrantedSpell(index)}
+                        style={editorAddButtonStyle}
+                      >
+                        <Text style={editorAddButtonLabelStyle}>Ajouter</Text>
+                      </Pressable>
+                    </View>
+                    {equipmentGrantedSpells.map((spell, spellIndex) => {
+                      const spellCardId = getEditorCardId("equipmentSpell", spell.id);
+                      const spellTags = formatEditorTags(spell.tags);
+
+                      return (
+                      <EditorCollapsibleCard
+                        key={spell.id}
+                        title={compactText(spell.name, `Don ${spellIndex + 1}`)}
+                        subtitle={[
+                          `${spell.basePsyCost} PSY`,
+                          spell.armorBonus ? `Armure +${spell.armorBonus}` : null,
+                          spell.damageBonus ? `Degats +${spell.damageBonus}` : null,
+                          spell.reducible ? "Reductible" : null,
+                          spell.augmentable ? "Augmentable" : null,
+                          spellTags,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                        expanded={isEditorCardExpanded(spellCardId)}
+                        cardStyle={[
+                          styles.editorCard,
+                          {
+                            backgroundColor: activeTheme.panelBg,
+                            borderColor: activeTheme.border,
+                          },
+                        ]}
+                        titleStyle={editorCardTitleStyle}
+                        removeButtonStyle={getEditorRemoveButtonStyle()}
+                        removeButtonLabelStyle={getEditorRemoveButtonLabelStyle()}
+                        onRemove={() => removeDraftEquipmentGrantedSpell(index, spellIndex)}
+                        onToggle={() => toggleEditorCard(spellCardId)}
+                      >
                       <View style={styles.editorGrid}>
                         <EditorField
                           label="Nom"
-                          value={item.grantedSpell.name}
+                          value={spell.name}
                           onChangeText={(value) =>
-                            updateDraftEquipmentGrantedSpell(index, { name: value })
+                            updateDraftEquipmentGrantedSpell(index, spellIndex, { name: value })
                           }
                         />
                         <TagEditorField
-                          tags={item.grantedSpell.tags}
+                          tags={spell.tags}
                           onChangeTags={(tags) =>
-                            updateDraftEquipmentGrantedSpell(index, { tags })
+                            updateDraftEquipmentGrantedSpell(index, spellIndex, { tags })
                           }
                         />
                         <EditorField
                           label="Cout PSY"
-                          value={String(item.grantedSpell.basePsyCost)}
+                          value={String(spell.basePsyCost)}
                           keyboardType="numeric"
                           onChangeText={(value) =>
-                            updateDraftEquipmentGrantedSpell(index, {
+                            updateDraftEquipmentGrantedSpell(index, spellIndex, {
                               basePsyCost: Math.max(
                                 0,
                                 Number.parseInt(value || "0", 10) || 0,
@@ -2500,10 +2156,10 @@ export function CharacterSheetScreen({
                         />
                         <EditorField
                           label="Bonus d'armure (actif)"
-                          value={String(item.grantedSpell.armorBonus ?? 0)}
+                          value={String(spell.armorBonus ?? 0)}
                           keyboardType="numeric"
                           onChangeText={(value) =>
-                            updateDraftEquipmentGrantedSpell(index, {
+                            updateDraftEquipmentGrantedSpell(index, spellIndex, {
                               armorBonus: Math.max(
                                 0,
                                 Number.parseInt(value || "0", 10) || 0,
@@ -2513,10 +2169,10 @@ export function CharacterSheetScreen({
                         />
                         <EditorField
                           label="Bonus de degats (actif)"
-                          value={String(item.grantedSpell.damageBonus ?? 0)}
+                          value={String(spell.damageBonus ?? 0)}
                           keyboardType="numeric"
                           onChangeText={(value) =>
-                            updateDraftEquipmentGrantedSpell(index, {
+                            updateDraftEquipmentGrantedSpell(index, spellIndex, {
                               damageBonus: Math.max(
                                 0,
                                 Number.parseInt(value || "0", 10) || 0,
@@ -2527,14 +2183,14 @@ export function CharacterSheetScreen({
                       </View>
                       <View style={styles.editorMediaRow}>
                         <AssetVisual
-                          label={item.grantedSpell.name}
-                          icon={item.grantedSpell.icon}
-                          imageUrl={item.grantedSpell.imageUrl}
-                          imageModule={item.grantedSpell.imageModule}
+                          label={spell.name}
+                          icon={spell.icon}
+                          imageUrl={spell.imageUrl}
+                          imageModule={spell.imageModule}
                         />
                         <Pressable
                           onPress={() => {
-                            setImageLibraryTarget({ kind: "equipmentSpell", index });
+                            setImageLibraryTarget({ kind: "equipmentSpell", index, spellIndex });
                           }}
                           style={editorUploadButtonStyle}
                         >
@@ -2547,18 +2203,18 @@ export function CharacterSheetScreen({
                         <Text style={editorInlineLabelStyle}>Reductible en Focus</Text>
                         <Pressable
                           onPress={() =>
-                            updateDraftEquipmentGrantedSpell(index, {
-                              reducible: !item.grantedSpell?.reducible,
+                            updateDraftEquipmentGrantedSpell(index, spellIndex, {
+                              reducible: !spell.reducible,
                             })
                           }
-                          style={getEditorToggleButtonStyle(Boolean(item.grantedSpell.reducible))}
+                          style={getEditorToggleButtonStyle(Boolean(spell.reducible))}
                         >
                           <Text
                             style={getEditorToggleButtonLabelStyle(
-                              Boolean(item.grantedSpell.reducible),
+                              Boolean(spell.reducible),
                             )}
                           >
-                            {item.grantedSpell.reducible ? "Oui" : "Non"}
+                            {spell.reducible ? "Oui" : "Non"}
                           </Text>
                         </Pressable>
                       </View>
@@ -2566,25 +2222,25 @@ export function CharacterSheetScreen({
                         <Text style={editorInlineLabelStyle}>Augmentable</Text>
                         <Pressable
                           onPress={() =>
-                            updateDraftEquipmentGrantedSpell(index, {
-                              augmentable: !(item.grantedSpell?.augmentable ?? false),
+                            updateDraftEquipmentGrantedSpell(index, spellIndex, {
+                              augmentable: !(spell.augmentable ?? false),
                             })
                           }
-                          style={getEditorToggleButtonStyle(Boolean(item.grantedSpell.augmentable))}
+                          style={getEditorToggleButtonStyle(Boolean(spell.augmentable))}
                         >
                           <Text
                             style={getEditorToggleButtonLabelStyle(
-                              Boolean(item.grantedSpell.augmentable),
+                              Boolean(spell.augmentable),
                             )}
                           >
-                            {item.grantedSpell.augmentable ? "Oui" : "Non"}
+                            {spell.augmentable ? "Oui" : "Non"}
                           </Text>
                         </Pressable>
                       </View>
                       <TextInput
-                        value={item.grantedSpell.description}
+                        value={spell.description}
                         onChangeText={(value) =>
-                          updateDraftEquipmentGrantedSpell(index, { description: value })
+                          updateDraftEquipmentGrantedSpell(index, spellIndex, { description: value })
                         }
                         style={[
                           styles.editorInput,
@@ -2599,8 +2255,10 @@ export function CharacterSheetScreen({
                         placeholder="Description du don associe"
                         placeholderTextColor={activeTheme.subtitle}
                       />
-                    </View>
-                  ) : null}
+                      </EditorCollapsibleCard>
+                      );
+                    })}
+                  </View>
                   <TextInput
                     value={item.notes ?? ""}
                     onChangeText={(value) =>
@@ -2720,10 +2378,7 @@ export function CharacterSheetScreen({
           ) : null}
         </View>
         </EditorFieldThemeProvider>
-              </ScrollView>
-            </View>
-          </KeyboardAvoidingView>
-        </Modal>
+        </EditorModal>
       ) : null}
 
       {imageLibraryTarget ? (
@@ -2872,7 +2527,6 @@ export function CharacterSheetScreen({
         recoveryDraft={recoveryDraft}
         quickCastDraft={quickCastDraft}
         quickCastVisible={activeOverlayMenu === "quickCast"}
-        selectedQuickCastEquipment={selectedQuickCastEquipment}
         selectedQuickCastEquipmentSpell={selectedQuickCastEquipmentSpell}
         selectedQuickCastEquipmentSpellSource={selectedQuickCastEquipmentSpellSource}
         selectedQuickCastSpell={selectedQuickCastSpell}
@@ -2887,7 +2541,6 @@ export function CharacterSheetScreen({
         }}
         onCloseRecovery={() => setRecoveryDraft(null)}
         onConfirmQuickCast={confirmQuickCast}
-        onSelectQuickCastEquipment={selectQuickCastEquipment}
         onSelectQuickCastEquipmentSpell={selectQuickCastEquipmentSpell}
         onSelectQuickCastSpell={selectQuickCastSpell}
         setDamageDraft={setDamageDraft}

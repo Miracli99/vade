@@ -87,10 +87,7 @@ export type EquipmentItem = {
   imageModule?: ImageModule;
   notes?: string;
   armorBonus?: number;
-  usableLabel?: string;
-  usePsyCost?: number;
-  reducible?: boolean;
-  grantedSpell?: Spell;
+  grantedSpells?: Spell[];
   tags: string[];
   activeEffects: Effect[];
   passiveEffects: Effect[];

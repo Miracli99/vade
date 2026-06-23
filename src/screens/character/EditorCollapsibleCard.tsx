@@ -36,6 +36,7 @@ export function EditorCollapsibleCard({
           style={styles.editorCardSummary}
           accessibilityRole="button"
           accessibilityLabel={`${expanded ? "Replier" : "Ouvrir"} ${title}`}
+          accessibilityState={{ expanded }}
         >
           <View
             style={[
@@ -57,12 +58,23 @@ export function EditorCollapsibleCard({
           </View>
         </Pressable>
         <View style={styles.editorCardHeaderActions}>
-          <Pressable onPress={onToggle} style={styles.editorFoldButton}>
+          <Pressable
+            onPress={onToggle}
+            style={styles.editorFoldButton}
+            accessibilityRole="button"
+            accessibilityLabel={`${expanded ? "Replier" : "Ouvrir"} ${title}`}
+            accessibilityState={{ expanded }}
+          >
             <Text style={styles.editorFoldButtonLabel}>
               {expanded ? "Replier" : "Ouvrir"}
             </Text>
           </Pressable>
-          <Pressable onPress={onRemove} style={removeButtonStyle}>
+          <Pressable
+            onPress={onRemove}
+            style={removeButtonStyle}
+            accessibilityRole="button"
+            accessibilityLabel={`Supprimer ${title}`}
+          >
             <Text style={removeButtonLabelStyle}>Supprimer</Text>
           </Pressable>
         </View>

@@ -41,7 +41,7 @@ export type RecoveryDraft = {
 };
 
 export type QuickCastDraft = {
-  kind: "spell" | "equipment" | "equipmentSpell";
+  kind: "spell" | "equipmentSpell";
   id: string;
   sourceEquipmentId?: string;
   extraPsy: number;
@@ -51,5 +51,5 @@ export type ImageLibraryTarget =
   | { kind: "character" }
   | { kind: "spell"; index: number }
   | { kind: "equipment"; index: number }
-  | { kind: "equipmentSpell"; index: number }
+  | { kind: "equipmentSpell"; index: number; spellIndex: number }
   | { kind: "inventory"; index: number };

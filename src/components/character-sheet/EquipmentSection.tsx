@@ -1,7 +1,7 @@
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
-import { getSpellCost } from "../../utils/game";
+import { getEquipmentGrantedSpells, getSpellCost } from "../../utils/game";
 import { getResponsiveFlags } from "../../utils/responsive";
 import { Section } from "../Section";
 import { AssetVisual } from "./AssetVisual";
@@ -67,8 +67,9 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
               {item.notes ? (
                 <Text style={[styles.description, { color: theme.title }]}>{item.notes}</Text>
               ) : null}
-              {item.grantedSpell ? (
+              {getEquipmentGrantedSpells(item).map((spell) => (
                 <View
+                  key={`${item.id}-${spell.id}`}
                   style={[
                     styles.grantedSpellCard,
                     { backgroundColor: theme.panelBg, borderColor: theme.border },
@@ -76,10 +77,10 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                 >
                   <View style={styles.grantedSpellHeader}>
                     <AssetVisual
-                      label={item.grantedSpell.name}
-                      icon={item.grantedSpell.icon}
-                      imageUrl={item.grantedSpell.imageUrl}
-                      imageModule={item.grantedSpell.imageModule}
+                      label={spell.name}
+                      icon={spell.icon}
+                      imageUrl={spell.imageUrl}
+                      imageModule={spell.imageModule}
                       small
                     />
                     <View style={styles.grantedSpellContent}>
@@ -92,12 +93,12 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                           ]}
                           numberOfLines={2}
                         >
-                          Don associe · {item.grantedSpell.name}
+                          {spell.name}
                         </Text>
                         <Text style={[styles.meta, { color: theme.subtitle }]}>
-                          {item.grantedSpell.augmentable
+                          {spell.augmentable
                             ? "Augmentable"
-                            : item.grantedSpell.reducible
+                            : spell.reducible
                               ? "Reductible"
                               : "Cout fixe"}
                         </Text>
@@ -106,36 +107,36 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                         <Text
                           style={[
                             styles.useBadge,
-                            item.grantedSpell.reducible &&
-                            getSpellCost(item.grantedSpell, character.stance) <
-                              item.grantedSpell.basePsyCost
+                            spell.reducible &&
+                            getSpellCost(spell, character.stance) <
+                              spell.basePsyCost
                               ? styles.useBadgeReduced
                               : null,
                           ]}
                         >
-                          {getSpellCost(item.grantedSpell, character.stance)} PSY
+                          {getSpellCost(spell, character.stance)} PSY
                         </Text>
-                        {item.grantedSpell.armorBonus ? (
+                        {spell.armorBonus ? (
                           <Text style={styles.armorBadge}>
-                            +{item.grantedSpell.armorBonus} armure
+                            +{spell.armorBonus} armure
                           </Text>
                         ) : null}
-                        {item.grantedSpell.damageBonus ? (
+                        {spell.damageBonus ? (
                           <Text style={styles.damageBadge}>
-                            +{item.grantedSpell.damageBonus} degats
+                            +{spell.damageBonus} degats
                           </Text>
                         ) : null}
                       </View>
                     </View>
                   </View>
                   <Text style={[styles.description, { color: theme.title }]}>
-                    {item.grantedSpell.description}
+                    {spell.description}
                   </Text>
-                  {item.grantedSpell.tags.length ? (
+                  {spell.tags.length ? (
                     <View style={styles.assetTags}>
-                      {item.grantedSpell.tags.map((tag) => (
+                      {spell.tags.map((tag) => (
                         <View
-                          key={`${item.id}-${item.grantedSpell?.id}-${tag}`}
+                          key={`${item.id}-${spell.id}-${tag}`}
                           style={[
                             styles.assetTag,
                             { backgroundColor: theme.chipBg, borderColor: theme.border },
@@ -147,7 +148,7 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                     </View>
                   ) : null}
                 </View>
-              ) : null}
+              ))}
               {item.tags.length ? (
                 <View style={styles.assetTags}>
                   {item.tags.map((tag) => (

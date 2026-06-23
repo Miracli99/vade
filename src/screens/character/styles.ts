@@ -543,6 +543,7 @@ export const styles = StyleSheet.create({
     maxWidth: 980,
     alignSelf: "center",
     maxHeight: "92%",
+    flexShrink: 1,
     borderRadius: 18,
     borderWidth: 1,
     overflow: "hidden",
@@ -592,6 +593,7 @@ export const styles = StyleSheet.create({
   },
   editorModalScroll: {
     flexGrow: 0,
+    flexShrink: 1,
     backgroundColor: "rgba(5, 8, 13, 0.28)",
   },
   editorModalContent: {

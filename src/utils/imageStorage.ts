@@ -134,6 +134,9 @@ async function transformCharacterImages(
 
   for (let index = 0; index < character.equipment.length; index += 1) {
     const item = character.equipment[index]!;
+    const legacyGrantedSpell = (item as Character["equipment"][number] & {
+      grantedSpell?: Character["spells"][number];
+    }).grantedSpell;
     equipment.push({
       ...item,
       imageUrl: await transformImage(
@@ -141,16 +144,18 @@ async function transformCharacterImages(
         item.imageUrl,
         `equipment-${item.id || index}`,
       ),
-      grantedSpell: item.grantedSpell
-        ? {
-            ...item.grantedSpell,
+      grantedSpells: await Promise.all(
+        (item.grantedSpells ?? (legacyGrantedSpell ? [legacyGrantedSpell] : [])).map(
+          async (spell, spellIndex) => ({
+            ...spell,
             imageUrl: await transformImage(
               transform,
-              item.grantedSpell.imageUrl,
-              `equipment-${item.id || index}-spell-${item.grantedSpell.id}`,
+              spell.imageUrl,
+              `equipment-${item.id || index}-spell-${spell.id || spellIndex}`,
             ),
-          }
-        : undefined,
+          }),
+        ),
+      ),
     });
   }
 
