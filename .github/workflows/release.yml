@@ -1,0 +1,121 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  packages: write
+  pages: write
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install dependencies
+        run: npm ci
+      - name: Check tag and version consistency
+        run: npm run version:check -- --tag "$GITHUB_REF_NAME"
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Export web bundle
+        run: npm run export:web
+      - name: Make Gradle wrapper executable
+        working-directory: android
+        run: chmod +x gradlew
+      - name: Build Android release APK
+        working-directory: android
+        env:
+          VADE_SIGN_RELEASE_WITH_DEBUG_KEY: "true"
+        run: ./gradlew assembleRelease
+      - name: Prepare release metadata
+        id: meta
+        shell: bash
+        run: |
+          APP_VERSION="$(node -p "require('./package.json').version")"
+          APK_FILENAME="vade-retro-${APP_VERSION}.apk"
+          mv android/app/build/outputs/apk/release/app-release.apk "$APK_FILENAME"
+          node scripts/changelog.js "$APP_VERSION" > release-body.md
+          echo "version=$APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "apk_filename=$APK_FILENAME" >> "$GITHUB_OUTPUT"
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-${{ github.ref_name }}
+          path: ${{ steps.meta.outputs.apk_filename }}
+          if-no-files-found: error
+      - name: Create curated GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Vade Retro ${{ github.ref_name }}
+          body_path: release-body.md
+          generate_release_notes: false
+          files: ${{ steps.meta.outputs.apk_filename }}
+      - name: Login to GitHub Container Registry
+        shell: bash
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and publish versioned container
+        shell: bash
+        run: |
+          IMAGE_NAME="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker build -t "$IMAGE_NAME:${{ steps.meta.outputs.version }}" -t "$IMAGE_NAME:latest" .
+          docker push "$IMAGE_NAME:${{ steps.meta.outputs.version }}"
+          docker push "$IMAGE_NAME:latest"
+      - name: Generate update manifest
+        shell: bash
+        run: |
+          mkdir -p pages
+          cp -R dist/. pages/
+          APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${{ steps.meta.outputs.apk_filename }}"
+          RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}"
+          node scripts/generate-update-manifest.js --apk-url "$APK_URL" --release-url "$RELEASE_URL" --output pages/app-update.json
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: pages
+
+  deploy-pages:
+    name: Deploy web and update manifest
+    needs: release
+    runs-on: ubuntu-latest
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

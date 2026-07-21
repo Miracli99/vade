@@ -10,6 +10,7 @@ import { AppNavbar } from "./navbar";
 const CHARACTER_BIO_PREVIEW_MAX_LENGTH = 220;
 
 export type HomeScreenProps = {
+  appVersion: string;
   characters: Character[];
   message?: string | null;
   syncEnabled: boolean;
@@ -30,6 +31,7 @@ export type HomeScreenProps = {
 };
 
 export function HomeScreen({
+  appVersion,
   characters,
   message,
   syncEnabled,
@@ -258,7 +260,10 @@ export function HomeScreen({
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setSyncSettingsOpen(false)} />
           <View style={styles.syncDialogCard}>
             <View style={styles.syncDialogHeader}>
-              <Text style={styles.exportPickerTitle}>Données et sauvegardes</Text>
+              <View>
+                <Text style={styles.exportPickerTitle}>Données et sauvegardes</Text>
+                <Text style={styles.appVersionLabel}>Version de l’application {appVersion}</Text>
+              </View>
               {isAndroid ? <Text style={[styles.syncStatus, syncEnabled ? styles.syncStatusActive : null]}>
                 Sync {syncEnabled ? "active" : "inactive"}
               </Text> : null}
@@ -829,6 +834,11 @@ const styles = StyleSheet.create({
   },
   syncStatusActive: {
     color: modernColors.emerald,
+  },
+  appVersionLabel: {
+    color: modernColors.muted,
+    fontSize: 12,
+    marginTop: 4,
   },
   toast: {
     pointerEvents: "none",

@@ -1,8 +1,42 @@
 export type UpdateManifest = {
+  schemaVersion: 1 | 2;
   version: string;
+  versionCode?: number;
   apkUrl: string;
-  notes?: string;
+  highlights: string[];
+  releaseUrl?: string;
+  publishedAt?: string;
 };
+
+type UpdateManifestPayload = Partial<UpdateManifest> & { notes?: unknown };
+
+function normalizeHighlights(highlights: unknown, notes: unknown) {
+  const values = Array.isArray(highlights)
+    ? highlights
+    : typeof notes === "string"
+      ? notes.split(/\r?\n/)
+      : [];
+  return values
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.replace(/^\s*[-*•]\s*/, "").trim())
+    .filter(Boolean)
+    .slice(0, 5);
+}
+
+export function parseUpdateManifest(payload: unknown): UpdateManifest | null {
+  if (!payload || typeof payload !== "object") return null;
+  const candidate = payload as UpdateManifestPayload;
+  if (typeof candidate.version !== "string" || typeof candidate.apkUrl !== "string") return null;
+  return {
+    schemaVersion: candidate.schemaVersion === 2 ? 2 : 1,
+    version: candidate.version,
+    versionCode: typeof candidate.versionCode === "number" ? candidate.versionCode : undefined,
+    apkUrl: candidate.apkUrl,
+    highlights: normalizeHighlights(candidate.highlights, candidate.notes),
+    releaseUrl: typeof candidate.releaseUrl === "string" ? candidate.releaseUrl : undefined,
+    publishedAt: typeof candidate.publishedAt === "string" ? candidate.publishedAt : undefined,
+  };
+}
 
 function normalizeVersionPart(value: string) {
   const numeric = Number.parseInt(value.replace(/[^\d].*$/, ""), 10);
@@ -42,15 +76,5 @@ export async function fetchUpdateManifest(url: string): Promise<UpdateManifest |
     throw new Error(`Impossible de verifier la mise a jour (${response.status}).`);
   }
 
-  const payload = (await response.json()) as Partial<UpdateManifest>;
-
-  if (!payload.version || !payload.apkUrl) {
-    return null;
-  }
-
-  return {
-    version: payload.version,
-    apkUrl: payload.apkUrl,
-    notes: payload.notes,
-  };
+  return parseUpdateManifest(await response.json());
 }

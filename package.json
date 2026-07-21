@@ -1,6 +1,6 @@
 {
   "name": "vade-retro-companion",
-  "version": "0.1.0",
+  "version": "0.2.11",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "engines": {
@@ -14,6 +14,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
+    "version:check": "node scripts/version-check.js",
+    "release": "node scripts/release.js",
     "generate:image-library": "node scripts/generate-image-library.js",
     "optimize:assets": "node scripts/optimize-image-assets.js --apply",
     "export:web": "expo export -p web --output-dir dist",
@@ -26,6 +28,8 @@
     "@react-native-async-storage/async-storage": "^2.2.0",
     "babel-preset-expo": "~56.0.0",
     "expo": "~56.0.12",
+    "expo-application": "~56.0.3",
+    "expo-constants": "~56.0.18",
     "expo-crypto": "~56.0.4",
     "expo-document-picker": "~56.0.4",
     "expo-file-system": "~56.0.7",

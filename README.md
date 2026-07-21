@@ -35,11 +35,34 @@ Cette commande necessite un JDK 17 configure dans `JAVA_HOME`.
 L'APK est produit dans `android/app/build/outputs/apk/release/`. Un APK `debug`
 attend Metro et affiche une erreur `Unable to load script` s'il est lance seul.
 
-Apres une modification de `app.json`, synchroniser les fichiers natifs :
+La configuration Expo dynamique se trouve dans `app.config.js`. La version publique ne
+doit jamais y être saisie : elle provient uniquement de `package.json`.
+
+Pour vérifier Expo, Gradle et le changelog :
 
 ```bash
-npx expo prebuild --platform android
+npm run version:check
 ```
+
+## Publier une version
+
+Documenter d'abord les changements dans la section `Unreleased` de `CHANGELOG.md`,
+puis les valider dans Git. Préparer ensuite une version locale :
+
+```bash
+npm run release -- minor
+```
+
+La commande accepte `patch`, `minor`, `major` ou une version exacte comme `0.3.0`.
+Elle vérifie le projet, crée le commit et le tag `vX.Y.Z`, mais ne pousse rien. Après
+inspection, publier avec :
+
+```bash
+git push --follow-tags
+```
+
+Les push ordinaires exécutent uniquement la CI. Seul un tag `vX.Y.Z` crée une GitHub
+Release, publie l'APK et met à jour le manifest de téléchargement.
 
 ## Structure
 

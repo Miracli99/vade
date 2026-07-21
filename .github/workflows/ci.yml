@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  web-and-container:
+    name: Checks, web and container
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Check version consistency
+        run: npm run version:check
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Export web bundle
+        run: npm run export:web
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: web-dist
+          path: dist
+          if-no-files-found: error
+      - name: Build container
+        run: docker build -t vade-retro-ci:${{ github.sha }} .
+      - name: Export container artifact
+        run: docker save vade-retro-ci:${{ github.sha }} | gzip > vade-retro-web-${{ github.sha }}.tar.gz
+      - name: Upload container artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: docker-image
+          path: vade-retro-web-${{ github.sha }}.tar.gz
+          if-no-files-found: error
+
+  android-apk:
+    name: Android validation APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install dependencies
+        run: npm ci
+      - name: Check version consistency
+        run: npm run version:check
+      - name: Make Gradle wrapper executable
+        working-directory: android
+        run: chmod +x gradlew
+      - name: Build validation APK
+        working-directory: android
+        env:
+          VADE_SIGN_RELEASE_WITH_DEBUG_KEY: "true"
+        run: ./gradlew assembleRelease
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-validation-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

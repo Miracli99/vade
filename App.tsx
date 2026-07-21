@@ -1,3 +1,5 @@
+import * as Application from "expo-application";
+import Constants from "expo-constants";
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -37,16 +39,13 @@ import {
 import { characterRepository } from "./src/features/characters/characterRepository";
 import { archiveService } from "./src/features/data-transfer/archiveService";
 
-const APP_CONFIG = require("./app.json") as {
-  expo?: {
-    version?: string;
-    extra?: {
-      updateManifestUrl?: string;
-    };
-  };
-};
-const APP_VERSION = APP_CONFIG.expo?.version ?? "0.0.0";
-const UPDATE_MANIFEST_URL = APP_CONFIG.expo?.extra?.updateManifestUrl ?? "";
+const RESOLVED_APP_VERSION = Constants.expoConfig?.version ?? "0.0.0";
+const APP_VERSION = Platform.OS === "web"
+  ? RESOLVED_APP_VERSION
+  : Application.nativeApplicationVersion ?? RESOLVED_APP_VERSION;
+const UPDATE_MANIFEST_URL = typeof Constants.expoConfig?.extra?.updateManifestUrl === "string"
+  ? Constants.expoConfig.extra.updateManifestUrl
+  : "";
 const ANDROID_APK_MIME_TYPE = "application/vnd.android.package-archive";
 const HOME_MESSAGE_DISPLAY_MS = 2500;
 const HOME_ERROR_MESSAGE_DISPLAY_MS = 8000;
@@ -547,19 +546,16 @@ export default function App() {
     setAvailableUpdate(null);
   }
 
-  async function openUpdateDownload() {
-    if (!availableUpdate?.apkUrl) {
+  async function openReleaseDetails() {
+    if (!availableUpdate?.releaseUrl) {
       return;
     }
 
     try {
       setUpdateError(null);
-      await Linking.openURL(availableUpdate.apkUrl);
-      setAvailableUpdate(null);
+      await Linking.openURL(availableUpdate.releaseUrl);
     } catch {
-      setUpdateError(
-        "Impossible d'ouvrir le telechargement Android. Verifiez le lien APK ou essayez depuis un navigateur.",
-      );
+      setUpdateError("Impossible d'ouvrir les notes complètes de cette version.");
     }
   }
 
@@ -612,6 +608,7 @@ export default function App() {
         <ExpoStatusBar style="light" />
         {route === "home" ? (
           <HomeScreen
+            appVersion={APP_VERSION}
             characters={characters}
             message={homeMessage}
             onCreateCharacter={openCreationFromHome}
@@ -729,16 +726,41 @@ export default function App() {
         <View style={styles.updateBackdrop}>
           <Pressable style={StyleSheet.absoluteFill} onPress={closeUpdateModal} />
           <View style={styles.updateCard}>
-            <Text style={styles.updateEyebrow}>Mise a jour disponible</Text>
+            <Text style={styles.updateEyebrow}>Mise à jour disponible</Text>
             <Text style={styles.updateTitle}>Version {availableUpdate?.version}</Text>
             <Text style={styles.updateText}>
-              Une version plus recente de l&apos;application est disponible au telechargement.
+              Une version plus récente de l&apos;application est disponible.
             </Text>
-            {availableUpdate?.notes ? (
+            {availableUpdate?.highlights.length ? (
               <View style={styles.updateNotesBox}>
-                <Text style={styles.updateNotesLabel}>Notes</Text>
-                <Text style={styles.updateNotesText}>{availableUpdate.notes}</Text>
+                <Text style={styles.updateNotesLabel}>Nouveautés</Text>
+                {availableUpdate.highlights.map((highlight, index) => (
+                  <View key={`${index}-${highlight}`} style={styles.updateHighlightRow}>
+                    <Text style={styles.updateHighlightBullet}>•</Text>
+                    <Text style={styles.updateNotesText}>{highlight}</Text>
+                  </View>
+                ))}
+                {availableUpdate.releaseUrl ? (
+                  <Pressable
+                    onPress={() => void openReleaseDetails()}
+                    accessibilityRole="link"
+                    accessibilityLabel="Voir toutes les modifications"
+                    style={styles.updateReleaseLink}
+                  >
+                    <Text style={styles.updateReleaseLinkLabel}>Voir toutes les modifications</Text>
+                  </Pressable>
+                ) : null}
               </View>
+            ) : null}
+            {!availableUpdate?.highlights.length && availableUpdate?.releaseUrl ? (
+              <Pressable
+                onPress={() => void openReleaseDetails()}
+                accessibilityRole="link"
+                accessibilityLabel="Voir toutes les modifications"
+                style={styles.updateReleaseLink}
+              >
+                <Text style={styles.updateReleaseLinkLabel}>Voir toutes les modifications</Text>
+              </Pressable>
             ) : null}
             {updateError ? <Text style={styles.updateErrorText}>{updateError}</Text> : null}
             <View style={styles.updateActions}>
@@ -748,13 +770,6 @@ export default function App() {
                 disabled={installingUpdate}
               >
                 <Text style={styles.updateSecondaryButtonLabel}>Plus tard</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => void openUpdateDownload()}
-                style={[styles.updateSecondaryButton, installingUpdate && styles.updateButtonDisabled]}
-                disabled={installingUpdate}
-              >
-                <Text style={styles.updateSecondaryButtonLabel}>Telecharger</Text>
               </Pressable>
               <Pressable
                 onPress={() => void installDownloadedUpdate()}
@@ -767,7 +782,7 @@ export default function App() {
                     <Text style={styles.updatePrimaryButtonLabel}>Ouverture...</Text>
                   </View>
                 ) : (
-                  <Text style={styles.updatePrimaryButtonLabel}>Ouvrir Android</Text>
+                  <Text style={styles.updatePrimaryButtonLabel}>Installer</Text>
                 )}
               </Pressable>
             </View>
@@ -835,8 +850,29 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   updateNotesText: {
+    flex: 1,
     color: "#cbd5e1",
     lineHeight: 20,
+  },
+  updateHighlightRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  updateHighlightBullet: {
+    color: "#fbbf24",
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  updateReleaseLink: {
+    alignSelf: "flex-start",
+    minHeight: 36,
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  updateReleaseLinkLabel: {
+    color: "#fbbf24",
+    fontWeight: "800",
   },
   updateActions: {
     flexDirection: "row",
