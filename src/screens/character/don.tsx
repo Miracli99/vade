@@ -114,6 +114,7 @@ export function DonEditorSection({
                 label={spell.name}
                 icon={spell.icon}
                 imageUrl={spell.imageUrl}
+                imageLibraryId={spell.imageLibraryId}
                 imageModule={spell.imageModule}
               />
               <Pressable

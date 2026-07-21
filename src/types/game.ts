@@ -76,6 +76,7 @@ export type EquipmentItem = {
   category: string;
   icon?: string;
   imageUrl?: string;
+  imageLibraryId?: string;
   imageModule?: ImageModule;
   notes?: string;
   armorBonus?: number;
@@ -93,6 +94,7 @@ export type Spell = {
   name: string;
   icon?: string;
   imageUrl?: string;
+  imageLibraryId?: string;
   imageModule?: ImageModule;
   basePsyCost: number;
   armorBonus?: number;
@@ -110,6 +112,7 @@ export type InventoryItem = {
   name: string;
   icon?: string;
   imageUrl?: string;
+  imageLibraryId?: string;
   imageModule?: ImageModule;
   quantity: number;
   notes?: string;
@@ -124,6 +127,7 @@ export type Character = {
   specialization?: string;
   bio?: string;
   imageUrl?: string;
+  imageLibraryId?: string;
   imageModule?: ImageModule;
   theme: CharacterTheme;
   cardBackgroundsEnabled?: boolean;

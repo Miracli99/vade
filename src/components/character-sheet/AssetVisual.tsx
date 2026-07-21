@@ -2,13 +2,18 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { LOCAL_IMAGE_LIBRARY } from "../../data/image-library";
 import { ImageModule } from "../../types/game";
-import { getImageModuleKey, isKnownImageModule } from "../../utils/assets";
+import {
+  getImageLibraryOption,
+  getImageModuleKey,
+  isKnownImageModule,
+} from "../../utils/assets";
 import { modernColors, modernRadii } from "../ui/design";
 
 type AssetVisualProps = {
   label: string;
   icon?: string;
   imageUrl?: string;
+  imageLibraryId?: string;
   imageModule?: ImageModule;
   thumbnailModule?: ImageModule;
   small?: boolean;
@@ -22,6 +27,7 @@ export function AssetVisual({
   label,
   icon,
   imageUrl,
+  imageLibraryId,
   imageModule,
   thumbnailModule,
   small = false,
@@ -40,14 +46,17 @@ export function AssetVisual({
       : styles.assetVisual;
   const imageResizeMode = character ? "cover" : "contain";
   const safeImageModule = isKnownImageModule(imageModule) ? imageModule : undefined;
+  const imageLibraryOption = getImageLibraryOption(imageLibraryId);
   const safeThumbnailModule = isKnownImageModule(thumbnailModule) ? thumbnailModule : undefined;
   const resolvedThumbnailModule =
-    safeThumbnailModule ?? (large ? undefined : getThumbnailModuleForImage(safeImageModule));
+    safeThumbnailModule ??
+    (large ? undefined : imageLibraryOption?.thumbnailModule ?? getThumbnailModuleForImage(safeImageModule));
   const resolvedImageModule =
     resolvedThumbnailModule ??
+    imageLibraryOption?.imageModule ??
     safeImageModule ??
     (character ? getFallbackCharacterImageModule(safeLabel) : undefined);
-  const imageKey = `${imageUrl ?? "local"}-${getImageModuleKey(resolvedImageModule)}`;
+  const imageKey = `${imageUrl ?? "local"}-${imageLibraryId ?? "legacy"}-${getImageModuleKey(resolvedImageModule)}`;
   const content = imageUrl || resolvedImageModule ? (
     <View style={[sizeStyle, styles.imageFrame]}>
       <Image

@@ -1,5 +1,9 @@
 import { Character, ResourcePool, Spell } from "../types/game";
-import { normalizeImageModule } from "./assets";
+import {
+  getImageLibraryIdForModule,
+  isKnownImageLibraryId,
+  normalizeImageModule,
+} from "./assets";
 
 const DEFAULT_RESOURCE: ResourcePool = {
   current: 0,
@@ -29,6 +33,8 @@ function normalizeResource(resource: ResourcePool | undefined, forceBonus?: numb
 }
 
 function normalizeSpell(spell: Spell): Spell {
+  const imageReference = normalizeImageReference(spell.imageLibraryId, spell.imageModule);
+
   return {
     ...spell,
     basePsyCost: Math.max(0, normalizeNumber(spell.basePsyCost)),
@@ -41,7 +47,7 @@ function normalizeSpell(spell: Spell): Spell {
         ? undefined
         : Math.max(0, normalizeNumber(spell.damageBonus)),
     reducible: spell.reducible ?? false,
-    imageModule: normalizeImageModule(spell.imageModule),
+    ...imageReference,
     augmentable:
       spell.augmentable ??
       Boolean((spell as Spell & { scaling?: { label?: string; bonusPerPsy?: string } }).scaling),
@@ -51,11 +57,30 @@ function normalizeSpell(spell: Spell): Spell {
   };
 }
 
+function normalizeImageLibraryId(imageLibraryId: unknown, imageModule: unknown) {
+  if (isKnownImageLibraryId(imageLibraryId)) {
+    return imageLibraryId;
+  }
+
+  return getImageLibraryIdForModule(imageModule);
+}
+
+function normalizeImageReference(imageLibraryId: unknown, imageModule: unknown) {
+  const normalizedImageLibraryId = normalizeImageLibraryId(imageLibraryId, imageModule);
+
+  return {
+    imageLibraryId: normalizedImageLibraryId,
+    imageModule: normalizedImageLibraryId ? undefined : normalizeImageModule(imageModule),
+  };
+}
+
 export function normalizeCharacter(character: Character): Character {
   const equipment = character.equipment ?? [];
   const spells = character.spells ?? [];
   const inventory = character.inventory ?? [];
   const skills = character.skills ?? [];
+
+  const imageReference = normalizeImageReference(character.imageLibraryId, character.imageModule);
 
   return {
     ...character,
@@ -76,7 +101,7 @@ export function normalizeCharacter(character: Character): Character {
       mentale: Math.max(0, normalizeNumber(character.stats?.mentale)),
       sociale: Math.max(0, normalizeNumber(character.stats?.sociale)),
     },
-    imageModule: normalizeImageModule(character.imageModule),
+    ...imageReference,
     skills: skills.map((skill) => ({
       ...skill,
       value: Math.max(0, normalizeNumber(skill.value)),
@@ -91,7 +116,7 @@ export function normalizeCharacter(character: Character): Character {
         item.usePsyCost === undefined
           ? undefined
           : Math.max(0, normalizeNumber(item.usePsyCost)),
-      imageModule: normalizeImageModule(item.imageModule),
+      ...normalizeImageReference(item.imageLibraryId, item.imageModule),
       grantedSpell: item.grantedSpell ? normalizeSpell(item.grantedSpell) : undefined,
       tags: item.tags ?? [],
       activeEffects: item.activeEffects ?? [],
@@ -102,7 +127,7 @@ export function normalizeCharacter(character: Character): Character {
     inventory: inventory.map((item) => ({
       ...item,
       quantity: Math.max(0, normalizeNumber(item.quantity)),
-      imageModule: normalizeImageModule(item.imageModule),
+      ...normalizeImageReference(item.imageLibraryId, item.imageModule),
       tags: item.tags ?? [],
     })),
     statusEffects: character.statusEffects ?? [],

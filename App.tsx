@@ -49,6 +49,12 @@ const HOME_ERROR_MESSAGE_DISPLAY_MS = 8000;
 
 type AppRoute = "home" | "character" | "history";
 
+const WEB_ROUTE_HASHES: Record<AppRoute, string> = {
+  home: "#home",
+  character: "#character",
+  history: "#history",
+};
+
 type PendingImport = {
   characters: Character[];
   conflicts: Array<{
@@ -64,8 +70,23 @@ function getHomeMessageDisplayDuration(message: string) {
     : HOME_MESSAGE_DISPLAY_MS;
 }
 
+function getRouteFromWebLocation(): AppRoute {
+  if (Platform.OS !== "web" || typeof window === "undefined") {
+    return "home";
+  }
+
+  switch (window.location.hash) {
+    case WEB_ROUTE_HASHES.character:
+      return "character";
+    case WEB_ROUTE_HASHES.history:
+      return "history";
+    default:
+      return "home";
+  }
+}
+
 export default function App() {
-  const [route, setRoute] = useState<AppRoute>("home");
+  const [route, setRoute] = useState<AppRoute>(getRouteFromWebLocation);
   const [characters, setCharacters] = useState<Character[]>(sampleCharacters.map(normalizeCharacter));
   const [selectedId, setSelectedId] = useState(sampleCharacters[0]?.id ?? "");
   const [syncDirectoryUri, setSyncDirectoryUri] = useState<string | null>(null);
@@ -85,6 +106,29 @@ export default function App() {
   const refreshInFlightRef = useRef(false);
   const lastSyncedCharactersRef = useRef<Character[] | null>(null);
   const lastSyncedDirectoryUriRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") {
+      return;
+    }
+
+    const handleHashChange = () => setRoute(getRouteFromWebLocation());
+    window.addEventListener("hashchange", handleHashChange);
+
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") {
+      return;
+    }
+
+    const routeHash = WEB_ROUTE_HASHES[route];
+
+    if (window.location.hash !== routeHash) {
+      window.history.replaceState(null, "", routeHash);
+    }
+  }, [route]);
 
   async function flushSyncDirectory() {
     if (syncInFlightRef.current) {

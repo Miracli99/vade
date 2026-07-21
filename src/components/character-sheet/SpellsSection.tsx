@@ -65,6 +65,7 @@ export function SpellsSection({
                   label={spell.name}
                   icon={spell.icon}
                   imageUrl={spell.imageUrl}
+                  imageLibraryId={spell.imageLibraryId}
                   imageModule={spell.imageModule}
                   onPress={() => onToggleSpellActive(spell.id)}
                   active={isActive}

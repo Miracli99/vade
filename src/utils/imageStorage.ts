@@ -98,7 +98,23 @@ export async function makeCharacterArchivePayload(
     return `${SYNC_ASSET_PREFIX}${encodeURIComponent(path)}`;
   });
 
-  return { character: portableCharacter, assets };
+  return { character: stripRuntimeImageModules(portableCharacter), assets };
+}
+
+export function stripRuntimeImageModules(character: Character): Character {
+  return {
+    ...character,
+    imageModule: undefined,
+    equipment: character.equipment.map((item) => ({
+      ...item,
+      imageModule: undefined,
+      grantedSpell: item.grantedSpell
+        ? { ...item.grantedSpell, imageModule: undefined }
+        : undefined,
+    })),
+    spells: character.spells.map((spell) => ({ ...spell, imageModule: undefined })),
+    inventory: character.inventory.map((item) => ({ ...item, imageModule: undefined })),
+  };
 }
 
 export async function makeCharacterPortable(character: Character) {

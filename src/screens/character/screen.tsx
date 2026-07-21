@@ -875,7 +875,7 @@ export function CharacterSheetScreen({
 
   function updateDraftImage(
     target: ImageLibraryTarget,
-    image: { imageModule?: ImageModule; imageUrl?: string },
+    image: { imageLibraryId?: string; imageModule?: ImageModule; imageUrl?: string },
   ) {
     setDraftCharacter((current) => {
       if (!current) {
@@ -883,6 +883,7 @@ export function CharacterSheetScreen({
       }
 
       const imagePatch = {
+        imageLibraryId: image.imageLibraryId,
         imageModule: image.imageModule,
         imageUrl: image.imageUrl,
       };
@@ -928,14 +929,14 @@ export function CharacterSheetScreen({
   }
 
   function applyLocalImage(target: ImageLibraryTarget, option: LocalImageOption) {
-    updateDraftImage(target, { imageModule: option.imageModule, imageUrl: undefined });
+    updateDraftImage(target, { imageLibraryId: option.id, imageModule: undefined, imageUrl: undefined });
 
     setImageLibraryTarget(null);
     setImageLibraryQuery("");
   }
 
   function clearImageSelection(target: ImageLibraryTarget) {
-    updateDraftImage(target, { imageModule: undefined, imageUrl: undefined });
+    updateDraftImage(target, { imageLibraryId: undefined, imageModule: undefined, imageUrl: undefined });
 
     setImageLibraryTarget(null);
     setImageLibraryQuery("");
@@ -1407,7 +1408,7 @@ export function CharacterSheetScreen({
       return;
     }
 
-    updateDraftImage(target, { imageUrl: uri, imageModule: undefined });
+    updateDraftImage(target, { imageUrl: uri, imageLibraryId: undefined, imageModule: undefined });
 
     setImageLibraryTarget(null);
     setImageLibraryQuery("");
@@ -1682,6 +1683,7 @@ export function CharacterSheetScreen({
             <AssetVisual
               label={draftCharacter.name}
               imageUrl={draftCharacter.imageUrl}
+              imageLibraryId={draftCharacter.imageLibraryId}
               imageModule={draftCharacter.imageModule}
               icon={draftCharacter.name.slice(0, 1)}
               character
@@ -2101,6 +2103,7 @@ export function CharacterSheetScreen({
                       label={item.name}
                       icon={item.icon}
                       imageUrl={item.imageUrl}
+                      imageLibraryId={item.imageLibraryId}
                       imageModule={item.imageModule}
                     />
                     <Pressable
@@ -2197,6 +2200,7 @@ export function CharacterSheetScreen({
                           label={item.grantedSpell.name}
                           icon={item.grantedSpell.icon}
                           imageUrl={item.grantedSpell.imageUrl}
+                          imageLibraryId={item.grantedSpell.imageLibraryId}
                           imageModule={item.grantedSpell.imageModule}
                         />
                         <Pressable
@@ -2341,6 +2345,7 @@ export function CharacterSheetScreen({
                       label={item.name}
                       icon={item.icon}
                       imageUrl={item.imageUrl}
+                      imageLibraryId={item.imageLibraryId}
                       imageModule={item.imageModule}
                       small
                     />
@@ -2458,6 +2463,7 @@ export function CharacterSheetScreen({
                     >
                       <AssetVisual
                         label={option.label}
+                        imageLibraryId={option.id}
                         imageModule={option.imageModule}
                         character={getImageLibraryCategory(imageLibraryTarget) === "character"}
                         small={getImageLibraryCategory(imageLibraryTarget) === "inventory"}

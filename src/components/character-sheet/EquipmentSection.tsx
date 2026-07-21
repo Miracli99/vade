@@ -50,6 +50,7 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
               label={item.name}
               icon={item.icon}
               imageUrl={item.imageUrl}
+              imageLibraryId={item.imageLibraryId}
               imageModule={item.imageModule}
             />
             <View style={styles.body}>
@@ -79,6 +80,7 @@ export function EquipmentSection({ character, theme, onEdit }: EquipmentSectionP
                       label={item.grantedSpell.name}
                       icon={item.grantedSpell.icon}
                       imageUrl={item.grantedSpell.imageUrl}
+                      imageLibraryId={item.grantedSpell.imageLibraryId}
                       imageModule={item.grantedSpell.imageModule}
                       small
                     />

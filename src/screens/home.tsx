@@ -191,6 +191,7 @@ export function HomeScreen({
                 <AssetVisual
                   label={character.name}
                   imageUrl={character.imageUrl}
+                  imageLibraryId={character.imageLibraryId}
                   imageModule={character.imageModule}
                   icon={character.name.slice(0, 1)}
                   character

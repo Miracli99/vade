@@ -11,6 +11,7 @@ import {
   getSyncAssetFileName,
   makeCharacterArchivePayload,
   materializeCharacterImages,
+  stripRuntimeImageModules,
 } from "./imageStorage";
 
 const STORAGE_KEY = "vade-retro.characters.v1";
@@ -80,7 +81,7 @@ export async function persistCharactersToStorage(
   characters: Character[],
   selectedId: string,
 ) {
-  const serializedCharacters = JSON.stringify(characters);
+  const serializedCharacters = JSON.stringify(characters.map(stripRuntimeImageModules));
 
   storageWriteQueue = storageWriteQueue
     .catch(() => undefined)
