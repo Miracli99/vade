@@ -1,4 +1,5 @@
 import type { ImageSourcePropType } from "react-native";
+import type { MediaId } from "../features/media/types";
 
 export type ImageModule = ImageSourcePropType;
 
@@ -83,7 +84,10 @@ export type EquipmentItem = {
   name: string;
   category: string;
   icon?: string;
+  imageId?: MediaId;
+  /** @deprecated Migrated to imageId when data is loaded. */
   imageUrl?: string;
+  /** @deprecated Migrated to imageId when data is loaded. */
   imageModule?: ImageModule;
   notes?: string;
   armorBonus?: number;
@@ -97,7 +101,10 @@ export type Spell = {
   id: string;
   name: string;
   icon?: string;
+  imageId?: MediaId;
+  /** @deprecated Migrated to imageId when data is loaded. */
   imageUrl?: string;
+  /** @deprecated Migrated to imageId when data is loaded. */
   imageModule?: ImageModule;
   basePsyCost: number;
   armorBonus?: number;
@@ -114,7 +121,10 @@ export type InventoryItem = {
   id: string;
   name: string;
   icon?: string;
+  imageId?: MediaId;
+  /** @deprecated Migrated to imageId when data is loaded. */
   imageUrl?: string;
+  /** @deprecated Migrated to imageId when data is loaded. */
   imageModule?: ImageModule;
   quantity: number;
   notes?: string;
@@ -128,7 +138,10 @@ export type Character = {
   archetype: string;
   specialization?: string;
   bio?: string;
+  imageId?: MediaId;
+  /** @deprecated Migrated to imageId when data is loaded. */
   imageUrl?: string;
+  /** @deprecated Migrated to imageId when data is loaded. */
   imageModule?: ImageModule;
   theme: CharacterTheme;
   cardBackgroundsEnabled?: boolean;

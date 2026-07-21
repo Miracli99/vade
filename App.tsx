@@ -18,20 +18,24 @@ import { sampleCharacters } from "./src/data/sampleCharacters";
 import { HomeScreen } from "./src/screens/home";
 import { CharacterSheetScreen } from "./src/screens/character";
 import { HistoryScreen } from "./src/screens/history";
+import { MediaLibraryScreen } from "./src/screens/media";
 import { Character } from "./src/types/game";
 import { normalizeCharacter } from "./src/utils/characters";
 import {
-  exportCharacters,
-  importCharacters,
   importCharactersFromDirectory,
   loadSyncDirectoryUri,
   persistSyncDirectoryUri,
   pickSyncDirectory,
-  loadCharactersFromStorage,
-  persistCharactersToStorage,
+  pickLegacySyncDirectory,
   syncCharactersToDirectory,
 } from "./src/utils/persistence";
 import { fetchUpdateManifest, isRemoteVersionNewer, UpdateManifest } from "./src/utils/updates";
+import {
+  mediaRepository,
+  migrateLegacyCharacterMedia,
+} from "./src/features/media/mediaRepository";
+import { characterRepository } from "./src/features/characters/characterRepository";
+import { archiveService } from "./src/features/data-transfer/archiveService";
 
 const APP_CONFIG = require("./app.json") as {
   expo?: {
@@ -47,7 +51,7 @@ const ANDROID_APK_MIME_TYPE = "application/vnd.android.package-archive";
 const HOME_MESSAGE_DISPLAY_MS = 2500;
 const HOME_ERROR_MESSAGE_DISPLAY_MS = 8000;
 
-type AppRoute = "home" | "character" | "history";
+type AppRoute = "home" | "character" | "history" | "media";
 
 type PendingImport = {
   characters: Character[];
@@ -78,6 +82,7 @@ export default function App() {
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
   const [refreshBusy, setRefreshBusy] = useState(false);
+  const [migrationBusy, setMigrationBusy] = useState(false);
   const latestSyncCharactersRef = useRef(characters);
   const latestSyncDirectoryUriRef = useRef<string | null>(syncDirectoryUri);
   const syncInFlightRef = useRef(false);
@@ -149,8 +154,11 @@ export default function App() {
 
     async function hydrate() {
       try {
-        const stored = await loadCharactersFromStorage();
-        const storedSyncDirectoryUri = await loadSyncDirectoryUri();
+        const [, stored, storedSyncDirectoryUri] = await Promise.all([
+          mediaRepository.initialize(),
+          characterRepository.load(),
+          loadSyncDirectoryUri(),
+        ]);
 
         if (!active) {
           return;
@@ -159,7 +167,11 @@ export default function App() {
         setSyncDirectoryUri(storedSyncDirectoryUri);
 
         if (stored.characters?.length) {
-          const normalizedCharacters = stored.characters.map(normalizeCharacter);
+          const normalizedCharacters = await Promise.all(
+            stored.characters.map(async (character) =>
+              normalizeCharacter(await migrateLegacyCharacterMedia(character)),
+            ),
+          );
           setCharacters(normalizedCharacters);
           const initialCharacterId = stored.selectedId ?? normalizedCharacters[0]!.id;
           setSelectedId(initialCharacterId);
@@ -194,7 +206,7 @@ export default function App() {
       return;
     }
 
-    void persistCharactersToStorage(characters, safeSelectedId).catch((error) => {
+    void characterRepository.save(characters, safeSelectedId).catch((error) => {
       const reason = error instanceof Error ? ` ${error.message}` : "";
       setHomeMessage(`Sauvegarde locale impossible.${reason}`);
     });
@@ -330,7 +342,7 @@ export default function App() {
     }
 
     try {
-      await persistCharactersToStorage(mergeResult.characters, nextSelectedId);
+      await characterRepository.save(mergeResult.characters, nextSelectedId);
 
       if (syncDirectoryUri && Platform.OS === "android") {
         latestSyncDirectoryUriRef.current = syncDirectoryUri;
@@ -344,13 +356,17 @@ export default function App() {
 
   async function handleImportFromHome() {
     try {
-      const importedCharacters = await importCharacters();
+      const importedCharacters = await archiveService.import();
 
       if (!importedCharacters?.length) {
         return;
       }
 
-      const normalizedImportedCharacters = importedCharacters.map(normalizeCharacter);
+      const normalizedImportedCharacters = await Promise.all(
+        importedCharacters.map(async (character) =>
+          normalizeCharacter(await migrateLegacyCharacterMedia(character)),
+        ),
+      );
       const currentById = new Map(characters.map((character) => [character.id, character]));
       const conflicts = normalizedImportedCharacters.flatMap((character) => {
         const currentCharacter = currentById.get(character.id);
@@ -395,7 +411,7 @@ export default function App() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
 
-    await exportCharacters([selectedCharacter], `vade-retro-${safeName || "personnage"}.zip`);
+    await archiveService.export([selectedCharacter], `vade-retro-${safeName || "personnage"}.zip`);
     setHomeMessage(`Export ZIP pret pour ${selectedCharacter.name}.`);
   }
 
@@ -452,10 +468,12 @@ export default function App() {
       const importResult = await importCharactersFromDirectory(syncDirectoryUri);
       const normalizedImportedCharacters = Array.from(
         new Map(
-          importResult.characters.map((character) => {
-            const normalizedCharacter = normalizeCharacter(character);
+          await Promise.all(importResult.characters.map(async (character) => {
+            const normalizedCharacter = normalizeCharacter(
+              await migrateLegacyCharacterMedia(character),
+            );
             return [normalizedCharacter.id, normalizedCharacter] as const;
-          }),
+          })),
         ).values(),
       );
       const importedIds = new Set(normalizedImportedCharacters.map((character) => character.id));
@@ -491,6 +509,32 @@ export default function App() {
     } finally {
       refreshInFlightRef.current = false;
       setRefreshBusy(false);
+    }
+  }
+
+  async function handleMigrateLegacySyncDirectory() {
+    if (migrationBusy) return;
+    setMigrationBusy(true);
+    try {
+      const legacyDirectoryUri = await pickLegacySyncDirectory();
+      if (!legacyDirectoryUri) {
+        setHomeMessage("Selection de l'ancien dossier annulee.");
+        return;
+      }
+      const result = await archiveService.migrateLegacyDirectory(legacyDirectoryUri);
+      const migrated = await Promise.all(
+        result.characters.map(async (character) =>
+          normalizeCharacter(await migrateLegacyCharacterMedia(character)),
+        ),
+      );
+      await applyImportedCharacters(migrated, true);
+      setHomeMessage(
+        `${migrated.length} personnage(s) migre(s). Les anciens ZIP ont ete conserves.`,
+      );
+    } catch (error) {
+      setHomeMessage(error instanceof Error ? error.message : "Migration impossible.");
+    } finally {
+      setMigrationBusy(false);
     }
   }
 
@@ -576,12 +620,15 @@ export default function App() {
             syncEnabled={Boolean(syncDirectoryUri)}
             syncBusy={syncBusy}
             refreshBusy={refreshBusy}
+            migrationBusy={migrationBusy}
             onEnableSync={() => void handlePickSyncDirectory()}
             onDisableSync={() => void handleDisableSync()}
             onRefreshSync={() => void handleRefreshFromSyncDirectory()}
+            onMigrateSync={() => void handleMigrateLegacySyncDirectory()}
             onOpenCharacter={openCharacter}
             onOpenCharacters={() => openCharacter(selectedId)}
             onOpenHistory={() => setRoute("history")}
+            onOpenMedia={() => setRoute("media")}
           />
         ) : null}
       {route === "character" ? (
@@ -594,12 +641,23 @@ export default function App() {
           onCreationRequestHandled={() => setCreationRequest(0)}
           onOpenHome={() => setRoute("home")}
           onOpenHistory={() => setRoute("history")}
+          onOpenMedia={() => setRoute("media")}
         />
       ) : null}
       {route === "history" ? (
         <HistoryScreen
           onOpenHome={() => setRoute("home")}
           onOpenCharacter={() => setRoute("character")}
+          onOpenMedia={() => setRoute("media")}
+        />
+      ) : null}
+      {route === "media" ? (
+        <MediaLibraryScreen
+          characters={characters}
+          onOpenHome={() => setRoute("home")}
+          onOpenCharacters={() => setRoute("character")}
+          onOpenHistory={() => setRoute("history")}
+          onOpenCharacter={openCharacter}
         />
       ) : null}
       <Modal

@@ -10,9 +10,10 @@ import { AppNavbar } from "./navbar";
 export type HistoryScreenProps = {
   onOpenHome: () => void;
   onOpenCharacter?: () => void;
+  onOpenMedia?: () => void;
 };
 
-export function HistoryScreen({ onOpenHome, onOpenCharacter }: HistoryScreenProps) {
+export function HistoryScreen({ onOpenHome, onOpenCharacter, onOpenMedia }: HistoryScreenProps) {
   const { width } = useWindowDimensions();
   const { isPhone } = getResponsiveFlags(width);
   const [activePageId, setActivePageId] = useState<HistoryPage["id"]>("lore");
@@ -38,6 +39,7 @@ export function HistoryScreen({ onOpenHome, onOpenCharacter }: HistoryScreenProp
               onOpenHome={onOpenHome}
               onOpenHistory={() => undefined}
               onOpenCharacter={onOpenCharacter}
+              onOpenMedia={onOpenMedia}
             />
           </View>
           <ScrollView

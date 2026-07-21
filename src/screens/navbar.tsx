@@ -4,7 +4,7 @@ import { Image, ImageSourcePropType, Platform, Pressable, StyleSheet, Text, View
 
 const APP_LOGO = require("../../assets/vade-retro-logo.png");
 
-export type AppNavbarRoute = "home" | "history" | "character";
+export type AppNavbarRoute = "home" | "history" | "character" | "media";
 
 type AppNavbarProps = {
   activeRoute: AppNavbarRoute;
@@ -17,6 +17,7 @@ type AppNavbarProps = {
   onOpenHome?: () => void;
   onOpenHistory?: () => void;
   onOpenCharacter?: () => void;
+  onOpenMedia?: () => void;
   rightSlot?: React.ReactNode;
 };
 
@@ -41,13 +42,15 @@ export function AppNavbar({
   onOpenHome,
   onOpenHistory,
   onOpenCharacter,
+  onOpenMedia,
   rightSlot,
 }: AppNavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const navItems = [
     { id: "home" as const, label: "Accueil", onPress: onOpenHome },
+    { id: "character" as const, label: "Personnages", onPress: onOpenCharacter },
     { id: "history" as const, label: "Histoire", onPress: onOpenHistory },
-    { id: "character" as const, label: "Fiche perso", onPress: onOpenCharacter },
+    { id: "media" as const, label: "Médiathèque", onPress: onOpenMedia },
   ];
 
   return (
@@ -76,7 +79,11 @@ export function AppNavbar({
             accessibilityLabel={menuOpen ? "Fermer la navigation" : "Ouvrir la navigation"}
             accessibilityState={{ expanded: menuOpen }}
           >
-            <Text style={[styles.menuButtonLabel, { color: titleColor }]}>☰</Text>
+            <View style={styles.menuIcon}>
+              <View style={[styles.menuIconLine, { backgroundColor: titleColor }]} />
+              <View style={[styles.menuIconLine, { backgroundColor: titleColor }]} />
+              <View style={[styles.menuIconLine, { backgroundColor: titleColor }]} />
+            </View>
           </Pressable>
         ) : null}
       </View>
@@ -290,10 +297,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
   },
-  menuButtonLabel: {
-    fontSize: 22,
-    fontWeight: "900",
-    lineHeight: 24,
+  menuIcon: {
+    width: 20,
+    gap: 4,
+  },
+  menuIconLine: {
+    width: 20,
+    height: 2,
+    borderRadius: 2,
   },
   mobileMenuPanel: {
     position: "absolute",

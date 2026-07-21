@@ -1,13 +1,17 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { LOCAL_IMAGE_LIBRARY } from "../../data/image-library";
 import { ImageModule } from "../../types/game";
 import { getImageModuleKey, isKnownImageModule } from "../../utils/assets";
 import { modernColors, modernRadii } from "../ui/design";
+import { MediaId } from "../../features/media/types";
+import { useMediaSource } from "../../features/media/mediaRepository";
 
 type AssetVisualProps = {
   label: string;
   icon?: string;
+  imageId?: MediaId;
   imageUrl?: string;
   imageModule?: ImageModule;
   thumbnailModule?: ImageModule;
@@ -21,6 +25,7 @@ type AssetVisualProps = {
 export function AssetVisual({
   label,
   icon,
+  imageId,
   imageUrl,
   imageModule,
   thumbnailModule,
@@ -31,6 +36,7 @@ export function AssetVisual({
   active = false,
 }: AssetVisualProps) {
   const safeLabel = typeof label === "string" && label.trim() ? label : "Visuel";
+  const repositorySource = useMediaSource(imageId, !large);
   const sizeStyle = character
     ? large
       ? styles.characterVisualLarge
@@ -47,15 +53,18 @@ export function AssetVisual({
     resolvedThumbnailModule ??
     safeImageModule ??
     (character ? getFallbackCharacterImageModule(safeLabel) : undefined);
-  const imageKey = `${imageUrl ?? "local"}-${getImageModuleKey(resolvedImageModule)}`;
-  const content = imageUrl || resolvedImageModule ? (
+  const imageKey = `${imageId ?? imageUrl ?? "local"}-${getImageModuleKey(resolvedImageModule)}`;
+  const imageSource = repositorySource ?? (imageUrl ? { uri: imageUrl } : resolvedImageModule);
+  const content = imageSource ? (
     <View style={[sizeStyle, styles.imageFrame]}>
       <Image
         key={imageKey}
-        source={imageUrl ? { uri: imageUrl } : resolvedImageModule}
+        source={imageSource}
         style={styles.imageContent}
-        resizeMode={imageResizeMode}
-        resizeMethod={imageUrl ? "resize" : "auto"}
+        contentFit={imageResizeMode}
+        cachePolicy="memory-disk"
+        transition={120}
+        accessibilityLabel={safeLabel}
       />
     </View>
   ) : (

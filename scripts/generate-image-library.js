@@ -85,11 +85,14 @@ function buildCategoryEntries(folder, category) {
     .map((fullPath) => {
       const relativeFromFolder = path.relative(folderPath, fullPath);
       const relativeFromOutput = path.relative(path.dirname(OUTPUT_FILE), fullPath);
-      const thumbnailPath = path.join(
+      const thumbnailBasePath = path.join(
         thumbnailFolderPath,
-        relativeFromFolder.replace(path.extname(relativeFromFolder), ".png"),
+        relativeFromFolder.replace(path.extname(relativeFromFolder), ""),
       );
-      const thumbnailRequirePath = fs.existsSync(thumbnailPath)
+      const thumbnailPath = [...IMAGE_EXTENSIONS]
+        .map((extension) => `${thumbnailBasePath}${extension}`)
+        .find((candidate) => fs.existsSync(candidate));
+      const thumbnailRequirePath = thumbnailPath
         ? toPosix(path.relative(path.dirname(OUTPUT_FILE), thumbnailPath))
         : null;
       const idParts = [

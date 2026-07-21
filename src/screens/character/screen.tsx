@@ -61,7 +61,8 @@ import {
   stanceLabels,
 } from "../../utils/game";
 import { normalizeCharacter } from "../../utils/characters";
-import { persistCustomImage } from "../../utils/imageStorage";
+import { mediaRepository } from "../../features/media/mediaRepository";
+import { MediaId } from "../../features/media/types";
 import { getResponsiveFlags } from "../../utils/responsive";
 import {
   LOCAL_IMAGE_LIBRARY,
@@ -71,6 +72,7 @@ import {
 import { AppNavbar } from "../navbar";
 import { EditorCollapsibleCard } from "./EditorCollapsibleCard";
 import { EditorModal } from "./EditorModal";
+import { CharacterManageHub, CharacterMode, CharacterModeSwitcher } from "./manage";
 import {
   compactText,
   formatEditorTags,
@@ -117,6 +119,7 @@ export type CharacterSheetScreenProps = {
   onCreationRequestHandled?: () => void;
   onOpenHome?: () => void;
   onOpenHistory?: () => void;
+  onOpenMedia?: () => void;
 };
 
 export function CharacterSheetScreen({
@@ -128,6 +131,7 @@ export function CharacterSheetScreen({
   onCreationRequestHandled,
   onOpenHome,
   onOpenHistory,
+  onOpenMedia,
 }: CharacterSheetScreenProps) {
   const { width } = useWindowDimensions();
   const [activeOverlayMenu, setActiveOverlayMenu] = useState<OverlayMenu | null>(null);
@@ -144,6 +148,7 @@ export function CharacterSheetScreen({
   const [deleteCharacterConfirm, setDeleteCharacterConfirm] = useState(false);
   const [imageLibraryTarget, setImageLibraryTarget] = useState<ImageLibraryTarget | null>(null);
   const [imageLibraryQuery, setImageLibraryQuery] = useState("");
+  const [characterMode, setCharacterMode] = useState<CharacterMode>("play");
   const suppressEditorOpenUntilRef = useRef(0);
 
   const selectedCharacter =
@@ -904,7 +909,7 @@ export function CharacterSheetScreen({
 
   function updateDraftImage(
     target: ImageLibraryTarget,
-    image: { imageModule?: ImageModule; imageUrl?: string },
+    image: { imageId?: MediaId; imageModule?: ImageModule; imageUrl?: string },
   ) {
     setDraftCharacter((current) => {
       if (!current) {
@@ -912,6 +917,7 @@ export function CharacterSheetScreen({
       }
 
       const imagePatch = {
+        imageId: image.imageId,
         imageModule: image.imageModule,
         imageUrl: image.imageUrl,
       };
@@ -959,14 +965,18 @@ export function CharacterSheetScreen({
   }
 
   function applyLocalImage(target: ImageLibraryTarget, option: LocalImageOption) {
-    updateDraftImage(target, { imageModule: option.imageModule, imageUrl: undefined });
+    updateDraftImage(target, {
+      imageId: option.id,
+      imageModule: undefined,
+      imageUrl: undefined,
+    });
 
     setImageLibraryTarget(null);
     setImageLibraryQuery("");
   }
 
   function clearImageSelection(target: ImageLibraryTarget) {
-    updateDraftImage(target, { imageModule: undefined, imageUrl: undefined });
+    updateDraftImage(target, { imageId: undefined, imageModule: undefined, imageUrl: undefined });
 
     setImageLibraryTarget(null);
     setImageLibraryQuery("");
@@ -1505,20 +1515,22 @@ export function CharacterSheetScreen({
       return;
     }
 
-    let uri: string;
-
     try {
-      uri = await persistCustomImage(
-        selectedImage.uri,
-        selectedImage.mimeType,
-        selectedImage.fileName,
-      );
+      const asset = await mediaRepository.import({
+        uri: selectedImage.uri,
+        mimeType: selectedImage.mimeType,
+        fileName: selectedImage.fileName,
+        category: getImageLibraryCategory(target),
+      });
+      updateDraftImage(target, {
+        imageId: asset.id,
+        imageUrl: undefined,
+        imageModule: undefined,
+      });
     } catch {
       setRosterMessage("Impossible de copier cette image dans le stockage de l'app.");
       return;
     }
-
-    updateDraftImage(target, { imageUrl: uri, imageModule: undefined });
 
     setImageLibraryTarget(null);
     setImageLibraryQuery("");
@@ -1564,6 +1576,7 @@ export function CharacterSheetScreen({
       onOpenHome={onOpenHome}
       onOpenHistory={onOpenHistory}
       onOpenCharacter={() => undefined}
+      onOpenMedia={onOpenMedia}
     />
     <ScrollView
       style={[styles.scroll, { backgroundColor: activeTheme.pageBg }]}
@@ -1585,6 +1598,12 @@ export function CharacterSheetScreen({
         onToggleBio={() =>
           setActiveOverlayMenu((current) => (current === "bioView" ? null : "bioView"))
         }
+      />
+
+      <CharacterModeSwitcher
+        mode={characterMode}
+        theme={activeTheme}
+        onChange={setCharacterMode}
       />
 
       {draftCharacter ? (
@@ -1779,6 +1798,7 @@ export function CharacterSheetScreen({
           <View style={styles.editorMediaRow}>
             <AssetVisual
               label={draftCharacter.name}
+              imageId={draftCharacter.imageId}
               imageUrl={draftCharacter.imageUrl}
               imageModule={draftCharacter.imageModule}
               icon={draftCharacter.name.slice(0, 1)}
@@ -2069,6 +2089,7 @@ export function CharacterSheetScreen({
                     <AssetVisual
                       label={item.name}
                       icon={item.icon}
+                      imageId={item.imageId}
                       imageUrl={item.imageUrl}
                       imageModule={item.imageModule}
                     />
@@ -2185,6 +2206,7 @@ export function CharacterSheetScreen({
                         <AssetVisual
                           label={spell.name}
                           icon={spell.icon}
+                          imageId={spell.imageId}
                           imageUrl={spell.imageUrl}
                           imageModule={spell.imageModule}
                         />
@@ -2339,6 +2361,7 @@ export function CharacterSheetScreen({
                     <AssetVisual
                       label={item.name}
                       icon={item.icon}
+                      imageId={item.imageId}
                       imageUrl={item.imageUrl}
                       imageModule={item.imageModule}
                       small
@@ -2946,6 +2969,7 @@ export function CharacterSheetScreen({
         </Modal>
       ) : null}
 
+      {characterMode === "play" ? (
       <CharacterPanels
         character={selectedCharacter}
         isSplitLayout={useSplitLayout}
@@ -2968,6 +2992,13 @@ export function CharacterSheetScreen({
         onEditStats={() => openSectionEditor("stats")}
         onToggleSpellActive={(spellId) => toggleSpellActive(selectedCharacter.id, spellId)}
       />
+      ) : (
+        <CharacterManageHub
+          character={selectedCharacter}
+          theme={activeTheme}
+          onOpenSection={openSectionEditor}
+        />
+      )}
     </ScrollView>
     {rosterMessage ? (
       <View

@@ -138,6 +138,7 @@ export function DonEditorSection({
               <AssetVisual
                 label={spell.name}
                 icon={spell.icon}
+                imageId={spell.imageId}
                 imageUrl={spell.imageUrl}
                 imageModule={spell.imageModule}
               />

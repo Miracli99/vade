@@ -56,17 +56,17 @@ export type HistoryPage = {
   sections: HistorySection[];
 };
 
-const HISTORY_COVER = require("../../assets/history/cover.png");
-const HISTORY_GARUDA = require("../../assets/history/garuda.png");
-const HISTORY_BOREE = require("../../assets/history/boree.png");
-const HISTORY_FRACTURE = require("../../assets/history/fracture.png");
-const HISTORY_PARADIS = require("../../assets/history/paradis.png");
-const HISTORY_GUERRE_AUBE = require("../../assets/history/guerre-aube.png");
-const HISTORY_RACE_HUMAIN = require("../../assets/history/race-humain.png");
-const HISTORY_RACE_DEMI_ANGE = require("../../assets/history/race-demi-ange.png");
-const HISTORY_RACE_DEMI_DEMON = require("../../assets/history/race-demi-demon.png");
-const HISTORY_RACE_FORET = require("../../assets/history/race-enfant-foret.png");
-const HISTORY_RACE_AME_ANCREE = require("../../assets/history/race-ame-ancree.png");
+const HISTORY_COVER = require("../../assets/history/cover.webp");
+const HISTORY_GARUDA = require("../../assets/history/garuda.webp");
+const HISTORY_BOREE = require("../../assets/history/boree.webp");
+const HISTORY_FRACTURE = require("../../assets/history/fracture.webp");
+const HISTORY_PARADIS = require("../../assets/history/paradis.webp");
+const HISTORY_GUERRE_AUBE = require("../../assets/history/guerre-aube.webp");
+const HISTORY_RACE_HUMAIN = require("../../assets/history/race-humain.webp");
+const HISTORY_RACE_DEMI_ANGE = require("../../assets/history/race-demi-ange.webp");
+const HISTORY_RACE_DEMI_DEMON = require("../../assets/history/race-demi-demon.webp");
+const HISTORY_RACE_FORET = require("../../assets/history/race-enfant-foret.webp");
+const HISTORY_RACE_AME_ANCREE = require("../../assets/history/race-ame-ancree.webp");
 
 const loreSections: HistorySection[] = [
   {

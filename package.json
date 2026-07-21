@@ -13,7 +13,9 @@
     "android:release": "set NODE_ENV=production&& cd android && gradlew.bat assembleRelease",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "test": "jest --runInBand",
     "generate:image-library": "node scripts/generate-image-library.js",
+    "optimize:assets": "node scripts/optimize-image-assets.js --apply",
     "export:web": "expo export -p web --output-dir dist",
     "docker:build": "docker build -t vade-retro-web .",
     "docker:run": "docker run --rm -p 8080:80 vade-retro-web",
@@ -24,8 +26,11 @@
     "@react-native-async-storage/async-storage": "^2.2.0",
     "babel-preset-expo": "~56.0.0",
     "expo": "~56.0.12",
+    "expo-crypto": "~56.0.4",
     "expo-document-picker": "~56.0.4",
     "expo-file-system": "~56.0.7",
+    "expo-image": "~56.0.9",
+    "expo-image-manipulator": "~56.0.16",
     "expo-image-picker": "~56.0.18",
     "expo-sharing": "~56.0.18",
     "expo-status-bar": "~56.0.4",
@@ -39,7 +44,20 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.2.14",
+    "jest-expo": "~56.0.5",
+    "sharp": "^0.35.3",
     "typescript": "~6.0.3"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/android/"
+    ]
   }
 }

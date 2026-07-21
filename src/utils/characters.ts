@@ -1,5 +1,6 @@
 import { Character, CharacterRank, ResourcePool, Spell, StatusEffect } from "../types/game";
 import { normalizeImageModule } from "./assets";
+import { getBuiltInMediaIdForModule } from "../features/media/mediaRegistry";
 import { getEquipmentGrantedSpells } from "./game";
 
 const DEFAULT_RESOURCE: ResourcePool = {
@@ -50,6 +51,7 @@ function normalizeResource(resource: ResourcePool | undefined, forceBonus?: numb
 }
 
 function normalizeSpell(spell: Spell): Spell {
+  const builtInImageId = spell.imageId ?? getBuiltInMediaIdForModule(spell.imageModule);
   return {
     ...spell,
     basePsyCost: Math.max(0, normalizeNumber(spell.basePsyCost)),
@@ -62,7 +64,8 @@ function normalizeSpell(spell: Spell): Spell {
         ? undefined
         : Math.max(0, normalizeNumber(spell.damageBonus)),
     reducible: spell.reducible ?? false,
-    imageModule: normalizeImageModule(spell.imageModule),
+    imageId: builtInImageId,
+    imageModule: builtInImageId ? undefined : normalizeImageModule(spell.imageModule),
     augmentable:
       spell.augmentable ??
       Boolean((spell as Spell & { scaling?: { label?: string; bonusPerPsy?: string } }).scaling),
@@ -127,7 +130,11 @@ export function normalizeCharacter(character: Character): Character {
         item.armorBonus === undefined
           ? undefined
           : Math.max(0, normalizeNumber(item.armorBonus)),
-      imageModule: normalizeImageModule(item.imageModule),
+      imageId: item.imageId ?? getBuiltInMediaIdForModule(item.imageModule),
+      imageModule:
+        item.imageId || getBuiltInMediaIdForModule(item.imageModule)
+          ? undefined
+          : normalizeImageModule(item.imageModule),
       grantedSpells,
       tags: item.tags ?? [],
       activeEffects: item.activeEffects ?? [],
@@ -162,7 +169,11 @@ export function normalizeCharacter(character: Character): Character {
       mentale: Math.max(0, normalizeNumber(character.stats?.mentale)),
       sociale: Math.max(0, normalizeNumber(character.stats?.sociale)),
     },
-    imageModule: normalizeImageModule(character.imageModule),
+    imageId: character.imageId ?? getBuiltInMediaIdForModule(character.imageModule),
+    imageModule:
+      character.imageId || getBuiltInMediaIdForModule(character.imageModule)
+        ? undefined
+        : normalizeImageModule(character.imageModule),
     skills: skills.map((skill) => ({
       ...skill,
       value: Math.max(0, normalizeNumber(skill.value)),
@@ -173,7 +184,11 @@ export function normalizeCharacter(character: Character): Character {
     inventory: inventory.map((item) => ({
       ...item,
       quantity: Math.max(0, normalizeNumber(item.quantity)),
-      imageModule: normalizeImageModule(item.imageModule),
+      imageId: item.imageId ?? getBuiltInMediaIdForModule(item.imageModule),
+      imageModule:
+        item.imageId || getBuiltInMediaIdForModule(item.imageModule)
+          ? undefined
+          : normalizeImageModule(item.imageModule),
       tags: item.tags ?? [],
     })),
     statusEffects: (character.statusEffects ?? []).map(normalizeStatusEffect),

@@ -1,29 +1,29 @@
 import { Character } from "../types/game";
 
-const SOEUR_AGNES_PORTRAIT = require("../../assets/characters/humaine_occultiste.png");
-const MARCO_VALE_PORTRAIT = require("../../assets/characters/cleric_hunter.png");
-const AGNES_ARMOR = require("../../assets/equipment/kevlar_sacre.png");
-const AGNES_WEAPON = require("../../assets/equipment/epee_angelique_halo.png");
-const AGNES_TOME = require("../../assets/equipment/grimoire_priest.png");
-const AGNES_AMULET = require("../../assets/equipment/pendentif_sacre_azur.png");
-const AGNES_HOLY_WATER = require("../../assets/inventory/fiole_bleu.png");
-const AGNES_SEALED_LETTER = require("../../assets/inventory/lettre_scellee.png");
-const AGNES_HOLY_BOOK = require("../../assets/inventory/livre_saint.png");
-const AGNES_RELIC = require("../../assets/inventory/piece_relique.png");
-const AGNES_SPELL_SEAL = require("../../assets/spells/paladin_cross.png");
-const AGNES_SPELL_BARRIER = require("../../assets/spells/holy_shield.png");
-const MARCO_WEAPON = require("../../assets/equipment/crossbow.png");
-const MARCO_ARMOR = require("../../assets/equipment/kevlar_simple.png");
-const MARCO_LANTERN = require("../../assets/equipment/lantern_occulte.png");
-const MARCO_RING = require("../../assets/equipment/bague_runique.png");
-const MARCO_DAGGER = require("../../assets/inventory/dague_rituelle.png");
-const MARCO_RED_VIAL = require("../../assets/inventory/fiole_rouge.png");
-const MARCO_GREEN_VIAL = require("../../assets/inventory/fiole_verte.png");
-const MARCO_TOOLKIT = require("../../assets/inventory/outils_blanc_rouleau.png");
-const MARCO_CURSED_CANDLE = require("../../assets/inventory/bougie_maudite.png");
-const MARCO_QUIVER = require("../../assets/inventory/carquois_humain.png");
-const MEDICAL_KIT = require("../../assets/inventory/trousse_secours.png");
-const MARCO_SPELL_CIRCLE = require("../../assets/spells/chaos_broken_sigil.png");
+const SOEUR_AGNES_PORTRAIT = require("../../assets/characters/humaine_occultiste.webp");
+const MARCO_VALE_PORTRAIT = require("../../assets/characters/cleric_hunter.webp");
+const AGNES_ARMOR = require("../../assets/equipment/kevlar_sacre.webp");
+const AGNES_WEAPON = require("../../assets/equipment/epee_angelique_halo.webp");
+const AGNES_TOME = require("../../assets/equipment/grimoire_priest.webp");
+const AGNES_AMULET = require("../../assets/equipment/pendentif_sacre_azur.webp");
+const AGNES_HOLY_WATER = require("../../assets/inventory/fiole_bleu.webp");
+const AGNES_SEALED_LETTER = require("../../assets/inventory/lettre_scellee.webp");
+const AGNES_HOLY_BOOK = require("../../assets/inventory/livre_saint.webp");
+const AGNES_RELIC = require("../../assets/inventory/piece_relique.webp");
+const AGNES_SPELL_SEAL = require("../../assets/spells/paladin_cross.webp");
+const AGNES_SPELL_BARRIER = require("../../assets/spells/holy_shield.webp");
+const MARCO_WEAPON = require("../../assets/equipment/crossbow.webp");
+const MARCO_ARMOR = require("../../assets/equipment/kevlar_simple.webp");
+const MARCO_LANTERN = require("../../assets/equipment/lantern_occulte.webp");
+const MARCO_RING = require("../../assets/equipment/bague_runique.webp");
+const MARCO_DAGGER = require("../../assets/inventory/dague_rituelle.webp");
+const MARCO_RED_VIAL = require("../../assets/inventory/fiole_rouge.webp");
+const MARCO_GREEN_VIAL = require("../../assets/inventory/fiole_verte.webp");
+const MARCO_TOOLKIT = require("../../assets/inventory/outils_blanc_rouleau.webp");
+const MARCO_CURSED_CANDLE = require("../../assets/inventory/bougie_maudite.webp");
+const MARCO_QUIVER = require("../../assets/inventory/carquois_humain.webp");
+const MEDICAL_KIT = require("../../assets/inventory/trousse_secours.webp");
+const MARCO_SPELL_CIRCLE = require("../../assets/spells/chaos_broken_sigil.webp");
 
 export const sampleCharacters: Character[] = [
   {

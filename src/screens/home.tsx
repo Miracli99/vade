@@ -15,15 +15,18 @@ export type HomeScreenProps = {
   syncEnabled: boolean;
   syncBusy: boolean;
   refreshBusy: boolean;
+  migrationBusy: boolean;
   onCreateCharacter: () => void;
   onImportCharacters: () => void;
   onExportCharacter: (characterId: string) => void;
   onEnableSync: () => void;
   onDisableSync: () => void;
   onRefreshSync: () => void;
+  onMigrateSync: () => void;
   onOpenCharacter: (characterId: string) => void;
   onOpenCharacters?: () => void;
   onOpenHistory: () => void;
+  onOpenMedia: () => void;
 };
 
 export function HomeScreen({
@@ -32,15 +35,18 @@ export function HomeScreen({
   syncEnabled,
   syncBusy,
   refreshBusy,
+  migrationBusy,
   onCreateCharacter,
   onImportCharacters,
   onExportCharacter,
   onEnableSync,
   onDisableSync,
   onRefreshSync,
+  onMigrateSync,
   onOpenCharacter,
   onOpenCharacters,
   onOpenHistory,
+  onOpenMedia,
 }: HomeScreenProps) {
   const { width, height } = useWindowDimensions();
   const { isPhone, isNarrowPhone } = getResponsiveFlags(width);
@@ -78,6 +84,7 @@ export function HomeScreen({
       onOpenHome={() => undefined}
       onOpenHistory={onOpenHistory}
       onOpenCharacter={onOpenCharacters}
+      onOpenMedia={onOpenMedia}
     />
     <ScrollView
       style={styles.scroll}
@@ -129,41 +136,13 @@ export function HomeScreen({
                 <Text style={styles.primaryActionLabel}>Nouveau</Text>
               </Pressable>
               <Pressable
-                onPress={onImportCharacters}
+                onPress={() => setSyncSettingsOpen(true)}
                 style={styles.secondaryActionButton}
                 accessibilityRole="button"
-                accessibilityLabel="Importer des personnages"
+                accessibilityLabel="Ouvrir les données et sauvegardes"
               >
-                <Text style={styles.secondaryActionLabel}>Importer</Text>
+                <Text style={styles.secondaryActionLabel}>Données et sauvegardes</Text>
               </Pressable>
-              <Pressable
-                onPress={() => setExportPickerOpen(true)}
-                style={styles.secondaryActionButton}
-                accessibilityRole="button"
-                accessibilityLabel="Exporter un personnage"
-              >
-                <Text style={styles.secondaryActionLabel}>Exporter</Text>
-              </Pressable>
-              {isAndroid ? (
-                <Pressable
-                  onPress={() => setSyncSettingsOpen(true)}
-                  style={[
-                    styles.iconActionButton,
-                    syncEnabled ? styles.iconActionButtonSynced : null,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Parametres de sync Android"
-                >
-                  <Text
-                    style={[
-                      styles.iconActionLabel,
-                      syncEnabled ? styles.iconActionLabelSynced : null,
-                    ]}
-                  >
-                    ⚙
-                  </Text>
-                </Pressable>
-              ) : null}
             </View>
           </View>
 
@@ -190,6 +169,7 @@ export function HomeScreen({
               >
                 <AssetVisual
                   label={character.name}
+                  imageId={character.imageId}
                   imageUrl={character.imageUrl}
                   imageModule={character.imageModule}
                   icon={character.name.slice(0, 1)}
@@ -278,11 +258,38 @@ export function HomeScreen({
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setSyncSettingsOpen(false)} />
           <View style={styles.syncDialogCard}>
             <View style={styles.syncDialogHeader}>
-              <Text style={styles.exportPickerTitle}>Sync Android</Text>
-              <Text style={[styles.syncStatus, syncEnabled ? styles.syncStatusActive : null]}>
-                {syncEnabled ? "Active" : "Inactive"}
-              </Text>
+              <Text style={styles.exportPickerTitle}>Données et sauvegardes</Text>
+              {isAndroid ? <Text style={[styles.syncStatus, syncEnabled ? styles.syncStatusActive : null]}>
+                Sync {syncEnabled ? "active" : "inactive"}
+              </Text> : null}
             </View>
+            <View style={styles.dataSection}>
+              <Text style={styles.dataSectionTitle}>Transfert manuel</Text>
+              <Text style={styles.dataSectionHint}>Les ZIP sont créés ou lus uniquement pour ces actions explicites.</Text>
+              <View style={styles.syncPanelActions}>
+                <Pressable
+                  onPress={() => {
+                    setSyncSettingsOpen(false);
+                    onImportCharacters();
+                  }}
+                  style={styles.secondaryActionButton}
+                >
+                  <Text style={styles.secondaryActionLabel}>Importer un ZIP</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setSyncSettingsOpen(false);
+                    setExportPickerOpen(true);
+                  }}
+                  style={styles.secondaryActionButton}
+                >
+                  <Text style={styles.secondaryActionLabel}>Exporter un ZIP</Text>
+                </Pressable>
+              </View>
+            </View>
+            {isAndroid ? <View style={styles.dataSection}>
+              <Text style={styles.dataSectionTitle}>Synchronisation Android</Text>
+              <Text style={styles.dataSectionHint}>Structure incrémentale : index, dossiers de personnages et médias partagés.</Text>
             <View style={styles.syncPanelActions}>
               <Pressable
                 onPress={onEnableSync}
@@ -316,11 +323,23 @@ export function HomeScreen({
                 </Pressable>
               ) : null}
             </View>
+            </View> : null}
+            {isAndroid ? <View style={styles.dataSection}>
+              <Text style={styles.dataSectionTitle}>Ancien dossier</Text>
+              <Text style={styles.dataSectionHint}>Importe une seule fois les anciens ZIP sans les supprimer.</Text>
+              <Pressable
+                onPress={onMigrateSync}
+                disabled={migrationBusy}
+                style={[styles.secondaryActionButton, migrationBusy ? styles.actionButtonDisabled : null]}
+              >
+                <Text style={styles.secondaryActionLabel}>{migrationBusy ? "Migration..." : "Migrer un ancien dossier"}</Text>
+              </Pressable>
+            </View> : null}
             <Pressable
               onPress={() => setSyncSettingsOpen(false)}
               style={styles.exportPickerCloseButton}
               accessibilityRole="button"
-              accessibilityLabel="Fermer les parametres de sync Android"
+              accessibilityLabel="Fermer les données et sauvegardes"
             >
               <Text style={styles.exportPickerCloseButtonLabel}>Fermer</Text>
             </Pressable>
@@ -574,6 +593,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+  },
+  dataSection: {
+    gap: 10,
+    paddingTop: 4,
+  },
+  dataSectionTitle: {
+    color: modernColors.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  dataSectionHint: {
+    color: modernColors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  actionButtonDisabled: {
+    opacity: 0.42,
   },
   syncActionButtonActive: {
     borderColor: "rgba(34, 197, 94, 0.28)",

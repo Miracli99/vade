@@ -48,6 +48,7 @@ export function InventorySection({ character, theme, onEdit }: InventorySectionP
             <AssetVisual
               label={item.name}
               icon={item.icon}
+              imageId={item.imageId}
               imageUrl={item.imageUrl}
               imageModule={item.imageModule}
               small

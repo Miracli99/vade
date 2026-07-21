@@ -37,6 +37,7 @@ export function CharacterResume({
       <View style={[styles.heroVisualCard, isPhone ? styles.heroVisualCardPhone : null]}>
         <AssetVisual
           label={character.name}
+          imageId={character.imageId}
           imageUrl={character.imageUrl}
           imageModule={character.imageModule}
           icon={character.name.slice(0, 1)}
