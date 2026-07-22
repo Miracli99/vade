@@ -6,6 +6,14 @@ Les changements importants de Vade Retro Companion sont documentés ici.
 
 ### Nouveautés
 
+### Améliorations
+
+### Corrections
+
+## [0.2.11] - 2026-07-22
+
+### Nouveautés
+
 - Ajout d'une médiathèque centralisée pour gérer les images utilisées par les personnages.
 - Ajout d'une synchronisation incrémentale organisée par dossiers de personnages.
 
