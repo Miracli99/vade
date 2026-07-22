@@ -26,7 +26,10 @@ function run() {
   const versionCode = calculateVersionCode(version);
   const lock = JSON.parse(fs.readFileSync(path.join(ROOT, "package-lock.json"), "utf8"));
   if (lock.version !== version || lock.packages?.[""]?.version !== version) {
-    fail("package-lock.json ne correspond pas à package.json.");
+    fail(
+      "package-lock.json ne correspond pas à package.json. " +
+        "Ne modifiez pas la version à la main ; utilisez `npm run release -- patch|minor|major|X.Y.Z`.",
+    );
   }
 
   const config = require(path.join(ROOT, "app.config.js"));

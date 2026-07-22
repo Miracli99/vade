@@ -98,7 +98,8 @@ VadeRetro/
 
 ## Versionnement et publication
 
-- `package.json.version` est l'unique source modifiable de la version publique.
+- La commande `npm run release -- patch|minor|major|X.Y.Z` est l'unique point d'entrée pour modifier la version publique.
+- `package.json.version` est la source de lecture canonique, mais ne doit pas être modifiée manuellement.
 - Ne jamais ajouter une version en dur dans `app.config.js`, `App.tsx`, Gradle ou un workflow.
 - `app.config.js` et Gradle lisent `package.json`. Le `versionCode` Android est calculé par `scripts/versioning.js`.
 - `package-lock.json` contient un miroir généré de la version et doit rester synchronisé.
