@@ -6,7 +6,14 @@ Les changements importants de Vade Retro Companion sont documentés ici.
 
 ### Nouveautés
 
+- Ajout d'une médiathèque centralisée pour gérer les images utilisées par les personnages.
+- Ajout d'une synchronisation incrémentale organisée par dossiers de personnages.
+
 ### Améliorations
+
+- Les médias partagés sont désormais mutualisés et référencés par un identifiant stable.
+- Les archives ZIP sont réservées aux imports, exports et migrations ponctuelles.
+- Les images embarquées et leurs miniatures utilisent WebP afin d'alléger l'application.
 
 ### Corrections
 

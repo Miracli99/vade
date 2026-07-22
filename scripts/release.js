@@ -5,6 +5,7 @@ const {
   CHANGELOG_UNRELEASED_TEMPLATE,
   extractHighlights,
   extractUnreleasedSection,
+  findDisallowedReleaseChanges,
   parseVersion,
   readPackageVersion,
 } = require("./versioning");
@@ -42,8 +43,14 @@ function writeJson(file, value) {
 function main() {
   const request = process.argv[2];
   if (!request) throw new Error("Usage: npm run release -- patch|minor|major|X.Y.Z");
-  const dirty = execFileSync("git", ["status", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).trim();
-  if (dirty) throw new Error("Le dépôt doit être propre avant de préparer une release.");
+  const status = execFileSync("git", ["status", "--porcelain"], { cwd: ROOT, encoding: "utf8" });
+  const disallowedChanges = findDisallowedReleaseChanges(status);
+  if (disallowedChanges.length) {
+    throw new Error(
+      "Seul CHANGELOG.md peut être modifié avant une release. " +
+        `Modifications à traiter d'abord : ${disallowedChanges.join(", ")}`,
+    );
+  }
 
   const currentVersion = readPackageVersion(ROOT);
   const nextVersion = bump(currentVersion, request);

@@ -115,8 +115,8 @@ npm run release -- patch   # ou minor, major, X.Y.Z
 git push --follow-tags
 ```
 
-- La commande `release` exige un dépôt propre, une section `Unreleased` non vide, exécute les contrôles,
-  puis crée localement le commit et le tag. Elle ne pousse rien.
+- La commande `release` accepte un dépôt propre ou uniquement `CHANGELOG.md` modifié, exige une section
+  `Unreleased` non vide, exécute les contrôles, puis crée localement le commit et le tag. Elle ne pousse rien.
 - Ne pas supprimer les anciennes Releases ou tags `apk-<sha>` sans audit et confirmation spécifique.
 - Le manifest de mise à jour actuel est le schéma v2. Conserver la lecture du schéma v1 et le champ `notes`
   de compatibilité tant que d'anciens clients peuvent encore l'utiliser.

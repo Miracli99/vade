@@ -47,9 +47,9 @@ npm run version:check
 
 ## Publier une version
 
-Documenter d'abord les changements dans la section `Unreleased` de `CHANGELOG.md`,
-puis les valider dans Git. Modifier ensuite la version à un seul endroit, dans la
-commande de préparation :
+Documenter d'abord les changements dans la section `Unreleased` de `CHANGELOG.md`.
+Il n'est pas nécessaire de commiter cette modification séparément. Modifier ensuite
+la version à un seul endroit, dans la commande de préparation :
 
 ```bash
 npm run release -- minor

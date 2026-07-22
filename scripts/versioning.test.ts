@@ -5,12 +5,14 @@ const {
   extractHighlights,
   extractUnreleasedSection,
   extractVersionSection,
+  findDisallowedReleaseChanges,
   parseVersion,
 } = require("./versioning") as {
   calculateVersionCode: (version: string) => number;
   extractHighlights: (section: string | null, limit?: number) => string[];
   extractUnreleasedSection: (changelog: string) => string | null;
   extractVersionSection: (changelog: string, version: string) => string | null;
+  findDisallowedReleaseChanges: (status: string) => string[];
   parseVersion: (version: string) => { major: number; minor: number; patch: number };
 };
 
@@ -32,5 +34,15 @@ describe("versionnement centralise", () => {
     const section = extractVersionSection(changelog, "0.2.10");
     expect(section).toContain("Six");
     expect(extractHighlights(section, 5)).toEqual(["Un", "Deux", "Trois", "Quatre", "Cinq"]);
+  });
+
+  it("autorise uniquement le changelog modifié avant une release", () => {
+    expect(findDisallowedReleaseChanges("")).toEqual([]);
+    expect(findDisallowedReleaseChanges(" M CHANGELOG.md\n")).toEqual([]);
+    expect(findDisallowedReleaseChanges("M  CHANGELOG.md\n")).toEqual([]);
+    expect(findDisallowedReleaseChanges(" M CHANGELOG.md\n M package.json\n?? notes.txt\n")).toEqual([
+      " M package.json",
+      "?? notes.txt",
+    ]);
   });
 });

@@ -63,12 +63,20 @@ function readChangelog(rootDirectory = path.resolve(__dirname, "..")) {
   return fs.readFileSync(path.join(rootDirectory, "CHANGELOG.md"), "utf8");
 }
 
+function findDisallowedReleaseChanges(status) {
+  return status
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .filter((line) => !/^.. CHANGELOG\.md$/.test(line));
+}
+
 module.exports = {
   CHANGELOG_UNRELEASED_TEMPLATE,
   calculateVersionCode,
   extractHighlights,
   extractUnreleasedSection,
   extractVersionSection,
+  findDisallowedReleaseChanges,
   parseVersion,
   readChangelog,
   readPackageVersion,
