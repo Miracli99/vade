@@ -6,6 +6,14 @@ Les changements importants de Vade Retro Companion sont documentés ici.
 
 ### Nouveautés
 
+### Améliorations
+
+### Corrections
+
+## [0.2.12] - 2026-09-26
+
+### Nouveautés
+
 - Compteurs d’avantage et de désavantage dans les statistiques, modifiables dans la fenêtre d’édition des stats et sauvegardés par personnage pour suivre les points de relance.
 
 ### Améliorations
@@ -15,7 +23,6 @@ Les changements importants de Vade Retro Companion sont documentés ici.
 ### Corrections
 
 - Correction de la préparation du SDK Android en CI et en Release après le retrait du paquet historique `tools`.
-
 - Une erreur de chargement initial ne peut plus remplacer les personnages sauvegardés par les exemples.
 - La synchronisation conserve les fiches et médias nécessaires à la restauration de l’index de secours.
 
