@@ -20,7 +20,9 @@ jest.mock("expo-file-system/legacy", () => ({
       return uri;
     },
     createFileAsync: async (parent: string, name: string, mimeType: string) => {
-      const extension = mimeType === "application/json" ? ".json" : "";
+      const extension = mimeType === "application/json" ? ".json"
+        : mimeType === "image/png" ? ".png"
+          : mimeType === "image/webp" ? ".webp" : "";
       const uri = `${parent}/${name}${extension}`;
       mockEntries.set(uri, { kind: "file", content: "" });
       return uri;
@@ -56,6 +58,7 @@ jest.mock("expo-crypto", () => ({
 
 import type { Character } from "../../types/game";
 import { readCharacterDirectory, syncCharacterDirectory } from "./syncRepository";
+import { mediaRepository } from "../media/mediaRepository";
 
 const PICKED_ROOT = "content://picked";
 
@@ -84,6 +87,7 @@ beforeEach(() => {
   mockEntries.clear();
   mockEntries.set(PICKED_ROOT, { kind: "directory" });
   mockCorruptNextIndexWrite = false;
+  jest.restoreAllMocks();
 });
 
 describe("miroir Android incrementiel", () => {
@@ -100,18 +104,73 @@ describe("miroir Android incrementiel", () => {
 
     expect(result.writtenCount).toBe(1);
     expect(mockEntries.has(`${PICKED_ROOT}/VadeRetro/characters/character-agnes`)).toBe(true);
-    expect([...mockEntries.keys()].filter((uri) => uri.includes("/character-agnes/character-") && uri.endsWith(".json"))).toHaveLength(1);
+    expect([...mockEntries.keys()].filter((uri) => uri.includes("/character-agnes/character-") && uri.endsWith(".json"))).toHaveLength(2);
   });
 
-  it("supprime un dossier de personnage seulement apres la mise a jour de l'index", async () => {
+  it("conserve le personnage supprime jusqu'a la rotation de l'index de secours", async () => {
     const agnes = character("agnes", "Agnes");
     const marco = character("marco", "Marco");
     await syncCharacterDirectory([agnes, marco], PICKED_ROOT);
     const result = await syncCharacterDirectory([marco], PICKED_ROOT, new Set());
 
-    expect(result.deletedCount).toBe(1);
+    expect(result.deletedCount).toBe(0);
+    expect(mockEntries.has(`${PICKED_ROOT}/VadeRetro/characters/character-agnes`)).toBe(true);
+    const rotated = await syncCharacterDirectory([marco], PICKED_ROOT, new Set());
+    expect(rotated.deletedCount).toBe(1);
     expect(mockEntries.has(`${PICKED_ROOT}/VadeRetro/characters/character-agnes`)).toBe(false);
     expect(mockEntries.has(`${PICKED_ROOT}/VadeRetro/characters/character-marco`)).toBe(true);
+  });
+
+  it("restaure les fiches modifiees et supprimees apres corruption de l'index courant", async () => {
+    const agnes = character("agnes", "Agnes");
+    const marco = character("marco", "Marco");
+    await syncCharacterDirectory([agnes, marco], PICKED_ROOT);
+    await syncCharacterDirectory([{ ...agnes, name: "Agnes modifiee" }], PICKED_ROOT);
+    mockEntries.set(`${PICKED_ROOT}/VadeRetro/index.json`, { kind: "file", content: "{" });
+
+    const restored = await readCharacterDirectory(PICKED_ROOT);
+    expect(restored.characters.map((entry) => entry.name)).toEqual(["Agnes", "Marco"]);
+    expect(restored.skippedFiles).toEqual([]);
+  });
+
+  it("ne conserve que les deux generations de fiches encore referencees", async () => {
+    const agnes = character("agnes", "Agnes");
+    await syncCharacterDirectory([agnes], PICKED_ROOT);
+    await syncCharacterDirectory([{ ...agnes, name: "Agnes 2" }], PICKED_ROOT);
+    await syncCharacterDirectory([{ ...agnes, name: "Agnes 3" }], PICKED_ROOT);
+    const files = [...mockEntries.entries()].filter(([uri]) =>
+      uri.includes("/character-agnes/character-") && uri.endsWith(".json"),
+    );
+    expect(files.map(([, entry]) => JSON.parse(entry.content!).name).sort()).toEqual(["Agnes 2", "Agnes 3"]);
+  });
+
+  it("ne nettoie pas les fichiers recuperables si les deux index sont absents", async () => {
+    const agnes = character("agnes", "Agnes");
+    await syncCharacterDirectory([agnes], PICKED_ROOT);
+    const oldFile = [...mockEntries.keys()].find((uri) => uri.includes("/character-agnes/character-"))!;
+    mockEntries.delete(`${PICKED_ROOT}/VadeRetro/index.json`);
+    const orphanMedia = `${PICKED_ROOT}/VadeRetro/media/recoverable.webp`;
+    mockEntries.set(orphanMedia, { kind: "file", content: "image" });
+    await syncCharacterDirectory([{ ...agnes, name: "Agnes 2" }], PICKED_ROOT);
+    expect(mockEntries.has(oldFile)).toBe(true);
+    expect(mockEntries.has(orphanMedia)).toBe(true);
+  });
+
+  it("conserve les medias de secours puis les nettoie apres rotation", async () => {
+    const hash = "a".repeat(64);
+    jest.spyOn(mediaRepository, "get").mockImplementation((id) => id === "custom-test" ? {
+      id, label: "Test", category: "character", origin: "custom", tags: [],
+      mimeType: "image/png", contentHash: hash,
+    } : undefined);
+    jest.spyOn(mediaRepository, "readBytes").mockResolvedValue(new Uint8Array([1, 2, 3]));
+    const agnes = character("agnes", "Agnes");
+    await syncCharacterDirectory([{ ...agnes, imageId: "custom-test" }], PICKED_ROOT);
+    const mediaFiles = () => [...mockEntries.keys()].filter((uri) => uri.includes(`/media/${hash}`));
+    expect(mediaFiles()).toHaveLength(1);
+    await syncCharacterDirectory([agnes], PICKED_ROOT);
+    expect(mediaFiles()).toHaveLength(1);
+    await syncCharacterDirectory([agnes], PICKED_ROOT);
+    expect(mediaFiles()).toHaveLength(0);
   });
 
   it("restaure le dernier index valide apres une interruption d'ecriture", async () => {

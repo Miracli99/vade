@@ -71,6 +71,7 @@ export async function syncCharacterDirectory(
   const charactersUri = await ensureDirectory(rootUri, CHARACTERS_DIRECTORY_NAME);
   const mediaUri = await ensureDirectory(rootUri, MEDIA_DIRECTORY_NAME);
   const previousIndex = await readSyncIndex(rootUri);
+  const retiredIndex = await readSyncIndex(rootUri, [PREVIOUS_INDEX_FILE_NAME]);
   const previousById = new Map(previousIndex?.characters.map((entry) => [entry.id, entry]));
   const nextCharacterEntries: SyncIndexCharacter[] = [];
   const nextMediaIds = collectReferencedMediaIds(characters);
@@ -140,8 +141,10 @@ export async function syncCharacterDirectory(
 
   await commitIndex(rootUri, previousIndex, nextIndex);
 
-  const activeIds = new Set(characters.map((character) => character.id));
-  for (const previous of previousIndex?.characters ?? []) {
+  // Both committed generations must remain readable until the next rotation.
+  const retainedIndexes = previousIndex ? [nextIndex, previousIndex] : [nextIndex];
+  const activeIds = new Set(retainedIndexes.flatMap((index) => index.characters.map((entry) => entry.id)));
+  for (const previous of retiredIndex?.characters ?? []) {
     if (activeIds.has(previous.id)) continue;
     const directoryUri = await findNamedEntry(charactersUri, getCharacterDirectoryName(previous.id));
     if (directoryUri) {
@@ -150,8 +153,11 @@ export async function syncCharacterDirectory(
     }
   }
 
-  await cleanupSupersededCharacterFiles(charactersUri, nextIndex);
-  await cleanupUnusedMediaFiles(mediaUri, nextIndex);
+  // Without a valid index, orphaned files may still be needed for recovery.
+  if (previousIndex) {
+    await cleanupSupersededCharacterFiles(charactersUri, retainedIndexes);
+    await cleanupUnusedMediaFiles(mediaUri, retainedIndexes);
+  }
   return { writtenCount, deletedCount, mediaWrittenCount };
 }
 
@@ -244,8 +250,11 @@ function remapCharacterMediaIds(character: Character, ids: ReadonlyMap<MediaId, 
   };
 }
 
-async function readSyncIndex(rootUri: string): Promise<SyncIndex | null> {
-  for (const fileName of [INDEX_FILE_NAME, PREVIOUS_INDEX_FILE_NAME]) {
+async function readSyncIndex(
+  rootUri: string,
+  fileNames = [INDEX_FILE_NAME, PREVIOUS_INDEX_FILE_NAME],
+): Promise<SyncIndex | null> {
+  for (const fileName of fileNames) {
     const fileUri = await findNamedEntry(rootUri, fileName);
     if (!fileUri) continue;
     try {
@@ -321,20 +330,23 @@ async function rebuildMediaEntries(rootUri: string): Promise<SyncIndexMedia[]> {
   });
 }
 
-async function cleanupSupersededCharacterFiles(charactersRootUri: string, index: SyncIndex) {
-  for (const entry of index.characters) {
+async function cleanupSupersededCharacterFiles(charactersRootUri: string, indexes: SyncIndex[]) {
+  const retainedFiles = new Set(indexes.flatMap((index) =>
+    index.characters.map((entry) => `${entry.directory}/${entry.file}`),
+  ));
+  for (const entry of indexes.flatMap((index) => index.characters)) {
     const directoryUri = await findNamedEntry(charactersRootUri, getCharacterDirectoryName(entry.id));
     if (!directoryUri) continue;
     for (const uri of await FileSystem.StorageAccessFramework.readDirectoryAsync(directoryUri)) {
-      if (getEntryName(uri) !== entry.file && /^character-.*\.json$/i.test(getEntryName(uri))) {
+      if (!retainedFiles.has(`${entry.directory}/${getEntryName(uri)}`) && /^character-.*\.json$/i.test(getEntryName(uri))) {
         await FileSystem.StorageAccessFramework.deleteAsync(uri, { idempotent: true });
       }
     }
   }
 }
 
-async function cleanupUnusedMediaFiles(mediaUri: string, index: SyncIndex) {
-  const activeFiles = new Set(index.media.map((entry) => entry.file));
+async function cleanupUnusedMediaFiles(mediaUri: string, indexes: SyncIndex[]) {
+  const activeFiles = new Set(indexes.flatMap((index) => index.media.map((entry) => entry.file)));
   for (const uri of await FileSystem.StorageAccessFramework.readDirectoryAsync(mediaUri)) {
     if (!activeFiles.has(getEntryName(uri))) {
       await FileSystem.StorageAccessFramework.deleteAsync(uri, { idempotent: true });

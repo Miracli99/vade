@@ -8,7 +8,12 @@ Les changements importants de Vade Retro Companion sont documentés ici.
 
 ### Améliorations
 
+- Un indicateur animé signale les imports et exports en cours et empêche les lancements en double.
+
 ### Corrections
+
+- Une erreur de chargement initial ne peut plus remplacer les personnages sauvegardés par les exemples.
+- La synchronisation conserve les fiches et médias nécessaires à la restauration de l’index de secours.
 
 ## [0.2.11] - 2026-07-22
 

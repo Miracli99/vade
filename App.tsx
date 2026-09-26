@@ -38,6 +38,7 @@ import {
 } from "./src/features/media/mediaRepository";
 import { characterRepository } from "./src/features/characters/characterRepository";
 import { archiveService } from "./src/features/data-transfer/archiveService";
+import { TransferProgress } from "./src/features/data-transfer/TransferProgress";
 
 const RESOLVED_APP_VERSION = Constants.expoConfig?.version ?? "0.0.0";
 const APP_VERSION = Platform.OS === "web"
@@ -82,6 +83,8 @@ export default function App() {
   const [syncBusy, setSyncBusy] = useState(false);
   const [refreshBusy, setRefreshBusy] = useState(false);
   const [migrationBusy, setMigrationBusy] = useState(false);
+  const [transfer, setTransfer] = useState<"import" | "export" | null>(null);
+  const transferInFlightRef = useRef(false);
   const latestSyncCharactersRef = useRef(characters);
   const latestSyncDirectoryUriRef = useRef<string | null>(syncDirectoryUri);
   const syncInFlightRef = useRef(false);
@@ -171,17 +174,18 @@ export default function App() {
               normalizeCharacter(await migrateLegacyCharacterMedia(character)),
             ),
           );
+          if (!active) return;
           setCharacters(normalizedCharacters);
           const initialCharacterId = stored.selectedId ?? normalizedCharacters[0]!.id;
           setSelectedId(initialCharacterId);
         }
-      } catch (error) {
-        const reason = error instanceof Error ? ` ${error.message}` : "";
-        setHomeMessage(`Chargement local impossible.${reason}`);
-      } finally {
         if (active) {
           setStorageReady(true);
         }
+      } catch (error) {
+        if (!active) return;
+        const reason = error instanceof Error ? ` ${error.message}` : "";
+        setHomeMessage(`Chargement local impossible. Sauvegarde désactivée pour protéger vos données.${reason}`);
       }
     }
 
@@ -354,6 +358,9 @@ export default function App() {
   }
 
   async function handleImportFromHome() {
+    if (transferInFlightRef.current) return;
+    transferInFlightRef.current = true;
+    setTransfer("import");
     try {
       const importedCharacters = await archiveService.import();
 
@@ -389,15 +396,33 @@ export default function App() {
         return;
       }
 
-      void applyImportedCharacters(normalizedImportedCharacters, true);
+      await applyImportedCharacters(normalizedImportedCharacters, true);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       console.error("Character import failed", error);
       setHomeMessage(`Import impossible: ${reason}`);
+    } finally {
+      transferInFlightRef.current = false;
+      setTransfer(null);
+    }
+  }
+
+  async function confirmImportedCharacters(overwrite: boolean) {
+    if (!pendingImport || transferInFlightRef.current) return;
+    transferInFlightRef.current = true;
+    setTransfer("import");
+    const imported = pendingImport.characters;
+    setPendingImport(null);
+    try {
+      await applyImportedCharacters(imported, overwrite);
+    } finally {
+      transferInFlightRef.current = false;
+      setTransfer(null);
     }
   }
 
   async function handleExportFromHome(characterId: string) {
+    if (transferInFlightRef.current) return;
     const selectedCharacter = characters.find((character) => character.id === characterId);
 
     if (!selectedCharacter) {
@@ -410,8 +435,18 @@ export default function App() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
 
-    await archiveService.export([selectedCharacter], `vade-retro-${safeName || "personnage"}.zip`);
-    setHomeMessage(`Export ZIP pret pour ${selectedCharacter.name}.`);
+    transferInFlightRef.current = true;
+    setTransfer("export");
+    try {
+      await archiveService.export([selectedCharacter], `vade-retro-${safeName || "personnage"}.zip`);
+      setHomeMessage(`Export ZIP pret pour ${selectedCharacter.name}.`);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      setHomeMessage(`Export impossible: ${reason}`);
+    } finally {
+      transferInFlightRef.current = false;
+      setTransfer(null);
+    }
   }
 
   async function handlePickSyncDirectory() {
@@ -696,7 +731,7 @@ export default function App() {
               <Pressable
                 onPress={() => {
                   if (pendingImport) {
-                    void applyImportedCharacters(pendingImport.characters, false);
+                    void confirmImportedCharacters(false);
                   }
                 }}
                 style={styles.updateSecondaryButton}
@@ -706,7 +741,7 @@ export default function App() {
               <Pressable
                 onPress={() => {
                   if (pendingImport) {
-                    void applyImportedCharacters(pendingImport.characters, true);
+                    void confirmImportedCharacters(true);
                   }
                 }}
                 style={styles.updatePrimaryButton}
@@ -795,6 +830,7 @@ export default function App() {
           </View>
         </View>
       </Modal>
+      <TransferProgress operation={transfer} />
       </SafeAreaView>
     </SafeAreaProvider>
   );
