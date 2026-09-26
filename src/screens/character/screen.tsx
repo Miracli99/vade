@@ -1,3 +1,4 @@
+import { normalizeRollPoints } from "../../features/characters/rollPoints";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
@@ -1920,6 +1921,18 @@ export function CharacterSheetScreen({
                   onChangeText={(nextValue) => updateDraftStat(statKey, nextValue)}
                 />
               ))}
+              <EditorField
+                label="Avantage"
+                value={String(draftCharacter.advantagePoints ?? 0)}
+                keyboardType="numeric"
+                onChangeText={(value) => updateDraftField("advantagePoints", normalizeRollPoints(Number(value)))}
+              />
+              <EditorField
+                label="Désavantage"
+                value={String(draftCharacter.disadvantagePoints ?? 0)}
+                keyboardType="numeric"
+                onChangeText={(value) => updateDraftField("disadvantagePoints", normalizeRollPoints(Number(value)))}
+              />
             </View>
           </View>
           ) : null}

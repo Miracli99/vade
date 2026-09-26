@@ -1,3 +1,4 @@
+import { RollPointCounters } from "../../features/characters/RollPointCounters";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { Character } from "../../types/game";
@@ -65,6 +66,7 @@ export function StatsSkillsSection({
                 </View>
               ))}
             </View>
+            <RollPointCounters character={character} theme={theme} />
           </Section>
         </View>
       </View>

@@ -6,6 +6,8 @@ Les changements importants de Vade Retro Companion sont documentés ici.
 
 ### Nouveautés
 
+- Compteurs d’avantage et de désavantage dans les statistiques, modifiables dans la fenêtre d’édition des stats et sauvegardés par personnage pour suivre les points de relance.
+
 ### Améliorations
 
 - Un indicateur animé signale les imports et exports en cours et empêche les lancements en double.

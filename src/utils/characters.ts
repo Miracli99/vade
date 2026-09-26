@@ -1,3 +1,4 @@
+import { normalizeRollPoints } from "../features/characters/rollPoints";
 import { Character, CharacterRank, ResourcePool, Spell, StatusEffect } from "../types/game";
 import { normalizeImageModule } from "./assets";
 import { getBuiltInMediaIdForModule } from "../features/media/mediaRegistry";
@@ -161,6 +162,8 @@ export function normalizeCharacter(character: Character): Character {
     pv: normalizeResource(character.pv ?? DEFAULT_RESOURCE),
     psy: normalizeResource(character.psy ?? DEFAULT_RESOURCE, 0),
     armor: normalizeResource(character.armor ?? DEFAULT_RESOURCE),
+    advantagePoints: normalizeRollPoints(character.advantagePoints),
+    disadvantagePoints: normalizeRollPoints(character.disadvantagePoints),
     attackBonus: Math.max(0, normalizeNumber(character.attackBonus)),
     stats: {
       ...DEFAULT_STATS,

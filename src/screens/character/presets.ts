@@ -591,6 +591,8 @@ export function createTemplateCharacter(
     level: 1,
     rank: "5",
     attackBonus: 0,
+    advantagePoints: 0,
+    disadvantagePoints: 0,
     activeSpellIds: [],
     inventory: [],
     stance: "focus",

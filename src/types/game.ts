@@ -151,6 +151,8 @@ export type Character = {
   psy: ResourcePool;
   armor: ResourcePool;
   attackBonus: number;
+  advantagePoints?: number;
+  disadvantagePoints?: number;
   stats: CharacterStats;
   skills: Skill[];
   equipment: EquipmentItem[];
