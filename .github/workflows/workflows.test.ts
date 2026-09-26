@@ -6,6 +6,14 @@ describe("workflows de publication", () => {
   const ci = readFileSync(resolve(process.cwd(), ".github/workflows/ci.yml"), "utf8");
   const release = readFileSync(resolve(process.cwd(), ".github/workflows/release.yml"), "utf8");
 
+  it.each([["CI", ci], ["Release", release]])("%s exclut le paquet Android tools retire", (_name, workflow) => {
+    const setupSteps = workflow.match(/uses: android-actions\/setup-android@[^\n]+\n(?:(?!      - name:)[^\n]*\n)*/g);
+    expect(setupSteps).not.toBeNull();
+    for (const step of setupSteps ?? []) {
+      expect(step).toMatch(/packages:\s*platform-tools\s*\n/);
+    }
+  });
+
   it("ne publie aucune release sur les push ordinaires", () => {
     expect(ci).toContain("branches: [main, master]");
     expect(ci).not.toContain("action-gh-release");

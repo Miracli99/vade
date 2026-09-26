@@ -14,6 +14,8 @@ Les changements importants de Vade Retro Companion sont documentés ici.
 
 ### Corrections
 
+- Correction de la préparation du SDK Android en CI et en Release après le retrait du paquet historique `tools`.
+
 - Une erreur de chargement initial ne peut plus remplacer les personnages sauvegardés par les exemples.
 - La synchronisation conserve les fiches et médias nécessaires à la restauration de l’index de secours.
 
