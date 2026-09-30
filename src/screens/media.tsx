@@ -1,10 +1,10 @@
-import * as ImagePicker from "expo-image-picker";
+import { useMediaImport } from "../features/media/useMediaImport";
+import { MediaTile } from "../features/media/MediaTile";
 import { Image } from "expo-image";
-import { memo, useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -65,7 +65,9 @@ export function MediaLibraryScreen({
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [origin, setOrigin] = useState<OriginFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [removing, setBusy] = useState(false);
+  const mediaImport = useMediaImport();
+  const busy = removing || mediaImport.importing;
   const [message, setMessage] = useState<string | null>(null);
   const columns = isPhone ? 2 : width >= 1320 ? 4 : width >= 900 ? 3 : 2;
 
@@ -85,36 +87,13 @@ export function MediaLibraryScreen({
 
   async function importImage() {
     setMessage(null);
-    if (Platform.OS !== "web") {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setMessage("Autorisez l'accès aux images pour continuer.");
-        return;
-      }
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
-    });
-    const picked = result.canceled ? undefined : result.assets[0];
-    if (!picked?.uri) return;
-    setBusy(true);
-    try {
-      const imported = await mediaRepository.import({
-        uri: picked.uri,
-        fileName: picked.fileName,
-        mimeType: picked.mimeType,
-        category: category === "all" ? "character" : category,
-      });
-      setSelectedId(imported.id);
-      setOrigin("custom");
-      setMessage("Image ajoutée à la médiathèque.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Import impossible.");
-    } finally {
-      setBusy(false);
-    }
+    const imported = await mediaImport.importImage(category === "all" ? "character" : category);
+    if (!imported) return;
+    setSelectedId(imported.id);
+    setCategory(imported.category);
+    setQuery("");
+    setOrigin("custom");
+    setMessage("Image ajoutée à la médiathèque.");
   }
 
   async function removeSelected() {
@@ -175,7 +154,7 @@ export function MediaLibraryScreen({
           />
           <FilterRow options={CATEGORY_OPTIONS} selected={category} onSelect={setCategory} />
           <FilterRow options={ORIGIN_OPTIONS} selected={origin} onSelect={setOrigin} />
-          {message ? <Text accessibilityLiveRegion="polite" style={styles.message}>{message}</Text> : null}
+          {mediaImport.error || message ? <Text accessibilityLiveRegion="polite" style={styles.message}>{mediaImport.error ?? message}</Text> : null}
 
           <FlatList
             key={columns}
@@ -183,12 +162,14 @@ export function MediaLibraryScreen({
             numColumns={columns}
             keyExtractor={(asset) => asset.id}
             renderItem={({ item }) => (
+              <View style={{ width: `${100 / columns}%`, paddingHorizontal: 4 }}>
               <MediaTile
                 asset={item}
                 selected={item.id === selected?.id}
                 usageCount={getMediaUsage(item.id, characters).length}
                 onPress={() => setSelectedId(item.id)}
               />
+              </View>
             )}
             columnWrapperStyle={columns > 1 ? styles.gridRow : undefined}
             contentContainerStyle={styles.grid}
@@ -214,34 +195,6 @@ export function MediaLibraryScreen({
   );
 }
 
-const MediaTile = memo(function MediaTile({
-  asset,
-  selected,
-  usageCount,
-  onPress,
-}: {
-  asset: MediaAsset;
-  selected: boolean;
-  usageCount: number;
-  onPress: () => void;
-}) {
-  const source = useMediaSource(asset.id, true);
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.tile, selected ? styles.tileSelected : null, pressed ? styles.pressed : null]}
-      accessibilityRole="button"
-      accessibilityLabel={`${asset.label}, ${usageCount ? `${usageCount} utilisation(s)` : "non utilisée"}`}
-      accessibilityState={{ selected }}
-    >
-      <Image source={source} style={styles.tileImage} contentFit="cover" cachePolicy="memory-disk" transition={120} />
-      <View style={styles.tileBody}>
-        <Text style={styles.tileTitle} numberOfLines={1}>{asset.label}</Text>
-        <Text style={styles.tileMeta}>{asset.origin === "builtin" ? "Intégrée" : "Personnelle"}{usageCount ? ` · ${usageCount} usage(s)` : ""}</Text>
-      </View>
-    </Pressable>
-  );
-});
 
 function FilterRow<T extends string>({
   options,
@@ -338,13 +291,7 @@ const styles = StyleSheet.create({
   filterLabelActive: { color: modernColors.accent },
   message: { color: modernColors.textSoft, minHeight: 20 },
   grid: { paddingTop: 4, paddingBottom: 32, gap: 12 },
-  gridRow: { gap: 12 },
-  tile: { flex: 1, minWidth: 0, marginBottom: 12, overflow: "hidden", borderRadius: modernRadii.lg, borderWidth: 1, borderColor: modernColors.border, backgroundColor: modernColors.panel },
-  tileSelected: { borderColor: modernColors.accent, borderWidth: 2 },
-  tileImage: { width: "100%", aspectRatio: 1.32, backgroundColor: modernColors.shellMuted },
-  tileBody: { padding: 10, gap: 3 },
-  tileTitle: { color: modernColors.text, fontSize: 14, fontWeight: "800" },
-  tileMeta: { color: modernColors.muted, fontSize: 12 },
+  gridRow: { alignItems: "stretch" },
   detailPane: { width: 360, padding: 20, gap: 12, borderLeftWidth: 1, borderColor: modernColors.border, backgroundColor: modernColors.shell },
   detailTitle: { color: modernColors.accent, fontSize: 18, fontWeight: "800" },
   detailImage: { width: "100%", aspectRatio: 1, borderRadius: modernRadii.lg, backgroundColor: modernColors.panel },

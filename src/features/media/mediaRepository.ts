@@ -23,7 +23,7 @@ type StoredMediaAsset = Omit<MediaAsset, "imageModule" | "thumbnailModule" | "ur
   thumbnailFileName: string;
 };
 
-class MediaRepository {
+export class MediaRepository {
   private customAssets = new Map<MediaId, MediaAsset>();
   private storedAssets = new Map<MediaId, StoredMediaAsset>();
   private listeners = new Set<() => void>();
@@ -31,13 +31,16 @@ class MediaRepository {
   private initializing: Promise<void> | null = null;
   private snapshot: MediaAsset[] = BUILTIN_MEDIA_ASSETS;
   private objectUrls = new Set<string>();
+  private commitQueue: Promise<void> = Promise.resolve();
 
   initialize() {
     if (this.initialized) return Promise.resolve();
     if (this.initializing) return this.initializing;
 
-    this.initializing = this.loadStoredAssets().finally(() => {
+    this.initializing = this.loadStoredAssets().then(() => {
       this.initialized = true;
+      this.emit();
+    }).finally(() => {
       this.initializing = null;
     });
     return this.initializing;
@@ -102,10 +105,7 @@ class MediaRepository {
     };
 
     const resolved = await this.writeFiles(stored, normalized.uri, thumbResult.uri);
-    this.storedAssets.set(id, stored);
-    this.customAssets.set(id, resolved);
-    await this.persistMetadata();
-    this.emit();
+    await this.commitAsset(stored, resolved);
     return resolved;
   }
 
@@ -150,10 +150,7 @@ class MediaRepository {
       thumbnailFileName: `${input.contentHash}-thumb.webp`,
     };
     const resolved = await this.writeFiles(stored, input.uri, thumbnail.uri);
-    this.storedAssets.set(input.id, stored);
-    this.customAssets.set(input.id, resolved);
-    await this.persistMetadata();
-    this.emit();
+    await this.commitAsset(stored, resolved);
     return resolved;
   }
 
@@ -253,7 +250,9 @@ class MediaRepository {
         writeWebBlob(stored.fileName, blob),
         writeWebBlob(stored.thumbnailFileName, thumbnailBlob),
       ]);
-      return (await this.resolveStoredAsset(stored))!;
+      const resolved = await this.resolveStoredAsset(stored);
+      if (!resolved) throw new Error("L’image n’a pas pu être relue après sa sauvegarde.");
+      return resolved;
     }
     if (!FileSystem.documentDirectory) throw new Error("Stockage local indisponible.");
     const directory = `${FileSystem.documentDirectory}${MEDIA_DIRECTORY_NAME}/`;
@@ -267,6 +266,19 @@ class MediaRepository {
 
   private async persistMetadata() {
     await AsyncStorage.setItem(MEDIA_METADATA_KEY, JSON.stringify([...this.storedAssets.values()]));
+  }
+
+  private commitAsset(stored: StoredMediaAsset, resolved: MediaAsset) {
+    const commit = this.commitQueue.then(async () => {
+      const next = new Map(this.storedAssets);
+      next.set(stored.id, stored);
+      await AsyncStorage.setItem(MEDIA_METADATA_KEY, JSON.stringify([...next.values()]));
+      this.storedAssets = next;
+      this.customAssets.set(stored.id, resolved);
+      this.emit();
+    });
+    this.commitQueue = commit.catch(() => undefined);
+    return commit;
   }
 
   private emit() {
@@ -341,15 +353,15 @@ export async function migrateLegacyCharacterMedia(character: Character): Promise
 }
 
 async function normalizeImage(uri: string) {
-  let result = await manipulateAsync(uri, [], { compress: 0.82, format: SaveFormat.WEBP });
-  if (Math.max(result.width, result.height) > MAX_IMAGE_EDGE) {
-    result = await manipulateAsync(
-      uri,
-      [{ resize: result.width >= result.height ? { width: MAX_IMAGE_EDGE } : { height: MAX_IMAGE_EDGE } }],
-      { compress: 0.82, format: SaveFormat.WEBP },
-    );
-  }
-  return result;
+  const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+    Image.getSize(uri, (width, height) => resolve({ width, height }), reject);
+  });
+  return manipulateAsync(uri,
+    Math.max(width, height) > MAX_IMAGE_EDGE
+      ? [{ resize: width >= height ? { width: MAX_IMAGE_EDGE } : { height: MAX_IMAGE_EDGE } }]
+      : [],
+    { compress: 0.82, format: SaveFormat.WEBP },
+  );
 }
 
 async function readUriBytes(uri: string) {

@@ -32,7 +32,13 @@ function compareVersions(left, right) {
 }
 
 function run(command, args) {
-  const result = spawnSync(command, args, { cwd: ROOT, stdio: "inherit" });
+  // npm provides its CLI path; invoking it with Node also works on Windows,
+  // where spawnSync cannot execute npm.cmd directly.
+  const npmCli = command === npmCommand ? process.env.npm_execpath : undefined;
+  const result = spawnSync(npmCli ? process.execPath : command, npmCli ? [npmCli, ...args] : args, {
+    cwd: ROOT,
+    stdio: "inherit",
+  });
   if (result.status !== 0) throw new Error(`Commande échouée: ${command} ${args.join(" ")}`);
 }
 

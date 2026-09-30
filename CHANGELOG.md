@@ -8,7 +8,13 @@ Les changements importants de Vade Retro Companion sont documentés ici.
 
 ### Améliorations
 
+- Choix d’image commun aux portraits, dons, équipements et objets, avec accès aux images personnelles de la médiathèque.
+- Import d’image unifié avec indicateur de traitement et erreurs visibles, sans recadrage imposé.
+
 ### Corrections
+
+- Actualisation des aperçus lors du chargement du catalogue et possibilité de réessayer après un échec d’import.
+- Ouverture directe du sélecteur d’images Android sans bloquer sur une permission globale de galerie.
 
 ## [0.2.12] - 2026-09-26
 

@@ -1,6 +1,5 @@
 import { normalizeRollPoints } from "../../features/characters/rollPoints";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
-import * as ImagePicker from "expo-image-picker";
 import {
   Image,
   Modal,
@@ -62,13 +61,11 @@ import {
   stanceLabels,
 } from "../../utils/game";
 import { normalizeCharacter } from "../../utils/characters";
-import { mediaRepository } from "../../features/media/mediaRepository";
+import { MediaPicker } from "../../features/media/MediaPicker";
 import { MediaId } from "../../features/media/types";
 import { getResponsiveFlags } from "../../utils/responsive";
 import {
-  LOCAL_IMAGE_LIBRARY,
   ImageLibraryCategory,
-  LocalImageOption,
 } from "../../data/image-library";
 import { AppNavbar } from "../navbar";
 import { EditorCollapsibleCard } from "./EditorCollapsibleCard";
@@ -148,7 +145,6 @@ export function CharacterSheetScreen({
   const [rosterMessage, setRosterMessage] = useState<string | null>(null);
   const [deleteCharacterConfirm, setDeleteCharacterConfirm] = useState(false);
   const [imageLibraryTarget, setImageLibraryTarget] = useState<ImageLibraryTarget | null>(null);
-  const [imageLibraryQuery, setImageLibraryQuery] = useState("");
   const [characterMode, setCharacterMode] = useState<CharacterMode>("play");
   const suppressEditorOpenUntilRef = useRef(0);
 
@@ -200,20 +196,6 @@ export function CharacterSheetScreen({
   const normalizedBio = selectedCharacter.bio?.replace(/\s+/g, " ").trim() ?? "";
   const characterBioPreview =
     normalizedBio.length > 180 ? `${normalizedBio.slice(0, 180).trimEnd()}...` : normalizedBio;
-  const imageLibraryOptions = imageLibraryTarget
-    ? LOCAL_IMAGE_LIBRARY[getImageLibraryCategory(imageLibraryTarget)]
-    : [];
-  const imageLibraryQueryTokens = imageLibraryQuery
-    .toLowerCase()
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter(Boolean);
-  const filteredImageLibraryOptions = imageLibraryQueryTokens.length
-    ? imageLibraryOptions.filter((option) => {
-        const haystack = [option.id, option.label, ...option.tags].join(" ").toLowerCase();
-        return imageLibraryQueryTokens.every((token) => haystack.includes(token));
-      })
-    : imageLibraryOptions;
   const showOverlay =
     (activeOverlayMenu !== null && activeOverlayMenu !== "quickCast") ||
     creationDraft !== null;
@@ -226,10 +208,6 @@ export function CharacterSheetScreen({
     openCreationWizard();
     onCreationRequestHandled?.();
   }, [creationRequest, onCreationRequestHandled]);
-
-  useEffect(() => {
-    setImageLibraryQuery("");
-  }, [imageLibraryTarget]);
 
   useEffect(() => {
     if (!rosterMessage) {
@@ -822,7 +800,6 @@ export function CharacterSheetScreen({
     setDraftCharacter(null);
     setDeleteCharacterConfirm(false);
     setImageLibraryTarget(null);
-    setImageLibraryQuery("");
     setDamageDraft(null);
     setRecoveryDraft(null);
     setQuickCastDraft(null);
@@ -847,7 +824,6 @@ export function CharacterSheetScreen({
     setDraftCharacter(null);
     setDeleteCharacterConfirm(false);
     setImageLibraryTarget(null);
-    setImageLibraryQuery("");
     setQuickCastDraft(null);
   }
 
@@ -871,7 +847,6 @@ export function CharacterSheetScreen({
     setDraftCharacter(null);
     setDeleteCharacterConfirm(false);
     setImageLibraryTarget(null);
-    setImageLibraryQuery("");
     setActiveOverlayMenu(null);
     setEditorSection("all");
     setExpandedEditorCardIds(new Set());
@@ -963,24 +938,6 @@ export function CharacterSheetScreen({
           };
       }
     });
-  }
-
-  function applyLocalImage(target: ImageLibraryTarget, option: LocalImageOption) {
-    updateDraftImage(target, {
-      imageId: option.id,
-      imageModule: undefined,
-      imageUrl: undefined,
-    });
-
-    setImageLibraryTarget(null);
-    setImageLibraryQuery("");
-  }
-
-  function clearImageSelection(target: ImageLibraryTarget) {
-    updateDraftImage(target, { imageId: undefined, imageModule: undefined, imageUrl: undefined });
-
-    setImageLibraryTarget(null);
-    setImageLibraryQuery("");
   }
 
   function updateDraftField<Key extends keyof Character>(
@@ -1477,64 +1434,6 @@ export function CharacterSheetScreen({
           }
         : current,
     );
-  }
-
-  async function pickImageUri() {
-    if (Platform.OS !== "web") {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (!permission.granted) {
-        return null;
-      }
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-    });
-
-    if (result.canceled) {
-      return null;
-    }
-
-    const asset = result.assets[0];
-
-    return asset?.uri
-      ? {
-          uri: asset.uri,
-          mimeType: asset.mimeType,
-          fileName: asset.fileName,
-        }
-      : null;
-  }
-
-  async function uploadCustomImage(target: ImageLibraryTarget) {
-    const selectedImage = await pickImageUri();
-
-    if (!selectedImage) {
-      return;
-    }
-
-    try {
-      const asset = await mediaRepository.import({
-        uri: selectedImage.uri,
-        mimeType: selectedImage.mimeType,
-        fileName: selectedImage.fileName,
-        category: getImageLibraryCategory(target),
-      });
-      updateDraftImage(target, {
-        imageId: asset.id,
-        imageUrl: undefined,
-        imageModule: undefined,
-      });
-    } catch {
-      setRosterMessage("Impossible de copier cette image dans le stockage de l'app.");
-      return;
-    }
-
-    setImageLibraryTarget(null);
-    setImageLibraryQuery("");
   }
 
   function stepStatusDuration(characterId: string, statusId: string, delta: number) {
@@ -2418,143 +2317,15 @@ export function CharacterSheetScreen({
       ) : null}
 
       {imageLibraryTarget ? (
-        <Modal
-          visible
-          transparent
-          animationType="fade"
-          onRequestClose={() => {
+        <MediaPicker
+          category={getImageLibraryCategory(imageLibraryTarget)}
+          title={getImageLibraryTitle(imageLibraryTarget)}
+          onClose={() => setImageLibraryTarget(null)}
+          onSelect={(imageId) => {
+            updateDraftImage(imageLibraryTarget, { imageId });
             setImageLibraryTarget(null);
-            setImageLibraryQuery("");
           }}
-        >
-          <View style={styles.overlayBackdrop}>
-            <View
-              style={[
-                styles.overlayCard,
-                styles.imageLibraryModal,
-                { backgroundColor: activeTheme.panelBg, borderColor: activeTheme.border },
-              ]}
-            >
-              <View style={styles.overlayHeader}>
-                <View style={styles.overlayHeaderText}>
-                  <Text style={[styles.overlayTitle, { color: activeTheme.title }]}>
-                    {getImageLibraryTitle(imageLibraryTarget)}
-                  </Text>
-                  <Text style={[styles.overlaySubtitle, { color: activeTheme.subtitle }]}>
-                    Choisis une image locale ou importe un visuel personnalise.
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => {
-                    setImageLibraryTarget(null);
-                    setImageLibraryQuery("");
-                  }}
-                  style={[styles.overlayCloseButton, { borderColor: activeTheme.border }]}
-                >
-                  <Text style={[styles.overlayCloseButtonLabel, { color: activeTheme.title }]}>
-                    Fermer
-                  </Text>
-                </Pressable>
-              </View>
-
-              <ScrollView
-                style={styles.overlayScroll}
-                contentContainerStyle={styles.overlayScrollContent}
-                showsVerticalScrollIndicator={false}
-              >
-                <View
-                  style={[
-                    styles.imageLibrarySearchWrap,
-                    { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                  ]}
-                >
-                  <TextInput
-                    value={imageLibraryQuery}
-                    onChangeText={setImageLibraryQuery}
-                    placeholder="Rechercher par nom ou tag"
-                    placeholderTextColor={activeTheme.subtitle}
-                    style={[styles.imageLibrarySearchInput, { color: activeTheme.title }]}
-                  />
-                  <Text style={[styles.imageLibrarySearchHint, { color: activeTheme.subtitle }]}>
-                    Exemples: `bleu`, `kevlar`, `demoniste`, `spell`
-                  </Text>
-                </View>
-                <View style={styles.imageLibraryGrid}>
-                  {filteredImageLibraryOptions.map((option) => (
-                    <Pressable
-                      key={option.id}
-                      onPress={() => applyLocalImage(imageLibraryTarget, option)}
-                      style={[
-                        styles.imageLibraryCard,
-                        { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                      ]}
-                    >
-                      <AssetVisual
-                        label={option.label}
-                        imageModule={option.imageModule}
-                        character={getImageLibraryCategory(imageLibraryTarget) === "character"}
-                        small={getImageLibraryCategory(imageLibraryTarget) === "inventory"}
-                      />
-                      <Text style={[styles.imageLibraryCardLabel, { color: activeTheme.title }]}>
-                        {option.label}
-                      </Text>
-                      <Text
-                        style={[styles.imageLibraryCardTags, { color: activeTheme.subtitle }]}
-                        numberOfLines={3}
-                      >
-                        {option.tags.join(" · ")}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {!filteredImageLibraryOptions.length ? (
-                  <View
-                    style={[
-                      styles.overlayOptionCard,
-                      { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                    ]}
-                  >
-                    <Text style={[styles.emptyText, { color: activeTheme.subtitle }]}>
-                      Aucun visuel ne correspond a cette recherche.
-                    </Text>
-                  </View>
-                ) : null}
-              </ScrollView>
-
-              <View style={styles.overlayActions}>
-                <Pressable
-                  onPress={() => clearImageSelection(imageLibraryTarget)}
-                  style={[
-                    styles.overlaySecondaryButton,
-                    { backgroundColor: activeTheme.chipBg, borderColor: activeTheme.border },
-                  ]}
-                >
-                  <Text style={[styles.overlaySecondaryButtonLabel, { color: activeTheme.title }]}>
-                    Retirer l'image
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    void uploadCustomImage(imageLibraryTarget);
-                  }}
-                  style={[
-                    styles.overlayPrimaryButton,
-                    { backgroundColor: activeTheme.buttonBg },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.overlayPrimaryButtonLabel,
-                      { color: activeTheme.buttonText },
-                    ]}
-                  >
-                    Importer une image
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
+        />
       ) : null}
 
       <CharacterActionModals

@@ -59,6 +59,7 @@ export function AssetVisual({
     <View style={[sizeStyle, styles.imageFrame]}>
       <Image
         key={imageKey}
+        recyclingKey={imageKey}
         source={imageSource}
         style={styles.imageContent}
         contentFit={imageResizeMode}
