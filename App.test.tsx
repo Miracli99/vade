@@ -8,6 +8,9 @@ jest.mock("./src/screens/history", () => ({ HistoryScreen: "HistoryScreen" }));
 jest.mock("./src/screens/media", () => ({ MediaLibraryScreen: "MediaLibraryScreen" }));
 jest.mock("react-native-safe-area-context", () => ({ SafeAreaProvider: "SafeAreaProvider", SafeAreaView: "SafeAreaView" }));
 jest.mock("expo-status-bar", () => ({ StatusBar: "StatusBar" }));
+jest.mock("expo-constants", () => ({
+  expoConfig: { version: "0.2.13", extra: { updateManifestUrl: "https://example.com/update.json" } },
+}));
 jest.mock("./src/data/sampleCharacters", () => ({ sampleCharacters: [{ id: "demo", name: "Demo" }] }));
 jest.mock("./src/utils/characters", () => ({ normalizeCharacter: (value: unknown) => value }));
 jest.mock("./src/features/characters/characterRepository", () => ({
@@ -21,6 +24,7 @@ jest.mock("./src/utils/persistence", () => ({
   loadSyncDirectoryUri: jest.fn(), syncCharactersToDirectory: jest.fn(),
 }));
 jest.mock("./src/utils/updates", () => ({ fetchUpdateManifest: jest.fn(), isRemoteVersionNewer: jest.fn() }));
+jest.mock("./src/features/updates/installUpdate", () => ({ installAndroidUpdate: jest.fn() }));
 
 import App from "./App";
 import { characterRepository } from "./src/features/characters/characterRepository";
@@ -29,11 +33,16 @@ import { loadSyncDirectoryUri, syncCharactersToDirectory } from "./src/utils/per
 import type { Character } from "./src/types/game";
 import { archiveService } from "./src/features/data-transfer/archiveService";
 import { TransferProgress } from "./src/features/data-transfer/TransferProgress";
+import { fetchUpdateManifest, isRemoteVersionNewer } from "./src/utils/updates";
+import { installAndroidUpdate } from "./src/features/updates/installUpdate";
 
 // react-test-renderer is supplied by the jest-expo preset.
 const { act, create } = require("react-test-renderer") as {
   act: (callback: () => void | Promise<void>) => Promise<void>;
-  create: (element: React.ReactElement) => { unmount: () => void; root: { findByType: (type: unknown) => { props: Record<string, unknown> } } };
+  create: (element: React.ReactElement) => { unmount: () => void; root: {
+    findByType: (type: unknown) => { props: Record<string, unknown> };
+    findByProps: (props: Record<string, unknown>) => { props: Record<string, unknown> };
+  } };
 };
 let root: ReturnType<typeof create> | undefined;
 const savedCharacter = { id: "saved", name: "Personnage sauvegarde" } as Character;
@@ -49,6 +58,24 @@ beforeEach(() => {
   jest.mocked(mediaRepository.initialize).mockResolvedValue(undefined);
   jest.mocked(migrateLegacyCharacterMedia).mockImplementation(async (value) => value);
   jest.mocked(loadSyncDirectoryUri).mockResolvedValue("content://saved-mirror");
+});
+
+describe("installation de mise à jour", () => {
+  it("réactive le bouton après le retour de l’installateur et permet de réessayer", async () => {
+    jest.mocked(fetchUpdateManifest).mockResolvedValue({ schemaVersion: 2, version: "0.2.14", apkUrl: "https://example.com/update.apk", highlights: [] });
+    jest.mocked(isRemoteVersionNewer).mockReturnValue(true);
+    let finish!: () => void;
+    jest.mocked(installAndroidUpdate).mockImplementation(() => new Promise<void>((resolve) => { finish = resolve; }));
+    await mount();
+    const button = () => root!.root.findByProps({ accessibilityLabel: "Installer la mise à jour" });
+    await act(() => { (button().props.onPress as () => void)(); });
+    expect(button().props.disabled).toBe(true);
+    await act(async () => { finish(); });
+    expect(button().props.disabled).toBe(false);
+    await act(() => { (button().props.onPress as () => void)(); });
+    expect(installAndroidUpdate).toHaveBeenCalledTimes(2);
+    await act(async () => { finish(); });
+  });
 });
 
 describe("indicateur de transfert", () => {

@@ -1,8 +1,6 @@
 import * as Application from "expo-application";
 import Constants from "expo-constants";
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
-import * as FileSystem from "expo-file-system/legacy";
-import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -39,6 +37,7 @@ import {
 import { characterRepository } from "./src/features/characters/characterRepository";
 import { archiveService } from "./src/features/data-transfer/archiveService";
 import { TransferProgress } from "./src/features/data-transfer/TransferProgress";
+import { installAndroidUpdate } from "./src/features/updates/installUpdate";
 
 const RESOLVED_APP_VERSION = Constants.expoConfig?.version ?? "0.0.0";
 const APP_VERSION = Platform.OS === "web"
@@ -47,7 +46,6 @@ const APP_VERSION = Platform.OS === "web"
 const UPDATE_MANIFEST_URL = typeof Constants.expoConfig?.extra?.updateManifestUrl === "string"
   ? Constants.expoConfig.extra.updateManifestUrl
   : "";
-const ANDROID_APK_MIME_TYPE = "application/vnd.android.package-archive";
 const HOME_MESSAGE_DISPLAY_MS = 2500;
 const HOME_ERROR_MESSAGE_DISPLAY_MS = 8000;
 
@@ -609,28 +607,12 @@ export default function App() {
         return;
       }
 
-      const fileName = `vade-retro-${availableUpdate.version.replace(/[^a-zA-Z0-9.-]+/g, "-")}.apk`;
-      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-
-      const downloadResult = await FileSystem.downloadAsync(availableUpdate.apkUrl, fileUri);
-
-      if (downloadResult.status < 200 || downloadResult.status >= 300) {
-        throw new Error(`Telechargement refuse (${downloadResult.status}).`);
-      }
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(downloadResult.uri, {
-          mimeType: ANDROID_APK_MIME_TYPE,
-          dialogTitle: "Installer Vade Retro",
-        });
-      } else {
-        await Linking.openURL(availableUpdate.apkUrl);
-      }
-
-      setAvailableUpdate(null);
+      await installAndroidUpdate(availableUpdate.apkUrl, availableUpdate.version);
+      // Returning from Android can mean cancellation or a trip to permission settings.
+      // Keep the update available so the user can retry without checking again.
     } catch {
       setUpdateError(
-        "Impossible de telecharger ou ouvrir l'APK Android. Verifiez le lien APK ou essayez depuis un navigateur.",
+        "Impossible de télécharger ou d’ouvrir l’APK. Vérifiez votre connexion et l’autorisation d’installer des applications pour Vade Retro, puis réessayez.",
       );
     } finally {
       setInstallingUpdate(false);
@@ -808,6 +790,7 @@ export default function App() {
               </Pressable>
               <Pressable
                 onPress={() => void installDownloadedUpdate()}
+                accessibilityLabel="Installer la mise à jour"
                 style={[styles.updatePrimaryButton, installingUpdate && styles.updateButtonDisabled]}
                 disabled={installingUpdate}
               >
@@ -823,7 +806,7 @@ export default function App() {
             </View>
             {!installingUpdate ? null : (
               <Text style={styles.updateHintText}>
-                Android va gerer le telechargement de l&apos;APK et proposer l&apos;installation.
+                Après le téléchargement, Android proposera l’installation. Si nécessaire, autorisez Vade Retro à installer des applications, puis réessayez.
               </Text>
             )}
             {!installingUpdate ? null : null}

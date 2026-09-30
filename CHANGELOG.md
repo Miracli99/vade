@@ -10,6 +10,8 @@ Les changements importants de Vade Retro Companion sont documentés ici.
 
 ### Corrections
 
+- Ouverture de l’installateur Android pour les mises à jour APK à la place du menu de partage, avec possibilité de réessayer après avoir autorisé l’installation.
+
 ## [0.2.13] - 2026-09-30
 
 ### Nouveautés

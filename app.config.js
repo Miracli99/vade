@@ -14,6 +14,7 @@ module.exports = {
     assetBundlePatterns: ["**/*"],
     platforms: ["android", "web"],
     android: {
+      permissions: ["android.permission.REQUEST_INSTALL_PACKAGES"],
       adaptiveIcon: {
         foregroundImage: "./assets/vade-retro-logo.png",
         backgroundColor: "#0b1020",
