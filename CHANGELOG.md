@@ -8,6 +8,14 @@ Les changements importants de Vade Retro Companion sont documentés ici.
 
 ### Améliorations
 
+### Corrections
+
+## [0.2.13] - 2026-09-30
+
+### Nouveautés
+
+### Améliorations
+
 - Choix d’image commun aux portraits, dons, équipements et objets, avec accès aux images personnelles de la médiathèque.
 - Import d’image unifié avec indicateur de traitement et erreurs visibles, sans recadrage imposé.
 
